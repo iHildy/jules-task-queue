@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model JulesTask {
+  id                Int    @id @default(autoincrement())
+  githubRepoId      BigInt
+  githubIssueId     BigInt @unique
+  githubIssueNumber BigInt
+
+  // Repository information for easier processing
+  repoOwner String
+  repoName  String
+
+  // Processing status
+  flaggedForRetry Boolean   @default(false)
+  retryCount      Int       @default(0)
+  lastRetryAt     DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes for performance
+  @@index([flaggedForRetry])
+  @@index([repoOwner, repoName])
+  @@index([createdAt])
+  @@map("jules_tasks")
+}
+
+model WebhookLog {
+  id        Int      @id @default(autoincrement())
+  eventType String
+  payload   String // JSON string of the webhook payload
+  success   Boolean
+  error     String?
+  createdAt DateTime @default(now())
+
+  // Indexes for performance
+  @@index([eventType])
+  @@index([success])
+  @@index([createdAt])
+  @@map("webhook_logs")
+}
