@@ -6,7 +6,7 @@ import { env } from "@/lib/env";
 import { processJulesLabelEvent } from "@/lib/webhook-processor";
 import { db } from "@/server/db";
 import { GitHubLabelEventSchema } from "@/types";
-import { githubAppClient } from "@/lib/github-app";
+import { createJulesLabelsForRepositories } from "@/lib/github-labels";
 
 // GitHub webhook payload interfaces
 interface GitHubAccount {
@@ -137,83 +137,6 @@ async function logWebhookEvent(
 }
 
 /**
- * Create required Jules labels in a repository
- */
-async function createJulesLabels(
-  owner: string,
-  repo: string,
-  installationId: number,
-): Promise<void> {
-  try {
-    const octokit =
-      await githubAppClient.getInstallationOctokit(installationId);
-
-    // Define the labels to create
-    const labels = [
-      {
-        name: "jules",
-        color: "642cc2", // Jules-primary color from globals.css
-        description: "Issues that Jules bot should process",
-      },
-      {
-        name: "jules-queue",
-        color: "00d3f2", // Jules-cyan color from globals.css
-        description: "Issues queued for Jules bot processing",
-      },
-    ];
-
-    for (const label of labels) {
-      try {
-        // Try to create the label
-        await octokit.rest.issues.createLabel({
-          owner,
-          repo,
-          name: label.name,
-          color: label.color,
-          description: label.description,
-        });
-        console.log(`Created label '${label.name}' in ${owner}/${repo}`);
-      } catch (error: unknown) {
-        // If label already exists, that's fine
-        if (
-          error &&
-          typeof error === "object" &&
-          "status" in error &&
-          error.status === 422 &&
-          "response" in error &&
-          error.response &&
-          typeof error.response === "object" &&
-          "data" in error.response &&
-          error.response.data &&
-          typeof error.response.data === "object" &&
-          "errors" in error.response.data &&
-          Array.isArray(error.response.data.errors) &&
-          error.response.data.errors[0]?.code === "already_exists"
-        ) {
-          console.log(
-            `Label '${label.name}' already exists in ${owner}/${repo}`,
-          );
-        } else {
-          // Log other errors but don't fail the installation
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          console.warn(
-            `Failed to create label '${label.name}' in ${owner}/${repo}:`,
-            errorMessage,
-          );
-        }
-      }
-    }
-  } catch (error: unknown) {
-    // Log descriptive error as requested, but don't fail the installation
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(
-      `Failed to create Jules labels in ${owner}/${repo}: ${errorMessage}. This might be due to insufficient permissions - the app needs 'Issues: Write' permission to create labels.`,
-    );
-  }
-}
-
-/**
  * Handle GitHub App installation events
  */
 async function handleInstallationEvent(
@@ -293,10 +216,9 @@ async function handleInstallationEvent(
       );
 
       // Create Jules labels in all repositories
-      await Promise.all(
-        payload.repositories.map((repo: GitHubRepository) =>
-          createJulesLabels(repo.owner.login, repo.name, installation.id),
-        ),
+      await createJulesLabelsForRepositories(
+        payload.repositories,
+        installation.id,
       );
     }
 
@@ -399,11 +321,7 @@ async function handleInstallationRepositoriesEvent(
     );
 
     // Create Jules labels in newly added repositories
-    await Promise.all(
-      repositories.map((repo: GitHubRepository) =>
-        createJulesLabels(repo.owner.login, repo.name, installation.id),
-      ),
-    );
+    await createJulesLabelsForRepositories(repositories, installation.id);
 
     console.log(
       `Added ${repositories.length} repositories to installation ${installation.id}`,

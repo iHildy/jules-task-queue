@@ -259,7 +259,8 @@ GITHUB_APP_CLIENT_SECRET="your-client-secret"
 1. After installing the app, check that the following labels are automatically created:
    - **jules** - Purple label (`#642cc2`) for issues that Jules bot should process
    - **jules-queue** - Cyan label (`#00d3f2`) for issues queued for Jules bot processing
-2. If labels weren't created, check your app logs for permission errors
+2. For installations with many repositories (>10), labels are created in batches with rate limiting to prevent API issues
+3. If labels weren't created, check your app logs for permission errors
 
 ### 5.4 Test Issue Processing
 
@@ -326,6 +327,7 @@ If you need to add new permissions:
 - Check application logs for label creation errors
 - Labels may already exist if they were created manually
 - Installation events should trigger automatic label creation
+- For large repositories (>10), label creation uses batching and rate limiting
 
 ### Debug Commands
 
