@@ -31,29 +31,35 @@ This deployment uses a **centralized architecture** where:
 
 ### 2. GitHub App Setup (Prerequisite)
 
-Before you begin Firebase deployment, you **must** create a GitHub App. This app is how the service will authenticate with GitHub.
+Before you begin Firebase deployment, you **must** create and configure a GitHub App.
 
-**Follow the detailed steps in the "GitHub App Setup" section of the `SELF_HOSTING.md` guide.** This includes:
-1.  Registering the GitHub App.
-2.  Configuring permissions (Issues: Read & write, Contents: Read-only, Metadata: Read-only).
-3.  Setting up webhooks (URL: `https://your-apphosting-url/api/webhooks/github`, subscribe to Issues, Issue comment, Installation, Installation repositories events).
-4.  Generating and securely storing the private key (`.pem` file).
-5.  Noting the App ID.
-6.  Installing the App on your target repositories and noting the Installation ID (optional, if you plan to set `GITHUB_APP_INSTALLATION_ID`).
+**Please refer to the comprehensive [`GITHUB_APP_SETUP.md`](./GITHUB_APP_SETUP.md) guide located in this repository for detailed step-by-step instructions.**
 
-You will need the following pieces of information from your GitHub App to configure Firebase secrets:
-*   **App ID** (for `GITHUB_APP_ID`)
-*   **Private Key** (contents of the `.pem` file, for `GITHUB_APP_PRIVATE_KEY`)
-*   **Webhook Secret** (you created this, for `GITHUB_WEBHOOK_SECRET`)
-*   **(Optional) Installation ID** (if you choose to set `GITHUB_APP_INSTALLATION_ID`)
+This guide covers:
+- Registering the GitHub App.
+- Configuring necessary permissions.
+- Setting up Webhooks (URL, Secret, and subscribed events).
+- Generating a private key and noting your App ID.
+- Installing the app on your repositories.
+- Configuring the "Callback URL" and "Setup URL" in your GitHub App settings to point to your application's `/api/github/callback` endpoint (e.g., `[NEXT_PUBLIC_APP_URL]/api/github/callback`).
+
+You will need the following key pieces of information from your GitHub App setup to configure as Firebase secrets:
+- `NEXT_PUBLIC_APP_URL` (Your Firebase App Hosting URL)
+- `GITHUB_APP_ID`
+- `GITHUB_APP_NAME` (URL-friendly version)
+- `GITHUB_APP_PRIVATE_KEY` (contents of the `.pem` file)
+- `GITHUB_WEBHOOK_SECRET`
+- `GITHUB_APP_INSTALLATION_ID` (Optional)
 
 ### 3. Required Environment Variables (for Firebase Secrets)
 
-You'll need these values to set up as Firebase secrets:
+You'll need these values to set up as Firebase secrets using the `firebase apphosting:secrets:set <SECRET_NAME>` command:
 
+- `NEXT_PUBLIC_APP_URL`: Your Firebase App Hosting URL (e.g., `https://your-backend-id--your-project-id.us-central1.hosted.app`). This is crucial for GitHub App callbacks.
 - `DATABASE_URL`: PostgreSQL connection string.
 - `GITHUB_APP_ID`: Your GitHub App's ID.
-- `GITHUB_APP_PRIVATE_KEY`: The content of the `.pem` private key file from your GitHub App.
+- `GITHUB_APP_NAME`: The URL-friendly name of your GitHub App.
+- `GITHUB_APP_PRIVATE_KEY`: The content of the `.pem` private key file from your GitHub App. (Ensure newlines are handled, e.g., by pasting directly or formatting as `\n` if inputting as a single string).
 - `GITHUB_WEBHOOK_SECRET`: The webhook secret you configured in your GitHub App settings.
 - `CRON_SECRET`: A secure random string for authenticating cron job requests.
 - `GITHUB_APP_INSTALLATION_ID` (Optional): The Installation ID if you are targeting a single, specific installation.
@@ -119,13 +125,20 @@ firebase init apphosting
 Set up your environment variables as Firebase secrets:
 
 ```bash
+# Application URL (Your Firebase App Hosting URL)
+firebase apphosting:secrets:set NEXT_PUBLIC_APP_URL
+# Enter your Firebase App Hosting URL, e.g., https://your-backend-id--your-project-id.us-central1.hosted.app
+
 # Database connection
 firebase apphosting:secrets:set DATABASE_URL
 # Enter your PostgreSQL connection string when prompted
 
-# GitHub App Configuration
+# GitHub App Configuration (Refer to GITHUB_APP_SETUP.md)
 firebase apphosting:secrets:set GITHUB_APP_ID
 # Enter your GitHub App ID when prompted
+
+firebase apphosting:secrets:set GITHUB_APP_NAME
+# Enter your GitHub App's URL-friendly name when prompted
 
 firebase apphosting:secrets:set GITHUB_APP_PRIVATE_KEY
 # Enter the content of your GitHub App's .pem private key when prompted
@@ -136,7 +149,7 @@ firebase apphosting:secrets:set GITHUB_WEBHOOK_SECRET
 
 # Optional: GitHub App Installation ID
 firebase apphosting:secrets:set GITHUB_APP_INSTALLATION_ID
-# Enter your GitHub App Installation ID if you have a specific one to target. Otherwise, leave unset or enter a placeholder if the command requires a value.
+# Enter your GitHub App Installation ID if you have a specific one to target.
 
 # Cron job security
 firebase apphosting:secrets:set CRON_SECRET
@@ -462,15 +475,18 @@ npx prisma generate
 npx prisma migrate deploy
 ```
 
-## GitHub App Webhook Configuration
+## GitHub App URL Configuration (in GitHub App Settings)
 
-The webhook URL and secret are configured directly in your **GitHub App's settings page**, not in individual repository webhook settings.
+After deploying your application to Firebase App Hosting and obtaining its public URL (which you've set as `NEXT_PUBLIC_APP_URL`), you must configure these URLs in your GitHub App's settings on GitHub.com:
 
-1.  **Navigate to your GitHub App's settings.**
-2.  Go to the "Webhook" section.
-3.  **Webhook URL**: Ensure this is set to your Firebase App Hosting URL, e.g., `https://your-backend-id--your-project-id.us-central1.hosted.app/api/webhooks/github`.
-4.  **Webhook Secret**: Ensure this matches the `GITHUB_WEBHOOK_SECRET` value you set in Firebase secrets.
-5.  **Subscribed Events**: Verify that `Issues`, `Issue comment`, `Installation`, and `Installation repositories` are selected under "Subscribe to events".
+1.  **Navigate to your GitHub App's settings page on GitHub.**
+2.  **Webhook URL**: Set to `[NEXT_PUBLIC_APP_URL]/api/webhooks/github`.
+    *   Ensure the **Webhook secret** in GitHub matches your `GITHUB_WEBHOOK_SECRET` Firebase secret.
+    *   Verify subscribed events include `Issues`, `Issue comment`, `Installation`, and `Installation repositories`.
+3.  **Callback URL**: Set to `[NEXT_PUBLIC_APP_URL]/api/github/callback`.
+4.  **Setup URL**: Also set to `[NEXT_PUBLIC_APP_URL]/api/github/callback`. This is used after the app installation via the "Link GitHub Repository" button flow.
+
+Refer to `GITHUB_APP_SETUP.md` for more detailed guidance on where to find these settings in GitHub.
 
 ## Configuration Files
 
@@ -495,6 +511,10 @@ runConfig:
 
 # Environment variables and secrets
 env:
+  # Application's public URL
+  - variable: NEXT_PUBLIC_APP_URL
+    secret: NEXT_PUBLIC_APP_URL
+
   # Database connection - using secret for security
   - variable: DATABASE_URL
     secret: DATABASE_URL
@@ -502,6 +522,8 @@ env:
   # GitHub App integration - using secrets for security
   - variable: GITHUB_APP_ID
     secret: GITHUB_APP_ID
+  - variable: GITHUB_APP_NAME # Added for installation URL construction
+    secret: GITHUB_APP_NAME
   - variable: GITHUB_APP_PRIVATE_KEY
     secret: GITHUB_APP_PRIVATE_KEY
   - variable: GITHUB_WEBHOOK_SECRET

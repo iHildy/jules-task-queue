@@ -16,10 +16,11 @@ async function scheduleCommentCheck(
   repo: string,
   issueNumber: number,
   taskId: number,
+  installationId: number, // Added installationId
   delayMs: number = 60000, // 60 seconds
 ): Promise<void> {
   console.log(
-    `Scheduling comment check for ${owner}/${repo}#${issueNumber} in ${delayMs}ms`,
+    `Scheduling comment check for ${owner}/${repo}#${issueNumber} (Installation ID: ${installationId}) in ${delayMs}ms`,
   );
 
   // For now, use a simple setTimeout. In production, you'd want to use:
@@ -30,10 +31,10 @@ async function scheduleCommentCheck(
 
   setTimeout(async () => {
     try {
-      await executeCommentCheck(owner, repo, issueNumber, taskId);
+      await executeCommentCheck(owner, repo, issueNumber, taskId, installationId); // Pass installationId
     } catch (error) {
       console.error(
-        `Comment check failed for ${owner}/${repo}#${issueNumber}:`,
+        `Comment check failed for ${owner}/${repo}#${issueNumber} (Installation ID: ${installationId}):`,
         error,
       );
     }
@@ -48,9 +49,10 @@ async function executeCommentCheck(
   repo: string,
   issueNumber: number,
   taskId: number,
+  installationId: number, // Added installationId
 ): Promise<void> {
   console.log(
-    `Executing enhanced comment check for ${owner}/${repo}#${issueNumber}`,
+    `Executing enhanced comment check for ${owner}/${repo}#${issueNumber} (Installation ID: ${installationId})`,
   );
 
   try {
@@ -65,16 +67,18 @@ async function executeCommentCheck(
     }
 
     // Jules bot comment analysis with retry logic
+    // IMPORTANT: checkJulesComments will also need to be updated to accept installationId
     const commentResult = await checkJulesComments(
       owner,
       repo,
       issueNumber,
+      installationId, // Pass installationId
       3, // maxRetries
       0.6, // minConfidence
     );
 
     console.log(
-      `Comment analysis result for ${owner}/${repo}#${issueNumber}:`,
+      `Comment analysis result for ${owner}/${repo}#${issueNumber} (Installation ID: ${installationId}):`,
       {
         action: commentResult.action,
         confidence: commentResult.analysis?.confidence,
@@ -84,12 +88,14 @@ async function executeCommentCheck(
     );
 
     // Process the workflow decision using the enhanced system
+    // IMPORTANT: processWorkflowDecision will also need to be updated to accept installationId
     await processWorkflowDecision(
       owner,
       repo,
       issueNumber,
       taskId,
       commentResult,
+      installationId, // Pass installationId
     );
 
     // Log successful comment check
@@ -141,6 +147,7 @@ async function executeCommentCheck(
  */
 export async function processJulesLabelEvent(
   event: GitHubLabelEvent,
+  installationId: number, // Added installationId
 ): Promise<ProcessingResult> {
   const { action, label, issue, repository } = event;
   const labelName = label.name.toLowerCase();
@@ -189,7 +196,8 @@ export async function processJulesLabelEvent(
 
       // Schedule comment check after 60 seconds
       const delayMs = 60000; // 60 seconds
-      await scheduleCommentCheck(owner, repo, issue.number, task.id, delayMs);
+      // Pass installationId to scheduleCommentCheck
+      await scheduleCommentCheck(owner, repo, issue.number, task.id, installationId, delayMs);
 
       return {
         action: "timer_scheduled",
@@ -271,9 +279,13 @@ export async function processJulesLabelEvent(
 
 /**
  * Manual trigger for comment checking (useful for testing and admin operations)
+ * IMPORTANT: The caller must provide a valid installationId for the repository
+ * associated with this task. This might require fetching it based on task details
+ * or having it stored alongside the task.
  */
 export async function triggerCommentCheck(
   taskId: number,
+  installationId: number, // Added installationId
 ): Promise<ProcessingResult> {
   try {
     const task = await db.julesTask.findUnique({
@@ -295,8 +307,8 @@ export async function triggerCommentCheck(
       `Manually triggering comment check for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
     );
 
-    // Execute comment check immediately
-    await executeCommentCheck(repoOwner, repoName, issueNumber, taskId);
+    // Execute comment check immediately, passing the installationId
+    await executeCommentCheck(repoOwner, repoName, issueNumber, taskId, installationId);
 
     return {
       action: "task_updated",

@@ -72,12 +72,14 @@ export function HeroSection() {
         <GitHubDashboard />
 
         <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-8">
-          <Button
-            size="lg"
-            className="bg-white text-jules-dark cursor-pointer hover:bg-white/90 ring-2 ring-transparent hover:ring-jules-primary"
-          >
-            <SiGithub /> Link GitHub Repository
-          </Button>
+          <a href="/api/github/install" className="no-underline">
+            <Button
+              size="lg"
+              className="bg-white text-jules-dark cursor-pointer hover:bg-white/90 ring-2 ring-transparent hover:ring-jules-primary flex items-center"
+            >
+              <SiGithub className="mr-2" /> Link GitHub Repository
+            </Button>
+          </a>
         </div>
 
         {/* One-Click Deploy */}

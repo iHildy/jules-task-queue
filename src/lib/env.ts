@@ -6,11 +6,13 @@ const envSchema = z.object({
 
   // GitHub Integration
   GITHUB_APP_ID: z.string().min(1, "GITHUB_APP_ID is required"),
+  GITHUB_APP_NAME: z.string().min(1, "GITHUB_APP_NAME is required for installation URL"), // The URL-friendly name of your GitHub App
   GITHUB_APP_PRIVATE_KEY: z.string().min(1, "GITHUB_APP_PRIVATE_KEY is required"),
   GITHUB_APP_INSTALLATION_ID: z.string().optional(), // Optional: Can be derived from webhooks
   GITHUB_WEBHOOK_SECRET: z.string().optional(),
 
   // Application
+  NEXT_PUBLIC_APP_URL: z.string().url("NEXT_PUBLIC_APP_URL must be a valid URL").min(1, "NEXT_PUBLIC_APP_URL is required"),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),

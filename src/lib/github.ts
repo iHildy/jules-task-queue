@@ -333,17 +333,18 @@ class GitHubClient {
     owner: string,
     repo: string,
     issue_number: number,
-    removeLabel: string,
-    addLabel: string,
+    removeLabelName: string,
+    addLabelName: string,
+    installationId?: number,
   ) {
     try {
       // Remove the old label and add the new one
       await Promise.all([
-        this.removeLabel(owner, repo, issue_number, removeLabel),
-        this.addLabel(owner, repo, issue_number, addLabel),
+        this.removeLabel(owner, repo, issue_number, removeLabelName, installationId),
+        this.addLabel(owner, repo, issue_number, addLabelName, installationId),
       ]);
       console.log(
-        `Swapped labels: '${removeLabel}' -> '${addLabel}' on ${owner}/${repo}#${issue_number}`,
+        `Swapped labels: '${removeLabelName}' -> '${addLabelName}' on ${owner}/${repo}#${issue_number} (installationId: ${installationId || 'default'})`,
       );
     } catch (error) {
       console.error(
