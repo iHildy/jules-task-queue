@@ -5,7 +5,9 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
 
   // GitHub Integration
-  GITHUB_TOKEN: z.string().min(1, "GITHUB_TOKEN is required"),
+  GITHUB_APP_ID: z.string().min(1, "GITHUB_APP_ID is required"),
+  GITHUB_APP_PRIVATE_KEY: z.string().min(1, "GITHUB_APP_PRIVATE_KEY is required"),
+  GITHUB_APP_INSTALLATION_ID: z.string().optional(), // Optional: Can be derived from webhooks
   GITHUB_WEBHOOK_SECRET: z.string().optional(),
 
   // Application

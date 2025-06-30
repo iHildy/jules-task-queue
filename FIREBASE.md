@@ -29,14 +29,34 @@ This deployment uses a **centralized architecture** where:
 - Firebase CLI installed (`npm install -g firebase-tools`)
 - GitHub repository with your forked version of this project
 
-### 2. Required Environment Variables
+### 2. GitHub App Setup (Prerequisite)
 
-You'll need these values during setup:
+Before you begin Firebase deployment, you **must** create a GitHub App. This app is how the service will authenticate with GitHub.
 
-- `DATABASE_URL`: PostgreSQL connection string
-- `GITHUB_TOKEN`: GitHub Personal Access Token with repo permissions
-- `GITHUB_WEBHOOK_SECRET`: Secret for GitHub webhook verification
-- `CRON_SECRET`: Random string for cron job authentication
+**Follow the detailed steps in the "GitHub App Setup" section of the `SELF_HOSTING.md` guide.** This includes:
+1.  Registering the GitHub App.
+2.  Configuring permissions (Issues: Read & write, Contents: Read-only, Metadata: Read-only).
+3.  Setting up webhooks (URL: `https://your-apphosting-url/api/webhooks/github`, subscribe to Issues, Issue comment, Installation, Installation repositories events).
+4.  Generating and securely storing the private key (`.pem` file).
+5.  Noting the App ID.
+6.  Installing the App on your target repositories and noting the Installation ID (optional, if you plan to set `GITHUB_APP_INSTALLATION_ID`).
+
+You will need the following pieces of information from your GitHub App to configure Firebase secrets:
+*   **App ID** (for `GITHUB_APP_ID`)
+*   **Private Key** (contents of the `.pem` file, for `GITHUB_APP_PRIVATE_KEY`)
+*   **Webhook Secret** (you created this, for `GITHUB_WEBHOOK_SECRET`)
+*   **(Optional) Installation ID** (if you choose to set `GITHUB_APP_INSTALLATION_ID`)
+
+### 3. Required Environment Variables (for Firebase Secrets)
+
+You'll need these values to set up as Firebase secrets:
+
+- `DATABASE_URL`: PostgreSQL connection string.
+- `GITHUB_APP_ID`: Your GitHub App's ID.
+- `GITHUB_APP_PRIVATE_KEY`: The content of the `.pem` private key file from your GitHub App.
+- `GITHUB_WEBHOOK_SECRET`: The webhook secret you configured in your GitHub App settings.
+- `CRON_SECRET`: A secure random string for authenticating cron job requests.
+- `GITHUB_APP_INSTALLATION_ID` (Optional): The Installation ID if you are targeting a single, specific installation.
 
 ## Step-by-Step Deployment
 
@@ -103,12 +123,20 @@ Set up your environment variables as Firebase secrets:
 firebase apphosting:secrets:set DATABASE_URL
 # Enter your PostgreSQL connection string when prompted
 
-# GitHub configuration
-firebase apphosting:secrets:set GITHUB_TOKEN
-# Enter your GitHub Personal Access Token when prompted
+# GitHub App Configuration
+firebase apphosting:secrets:set GITHUB_APP_ID
+# Enter your GitHub App ID when prompted
+
+firebase apphosting:secrets:set GITHUB_APP_PRIVATE_KEY
+# Enter the content of your GitHub App's .pem private key when prompted
+# Ensure to format it correctly, replacing newlines with \n if pasting as a single line.
 
 firebase apphosting:secrets:set GITHUB_WEBHOOK_SECRET
-# Enter your webhook secret when prompted
+# Enter the Webhook secret from your GitHub App settings when prompted
+
+# Optional: GitHub App Installation ID
+firebase apphosting:secrets:set GITHUB_APP_INSTALLATION_ID
+# Enter your GitHub App Installation ID if you have a specific one to target. Otherwise, leave unset or enter a placeholder if the command requires a value.
 
 # Cron job security
 firebase apphosting:secrets:set CRON_SECRET
@@ -434,15 +462,15 @@ npx prisma generate
 npx prisma migrate deploy
 ```
 
-## GitHub Webhook Setup
+## GitHub App Webhook Configuration
 
-1. Go to your repository → Settings → Webhooks
-2. Click "Add webhook"
-3. **Payload URL**: `https://your-backend-id--your-project-id.us-central1.hosted.app/api/webhooks/github`
-4. **Content type**: `application/json`
-5. **Secret**: Your `GITHUB_WEBHOOK_SECRET` value
-6. **Events**: Select "Issues"
-7. **Active**: ✓ Checked
+The webhook URL and secret are configured directly in your **GitHub App's settings page**, not in individual repository webhook settings.
+
+1.  **Navigate to your GitHub App's settings.**
+2.  Go to the "Webhook" section.
+3.  **Webhook URL**: Ensure this is set to your Firebase App Hosting URL, e.g., `https://your-backend-id--your-project-id.us-central1.hosted.app/api/webhooks/github`.
+4.  **Webhook Secret**: Ensure this matches the `GITHUB_WEBHOOK_SECRET` value you set in Firebase secrets.
+5.  **Subscribed Events**: Verify that `Issues`, `Issue comment`, `Installation`, and `Installation repositories` are selected under "Subscribe to events".
 
 ## Configuration Files
 
@@ -471,12 +499,16 @@ env:
   - variable: DATABASE_URL
     secret: DATABASE_URL
 
-  # GitHub integration - using secrets for security
-  - variable: GITHUB_TOKEN
-    secret: GITHUB_TOKEN
-
+  # GitHub App integration - using secrets for security
+  - variable: GITHUB_APP_ID
+    secret: GITHUB_APP_ID
+  - variable: GITHUB_APP_PRIVATE_KEY
+    secret: GITHUB_APP_PRIVATE_KEY
   - variable: GITHUB_WEBHOOK_SECRET
     secret: GITHUB_WEBHOOK_SECRET
+  # Optional: Only set if you have a specific installation to target globally
+  - variable: GITHUB_APP_INSTALLATION_ID
+    secret: GITHUB_APP_INSTALLATION_ID
 
   # Cron job authentication
   - variable: CRON_SECRET

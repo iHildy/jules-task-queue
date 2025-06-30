@@ -144,6 +144,15 @@ export async function POST(req: NextRequest) {
     // Parse as label event
     const labelEvent = GitHubLabelEventSchema.parse(payload);
 
+    // Installation ID is crucial for GitHub App operations
+    const installationId = labelEvent.installation?.id;
+    if (!installationId) {
+      const errorMessage = "Missing installation ID in webhook payload";
+      console.error(errorMessage, { eventType, action: labelEvent.action });
+      await logWebhookEvent(eventType, payload, false, errorMessage);
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
+    }
+
     // Only process 'jules' and 'jules-queue' label events
     const labelName = labelEvent.label.name.toLowerCase();
     if (!["jules", "jules-queue"].includes(labelName)) {
@@ -172,10 +181,10 @@ export async function POST(req: NextRequest) {
 
     // Process the Jules label event
     console.log(
-      `Processing ${labelEvent.action} event for label '${labelName}' on ${labelEvent.repository.full_name}#${labelEvent.issue.number}`,
+      `Processing ${labelEvent.action} event for label '${labelName}' on ${labelEvent.repository.full_name}#${labelEvent.issue.number} (Installation ID: ${installationId})`,
     );
 
-    const result = await processJulesLabelEvent(labelEvent);
+    const result = await processJulesLabelEvent(labelEvent, installationId);
 
     await logWebhookEvent(eventType, payload, true);
 

@@ -28,10 +28,16 @@ export const GitHubLabelEventSchema = z.object({
     login: z.string(),
     type: z.string(),
   }),
+  installation: z.object({
+    id: z.number(),
+  }).optional(), // Optional because not all webhooks might have it, but app webhooks do
 });
 
 export const GitHubWebhookEventSchema = z.object({
   action: z.string(),
+  installation: z.object({ // Installation ID is crucial for App authentication
+    id: z.number(),
+  }).optional(), // Making it optional for broader webhook compatibility, but will be required for app events
   issue: z
     .object({
       id: z.number(),
