@@ -52,7 +52,7 @@ class GitHubAppClient {
 
     try {
       // Get new token
-      const response = await this.app.octokit.rest.apps.createInstallationAccessToken({
+      const response = await this.app.octokit.request("POST /app/installations/{installation_id}/access_tokens", {
         installation_id: installationId,
       });
 
@@ -92,7 +92,7 @@ class GitHubAppClient {
     }
 
     try {
-      const { data } = await this.app.octokit.rest.apps.listInstallations();
+      const { data } = await this.app.octokit.request("GET /app/installations");
       return data;
     } catch (error) {
       console.error("Failed to get installations:", error);
@@ -109,7 +109,7 @@ class GitHubAppClient {
     }
 
     try {
-      const { data } = await this.app.octokit.rest.apps.listInstallationReposForAuthenticatedApp({
+      const { data } = await this.app.octokit.request("GET /installation/repositories", {
         installation_id: installationId,
       });
       return data.repositories;
@@ -128,7 +128,7 @@ class GitHubAppClient {
 
       for (const installation of installations) {
         const repositories = await this.getInstallationRepositories(installation.id);
-        const found = repositories.find((r: any) => r.owner.login === owner && r.name === repo);
+        const found = repositories.find((r: { owner: { login: string }; name: string }) => r.owner.login === owner && r.name === repo);
         if (found) {
           return installation.id;
         }
@@ -267,7 +267,7 @@ class GitHubAppClient {
     }
 
     try {
-      const { data } = await this.app.octokit.rest.apps.getAuthenticated();
+      const { data } = await this.app.octokit.request("GET /app");
       return data;
     } catch (error) {
       console.error("Failed to get app info:", error);

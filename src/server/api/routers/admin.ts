@@ -8,6 +8,44 @@ import { getProcessingStats } from "@/lib/webhook-processor";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
 import { z } from "zod";
 
+// Type definitions for installation data
+interface InstallationWithCounts {
+  id: number;
+  accountLogin: string;
+  accountType: string;
+  repositorySelection: string;
+  createdAt: Date;
+  updatedAt: Date;
+  suspendedAt: Date | null;
+  suspendedBy: string | null;
+  _count: {
+    repositories: number;
+    tasks: number;
+  };
+}
+
+interface InstallationRepository {
+  id: number;
+  name: string;
+  fullName: string;
+  owner: string;
+  private: boolean;
+  htmlUrl: string;
+  description: string | null;
+  addedAt: Date;
+}
+
+interface InstallationTask {
+  id: number;
+  githubIssueNumber: bigint;
+  repoOwner: string;
+  repoName: string;
+  flaggedForRetry: boolean;
+  retryCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export const adminRouter = createTRPCRouter({
   // Manually trigger retry for all flagged tasks
   retryAll: adminProcedure.mutation(async () => {
@@ -59,7 +97,7 @@ export const adminRouter = createTRPCRouter({
     const tasks = await getFlaggedTasks();
 
     return {
-      tasks: tasks.map((task) => ({
+      tasks: tasks.map((task: { id: number; githubIssueNumber: bigint; repoOwner: string; repoName: string; retryCount: number; lastRetryAt: Date | null; createdAt: Date; updatedAt: Date }) => ({
         id: task.id,
         githubIssueNumber: Number(task.githubIssueNumber),
         repoOwner: task.repoOwner,
@@ -105,7 +143,7 @@ export const adminRouter = createTRPCRouter({
       }
 
       return {
-        logs: logs.map((log) => ({
+        logs: logs.map((log: { id: number; eventType: string; success: boolean; error: string | null; createdAt: Date; payload: string | null }) => ({
           id: log.id,
           eventType: log.eventType,
           success: log.success,
@@ -226,7 +264,7 @@ export const adminRouter = createTRPCRouter({
         },
         tasks: {
           distribution: taskDistribution.reduce(
-            (acc, item) => {
+            (acc: Record<string, number>, item: { flaggedForRetry: boolean; _count: number }) => {
               acc[item.flaggedForRetry ? "queued" : "active"] = item._count;
               return acc;
             },
@@ -252,7 +290,7 @@ export const adminRouter = createTRPCRouter({
       const installations = await installationService.getActiveInstallations();
       
       return {
-        installations: installations.map((installation: any) => ({
+        installations: installations.map((installation: InstallationWithCounts) => ({
           id: installation.id,
           accountLogin: installation.accountLogin,
           accountType: installation.accountType,
@@ -291,7 +329,7 @@ export const adminRouter = createTRPCRouter({
           updatedAt: installation.updatedAt,
           suspendedAt: installation.suspendedAt,
           suspendedBy: installation.suspendedBy,
-          repositories: installation.repositories.map((repo: any) => ({
+          repositories: installation.repositories.map((repo: InstallationRepository) => ({
             id: repo.id,
             name: repo.name,
             fullName: repo.fullName,
@@ -301,7 +339,7 @@ export const adminRouter = createTRPCRouter({
             description: repo.description,
             addedAt: repo.addedAt,
           })),
-          tasks: installation.tasks.map((task: any) => ({
+          tasks: installation.tasks.map((task: InstallationTask) => ({
             id: task.id,
             githubIssueNumber: Number(task.githubIssueNumber),
             repoOwner: task.repoOwner,
