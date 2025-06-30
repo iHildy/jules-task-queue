@@ -287,6 +287,123 @@ curl "https://your-app.vercel.app/api/trpc/admin.logs?input={\"eventType\":\"cro
 curl "https://your-app.vercel.app/api/trpc/admin.health"
 ```
 
+### `admin.installations.list`
+
+**Purpose**: Get all GitHub App installations.
+
+**Input**: None
+
+**Output**:
+
+```typescript
+{
+  installations: Installation[];
+  count: number;
+}
+```
+
+### `admin.installations.detail`
+
+**Purpose**: Get detailed information about a specific installation.
+
+**Input**:
+
+```typescript
+{
+  installationId: number;
+}
+```
+
+**Output**:
+
+```typescript
+{
+  id: number;
+  accountLogin: string;
+  repositoryCount: number;
+  repositories: Repository[];
+  tasks: Task[];
+  // ... other installation details
+}
+```
+
+### `admin.installations.sync`
+
+**Purpose**: Sync a specific installation with GitHub.
+
+**Input**:
+
+```typescript
+{
+  installationId: number;
+}
+```
+
+**Output**:
+
+```typescript
+{
+  success: boolean;
+  message: string;
+  data?: Installation;
+}
+```
+
+### `admin.installations.syncAll`
+
+**Purpose**: Sync all installations with GitHub.
+
+**Input**: None
+
+**Output**:
+
+```typescript
+{
+  success: boolean;
+  message: string;
+  results: SyncResult[];
+  stats: { successful: number; failed: number; total: number; };
+}
+```
+
+### `admin.installations.stats`
+
+**Purpose**: Get installation statistics.
+
+**Input**: None
+
+**Output**:
+
+```typescript
+{
+  totalInstallations: number;
+  activeInstallations: number;
+  suspendedInstallations: number;
+  totalRepositories: number;
+  totalTasks: number;
+  recentInstallations: number;
+  healthyPercentage: number;
+}
+```
+
+**Example Usage**:
+
+```bash
+# List all installations
+curl "https://your-app.vercel.app/api/trpc/admin.installations.list"
+
+# Get installation details
+curl "https://your-app.vercel.app/api/trpc/admin.installations.detail?input={\"installationId\":123}"
+
+# Sync specific installation
+curl -X POST "https://your-app.vercel.app/api/trpc/admin.installations.sync" \
+  -H "Content-Type: application/json" \
+  -d '{"installationId": 123}'
+
+# Get installation statistics
+curl "https://your-app.vercel.app/api/trpc/admin.installations.stats"
+```
+
 ---
 
 ## Webhook Router (`webhook.ts`)

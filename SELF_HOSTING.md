@@ -9,7 +9,7 @@ The easiest way to self-host is using the provided Docker Compose setup:
 ### 1. Prerequisites
 
 - Docker and Docker Compose installed
-- GitHub App or Personal Access Token with repo permissions
+- GitHub App credentials (see [GitHub App Setup Guide](./GITHUB_APP_SETUP.md))
 - PostgreSQL database (provided in docker-compose.yml)
 
 ### 2. Environment Setup
@@ -17,12 +17,16 @@ The easiest way to self-host is using the provided Docker Compose setup:
 Create a `.env` file in the project root:
 
 ```bash
-# GitHub Configuration
-GITHUB_TOKEN=your_github_personal_access_token_or_app_token
-GITHUB_WEBHOOK_SECRET=your_webhook_secret_from_github
-
 # Database (matches docker-compose.yml)
 DATABASE_URL=postgresql://jules:jules_password@db:5432/jules_queue
+
+# GitHub App Configuration
+GITHUB_APP_ID=your_github_app_id
+GITHUB_APP_PRIVATE_KEY=your_github_app_private_key
+GITHUB_APP_WEBHOOK_SECRET=your_github_app_webhook_secret
+GITHUB_APP_CLIENT_ID=your_github_app_client_id
+GITHUB_APP_CLIENT_SECRET=your_github_app_client_secret
+GITHUB_APP_NAME=your_github_app_name
 
 # Security
 CRON_SECRET=your_secure_random_string_for_cron_authentication
@@ -135,20 +139,25 @@ In your platform's scheduled tasks:
 
 ### Environment Variables
 
-| Variable                | Required    | Description                                                     |
-| ----------------------- | ----------- | --------------------------------------------------------------- |
-| `GITHUB_TOKEN`          | Yes         | GitHub Personal Access Token or App token with repo permissions |
-| `GITHUB_WEBHOOK_SECRET` | Yes         | Secret used to verify GitHub webhook signatures                 |
-| `DATABASE_URL`          | Yes         | PostgreSQL connection string                                    |
-| `CRON_SECRET`           | Recommended | Secret for authenticating cron job requests                     |
-| `NODE_ENV`              | No          | Set to `production` for production deployments                  |
+| Variable                      | Required    | Description                                                     |
+| ----------------------------- | ----------- | --------------------------------------------------------------- |
+| `DATABASE_URL`                | Yes         | PostgreSQL connection string                                    |
+| `GITHUB_APP_ID`               | Yes         | GitHub App ID from your app settings                           |
+| `GITHUB_APP_PRIVATE_KEY`      | Yes         | GitHub App private key (base64 encoded or with \n)             |
+| `GITHUB_APP_WEBHOOK_SECRET`   | Yes         | Secret used to verify GitHub App webhook signatures            |
+| `GITHUB_APP_CLIENT_ID`        | No          | GitHub App client ID (for OAuth, if needed)                   |
+| `GITHUB_APP_CLIENT_SECRET`    | No          | GitHub App client secret (for OAuth, if needed)               |
+| `GITHUB_APP_NAME`             | No          | GitHub App name (defaults to 'jules-task-queue')              |
+| `CRON_SECRET`                 | Recommended | Secret for authenticating cron job requests                     |
+| `NODE_ENV`                    | No          | Set to `production` for production deployments                  |
 
-### GitHub Webhook Setup
+### GitHub App Setup
 
-1. Go to your repository settings → Webhooks
-2. Add webhook with URL: `https://your-domain.com/api/webhooks/github`
-3. Select "Issues" events
-4. Set the secret to match your `GITHUB_WEBHOOK_SECRET`
+**Note**: Webhooks are automatically configured when users install your GitHub App on their repositories.
+
+1. Create your GitHub App following the [GitHub App Setup Guide](./GITHUB_APP_SETUP.md)
+2. Configure your GitHub App webhook URL to: `https://your-domain.com/api/webhooks/github-app`
+3. Users can install your app on their repositories for automatic webhook setup
 
 ## Monitoring & Maintenance
 

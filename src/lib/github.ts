@@ -1,4 +1,5 @@
 import { githubAppClient } from "@/lib/github-app";
+import { installationService } from "@/lib/installation-service";
 import type { Octokit } from "@octokit/rest";
 
 /**
@@ -24,10 +25,10 @@ class GitHubClient {
   }
 
   /**
-   * Check if repository exists and is accessible
+   * Check if repository exists and is accessible through any installation
    */
   public async checkRepository(owner: string, repo: string): Promise<boolean> {
-    return githubAppClient.isRepositoryAccessible(owner, repo);
+    return installationService.isRepositoryAccessible(owner, repo);
   }
 
   /**

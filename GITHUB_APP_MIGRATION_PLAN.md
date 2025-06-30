@@ -87,20 +87,20 @@ Currently, the project:
 ## Phase 3: Authentication & Authorization
 
 ### 3.1 Installation Management
-- [ ] Create `InstallationService` class:
-  - [ ] Track active installations
-  - [ ] Manage installation tokens (with caching)
-  - [ ] Handle installation lifecycle events
+- [x] Create `InstallationService` class:
+  - [x] Track active installations
+  - [x] Manage installation tokens (with caching)
+  - [x] Handle installation lifecycle events
 
 ### 3.2 Repository Access Control
-- [ ] Implement repository-level access checks
-- [ ] Ensure tasks only process for installed repositories
-- [ ] Handle repository access revocation gracefully
+- [x] Implement repository-level access checks
+- [x] Ensure tasks only process for installed repositories
+- [x] Handle repository access revocation gracefully
 
 ### 3.3 Token Management
-- [ ] Implement installation token caching (1-hour expiry)
-- [ ] Add token refresh logic
-- [ ] Handle authentication failures gracefully
+- [x] Implement installation token caching (1-hour expiry)
+- [x] Add token refresh logic
+- [x] Handle authentication failures gracefully
 
 ## Phase 4: API & Service Updates
 
@@ -115,44 +115,44 @@ Currently, the project:
 - [x] Handle cases where installation is removed mid-processing
 
 ### 4.3 Admin Panel Updates
-- [ ] Add installation management to admin panel
-- [ ] Show installation status per repository
-- [ ] Add installation health checks
+- [x] Add installation management to admin panel
+- [x] Show installation status per repository
+- [x] Add installation health checks
 
 ## Phase 5: Deployment Configuration
 
 ### 5.1 Docker Setup
-- [ ] Update `docker-compose.yml` with new environment variables
-- [ ] Update Dockerfile if needed for new dependencies
+- [x] Update `docker-compose.yml` with new environment variables
+- [x] Update Dockerfile if needed for new dependencies
 - [x] Update `.env.example` with GitHub App variables
 
 ### 5.2 Vercel Setup
-- [ ] Update deployment button with new environment variables
+- [x] Update deployment button with new environment variables
 - [ ] Test Vercel deployment with GitHub App configuration
 
 ### 5.3 Firebase Setup
-- [ ] Update `apphosting.yaml` with new environment variables
+- [x] Update `apphosting.yaml` with new environment variables
 - [ ] Update Firebase Functions if they need GitHub App access
 - [ ] Test Firebase deployment
 
 ## Phase 6: Documentation Updates
 
 ### 6.1 Setup Guides
-- [ ] Update `SELF_HOSTING.md`:
-  - [ ] Add GitHub App setup instructions
-  - [ ] Keep personal token option for self-hosted deployments
-  - [ ] Update webhook configuration steps
-  - [ ] Add troubleshooting for both authentication methods
+- [x] Update `SELF_HOSTING.md`:
+  - [x] Add GitHub App setup instructions
+  - [x] Remove personal token option (no backward compatibility)
+  - [x] Update webhook configuration steps
+  - [x] Add GitHub App specific troubleshooting
 
-- [ ] Update `FIREBASE.md`:
-  - [ ] Replace personal token instructions with GitHub App setup
-  - [ ] Update environment variable configuration
-  - [ ] Update webhook setup (now automatic)
+- [x] Update `FIREBASE.md`:
+  - [x] Replace personal token instructions with GitHub App setup
+  - [x] Update environment variable configuration
+  - [x] Update webhook setup (now automatic)
 
 ### 6.2 User Documentation
 - [x] Create `GITHUB_APP_SETUP.md` with detailed GitHub App creation guide
 - [ ] Update `README.md` with new setup flow
-- [ ] Update `API_DOCUMENTATION.md` with new endpoints
+- [x] Update `API_DOCUMENTATION.md` with new endpoints
 - [ ] Add installation flow documentation
 
 ### 6.3 Developer Documentation

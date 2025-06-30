@@ -18,12 +18,24 @@ env:
   - variable: DATABASE_URL
     secret: DATABASE_URL
 
-  # GitHub integration - using secrets for security
-  - variable: GITHUB_TOKEN
-    secret: GITHUB_TOKEN
+  # GitHub App integration - using secrets for security
+  - variable: GITHUB_APP_ID
+    secret: GITHUB_APP_ID
 
-  - variable: GITHUB_WEBHOOK_SECRET
-    secret: GITHUB_WEBHOOK_SECRET
+  - variable: GITHUB_APP_PRIVATE_KEY
+    secret: GITHUB_APP_PRIVATE_KEY
+
+  - variable: GITHUB_APP_WEBHOOK_SECRET
+    secret: GITHUB_APP_WEBHOOK_SECRET
+
+  - variable: GITHUB_APP_CLIENT_ID
+    secret: GITHUB_APP_CLIENT_ID
+
+  - variable: GITHUB_APP_CLIENT_SECRET
+    secret: GITHUB_APP_CLIENT_SECRET
+
+  - variable: GITHUB_APP_NAME
+    secret: GITHUB_APP_NAME
 
   # Cron job authentication
   - variable: CRON_SECRET

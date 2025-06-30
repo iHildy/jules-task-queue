@@ -34,8 +34,12 @@ This deployment uses a **centralized architecture** where:
 You'll need these values during setup:
 
 - `DATABASE_URL`: PostgreSQL connection string
-- `GITHUB_TOKEN`: GitHub Personal Access Token with repo permissions
-- `GITHUB_WEBHOOK_SECRET`: Secret for GitHub webhook verification
+- `GITHUB_APP_ID`: GitHub App ID from your app settings
+- `GITHUB_APP_PRIVATE_KEY`: GitHub App private key (base64 encoded)
+- `GITHUB_APP_WEBHOOK_SECRET`: Secret for GitHub App webhook verification
+- `GITHUB_APP_CLIENT_ID`: GitHub App client ID (optional)
+- `GITHUB_APP_CLIENT_SECRET`: GitHub App client secret (optional)
+- `GITHUB_APP_NAME`: Your GitHub App name (optional)
 - `CRON_SECRET`: Random string for cron job authentication
 
 ## Step-by-Step Deployment
@@ -103,12 +107,24 @@ Set up your environment variables as Firebase secrets:
 firebase apphosting:secrets:set DATABASE_URL
 # Enter your PostgreSQL connection string when prompted
 
-# GitHub configuration
-firebase apphosting:secrets:set GITHUB_TOKEN
-# Enter your GitHub Personal Access Token when prompted
+# GitHub App configuration
+firebase apphosting:secrets:set GITHUB_APP_ID
+# Enter your GitHub App ID when prompted
 
-firebase apphosting:secrets:set GITHUB_WEBHOOK_SECRET
-# Enter your webhook secret when prompted
+firebase apphosting:secrets:set GITHUB_APP_PRIVATE_KEY
+# Enter your GitHub App private key when prompted
+
+firebase apphosting:secrets:set GITHUB_APP_WEBHOOK_SECRET
+# Enter your GitHub App webhook secret when prompted
+
+firebase apphosting:secrets:set GITHUB_APP_CLIENT_ID
+# Enter your GitHub App client ID when prompted (optional)
+
+firebase apphosting:secrets:set GITHUB_APP_CLIENT_SECRET
+# Enter your GitHub App client secret when prompted (optional)
+
+firebase apphosting:secrets:set GITHUB_APP_NAME
+# Enter your GitHub App name when prompted (optional)
 
 # Cron job security
 firebase apphosting:secrets:set CRON_SECRET
@@ -434,15 +450,14 @@ npx prisma generate
 npx prisma migrate deploy
 ```
 
-## GitHub Webhook Setup
+## GitHub App Setup
 
-1. Go to your repository → Settings → Webhooks
-2. Click "Add webhook"
-3. **Payload URL**: `https://your-backend-id--your-project-id.us-central1.hosted.app/api/webhooks/github`
-4. **Content type**: `application/json`
-5. **Secret**: Your `GITHUB_WEBHOOK_SECRET` value
-6. **Events**: Select "Issues"
-7. **Active**: ✓ Checked
+**Note**: Webhooks are automatically configured when users install your GitHub App.
+
+1. Create your GitHub App following the [GitHub App Setup Guide](./GITHUB_APP_SETUP.md)
+2. Configure your GitHub App webhook URL to: `https://your-backend-id--your-project-id.us-central1.hosted.app/api/webhooks/github-app`
+3. Users can install your app on their repositories by visiting your app's installation page
+4. Installation and webhook management is handled automatically
 
 ## Configuration Files
 
