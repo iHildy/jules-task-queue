@@ -139,9 +139,9 @@ class GitHubClient {
     try {
       await githubAppClient.removeLabel(owner, repo, issue_number, label);
       console.log(`Removed label '${label}' from ${owner}/${repo}#${issue_number}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If label doesn't exist, that's fine
-      if (error.message && error.message.includes("Label does not exist")) {
+      if (error instanceof Error && error.message.includes("Label does not exist")) {
         console.log(`Label '${label}' doesn't exist on ${owner}/${repo}#${issue_number}`);
         return;
       }

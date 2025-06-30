@@ -49,13 +49,13 @@ function SuccessContent() {
             <li className="flex items-start">
               <CheckCircle className="w-5 h-5 mr-3 text-green-400 mt-0.5 flex-shrink-0" />
               <span>
-                <strong className="text-white">Automatic webhook setup:</strong> We've configured webhooks to monitor your repository for Jules label events.
+                <strong className="text-white">Automatic webhook setup:</strong> We&apos;ve configured webhooks to monitor your repository for Jules label events.
               </span>
             </li>
             <li className="flex items-start">
               <CheckCircle className="w-5 h-5 mr-3 text-green-400 mt-0.5 flex-shrink-0" />
               <span>
-                <strong className="text-white">Smart queue management:</strong> When you add the "jules" label to an issue, we'll automatically queue it and manage the 5-task limit.
+                <strong className="text-white">Smart queue management:</strong> When you add the &quot;jules&quot; label to an issue, we&apos;ll automatically queue it and manage the 5-task limit.
               </span>
             </li>
             <li className="flex items-start">
@@ -72,7 +72,7 @@ function SuccessContent() {
             🚀 Ready to use your full 60 tasks per day?
           </h3>
           <p className="text-jules-gray mb-4">
-            Simply add the <code className="bg-jules-primary/20 px-2 py-1 rounded text-jules-secondary">"jules"</code> label to any issue where you want Jules to help, and we'll handle the queue management automatically.
+            Simply add the <code className="bg-jules-primary/20 px-2 py-1 rounded text-jules-secondary">&quot;jules&quot;</code> label to any issue where you want Jules to help, and we&apos;ll handle the queue management automatically.
           </p>
           <p className="text-sm text-jules-gray">
             No more manual retries or waiting for task slots to free up!

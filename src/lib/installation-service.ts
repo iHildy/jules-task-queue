@@ -117,10 +117,10 @@ export class InstallationService {
 
       // Check if installation exists in GitHub
       const installations = await githubAppClient.getInstallations();
-      const githubInstallation = installations.find((inst: any) => inst.id === installationId);
+      const githubInstallation = installations.find((inst: { id: number }) => inst.id === installationId);
 
-      if (!githubInstallation) {
-        // Installation was removed from GitHub, mark as suspended
+      if (!githubInstallation || !githubInstallation.account) {
+        // Installation was removed from GitHub or has no account, mark as suspended
         await db.gitHubInstallation.update({
           where: { id: installationId },
           data: {
@@ -136,7 +136,7 @@ export class InstallationService {
           data: { removedAt: new Date() },
         });
 
-        console.log(`Installation ${installationId} marked as suspended (not found in GitHub)`);
+        console.log(`Installation ${installationId} marked as suspended (not found in GitHub or missing account)`);
         return null;
       }
 
@@ -268,7 +268,7 @@ export class InstallationService {
     try {
       await githubAppClient.getInstallationRepositories(installationId);
       health.status = installation.suspendedAt ? 'suspended' : 'healthy';
-    } catch (error) {
+    } catch {
       health.status = 'github_error';
     }
 

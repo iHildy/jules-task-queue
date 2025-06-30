@@ -7,6 +7,80 @@ import { processJulesLabelEvent } from "@/lib/webhook-processor";
 import { db } from "@/server/db";
 import { GitHubLabelEventSchema } from "@/types";
 
+// GitHub webhook payload interfaces
+interface GitHubAccount {
+  id: number;
+  login: string;
+  type: string;
+}
+
+interface GitHubInstallation {
+  id: number;
+  account: GitHubAccount;
+  target_type: string;
+  permissions: Record<string, string>;
+  events: string[];
+  single_file_name?: string;
+  repository_selection: string;
+  suspended_at?: string;
+  suspended_by?: { login: string };
+}
+
+interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  owner: GitHubAccount;
+  private: boolean;
+  html_url: string;
+  description?: string;
+}
+
+interface GitHubInstallationEvent {
+  action: string;
+  installation: GitHubInstallation;
+  repositories?: GitHubRepository[];
+}
+
+interface GitHubInstallationRepositoriesEvent {
+  action: string;
+  installation: GitHubInstallation;
+  repositories_added?: GitHubRepository[];
+  repositories_removed?: GitHubRepository[];
+}
+
+interface GitHubLabel {
+  name: string;
+}
+
+interface GitHubUser {
+  login: string;
+}
+
+interface GitHubIssue {
+  number: number;
+  state: string;
+  labels: GitHubLabel[];
+}
+
+interface GitHubComment {
+  user: GitHubUser;
+}
+
+interface GitHubIssueCommentEvent {
+  action: string;
+  issue: GitHubIssue;
+  comment: GitHubComment;
+  repository: GitHubRepository;
+  installation?: { id: number };
+}
+
+interface GitHubWebhookEvent {
+  action: string;
+  installation?: { id: number };
+  [key: string]: unknown;
+}
+
 /**
  * Verify GitHub App webhook signature
  */
@@ -64,7 +138,7 @@ async function logWebhookEvent(
 /**
  * Handle GitHub App installation events
  */
-async function handleInstallationEvent(payload: any, action: string) {
+async function handleInstallationEvent(payload: GitHubInstallationEvent, action: string) {
   const installation = payload.installation;
   
   if (action === "created") {
@@ -102,7 +176,7 @@ async function handleInstallationEvent(payload: any, action: string) {
     // Add all repositories if "all" selection
     if (installation.repository_selection === "all" && payload.repositories) {
       await Promise.all(
-        payload.repositories.map((repo: any) =>
+        payload.repositories.map((repo: GitHubRepository) =>
           db.installationRepository.upsert({
             where: {
               installationId_repositoryId: {
@@ -157,7 +231,7 @@ async function handleInstallationEvent(payload: any, action: string) {
     await db.gitHubInstallation.update({
       where: { id: installation.id },
       data: {
-        suspendedAt: new Date(installation.suspended_at),
+        suspendedAt: installation.suspended_at ? new Date(installation.suspended_at) : null,
         suspendedBy: installation.suspended_by?.login,
         updatedAt: new Date(),
       },
@@ -181,13 +255,13 @@ async function handleInstallationEvent(payload: any, action: string) {
 /**
  * Handle installation repository events
  */
-async function handleInstallationRepositoriesEvent(payload: any, action: string) {
+async function handleInstallationRepositoriesEvent(payload: GitHubInstallationRepositoriesEvent, action: string) {
   const installation = payload.installation;
   const repositories = payload.repositories_added || payload.repositories_removed || [];
 
   if (action === "added") {
     await Promise.all(
-      repositories.map((repo: any) =>
+      repositories.map((repo: GitHubRepository) =>
         db.installationRepository.upsert({
           where: {
             installationId_repositoryId: {
@@ -221,7 +295,7 @@ async function handleInstallationRepositoriesEvent(payload: any, action: string)
     console.log(`Added ${repositories.length} repositories to installation ${installation.id}`);
   } else if (action === "removed") {
     await Promise.all(
-      repositories.map((repo: any) =>
+      repositories.map((repo: GitHubRepository) =>
         db.installationRepository.updateMany({
           where: {
             installationId: installation.id,
@@ -285,32 +359,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const webhookEvent = payload as any;
+    const webhookEvent = payload as GitHubWebhookEvent;
 
     // Handle installation events
     if (eventType === "installation") {
-      await handleInstallationEvent(webhookEvent, webhookEvent.action);
+      const installationEvent = webhookEvent as unknown as GitHubInstallationEvent;
+      await handleInstallationEvent(installationEvent, installationEvent.action);
       await logWebhookEvent(eventType, payload, true);
       
       return NextResponse.json({
         message: "Installation event processed successfully",
         eventType,
-        action: webhookEvent.action,
-        installation: webhookEvent.installation.id,
+        action: installationEvent.action,
+        installation: installationEvent.installation.id,
         processingTime: Date.now() - startTime,
       });
     }
 
     // Handle installation repository events
     if (eventType === "installation_repositories") {
-      await handleInstallationRepositoriesEvent(webhookEvent, webhookEvent.action);
+      const repositoriesEvent = webhookEvent as unknown as GitHubInstallationRepositoriesEvent;
+      await handleInstallationRepositoriesEvent(repositoriesEvent, repositoriesEvent.action);
       await logWebhookEvent(eventType, payload, true);
       
       return NextResponse.json({
         message: "Installation repositories event processed successfully",
         eventType,
-        action: webhookEvent.action,
-        installation: webhookEvent.installation.id,
+        action: repositoriesEvent.action,
+        installation: repositoriesEvent.installation.id,
         processingTime: Date.now() - startTime,
       });
     }
@@ -332,9 +408,11 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      const commentEvent = webhookEvent as unknown as GitHubIssueCommentEvent;
+      
       // Check if the issue has 'jules' label
-      const hasJulesLabel = webhookEvent.issue.labels.some(
-        (label: any) => label.name.toLowerCase() === "jules"
+      const hasJulesLabel = commentEvent.issue.labels.some(
+        (label: GitHubLabel) => label.name.toLowerCase() === "jules"
       );
 
       if (!hasJulesLabel) {
@@ -352,7 +430,7 @@ export async function POST(req: NextRequest) {
 
       // Log comment for monitoring Jules bot interactions
       console.log(
-        `New comment on Jules-labeled issue ${webhookEvent.repository.full_name}#${webhookEvent.issue.number} by ${webhookEvent.comment.user.login}`,
+        `New comment on Jules-labeled issue ${commentEvent.repository.full_name}#${commentEvent.issue.number} by ${commentEvent.comment.user.login}`,
       );
 
       // TODO: In the future, we could implement real-time comment processing here
@@ -360,16 +438,16 @@ export async function POST(req: NextRequest) {
 
       await logWebhookEvent(eventType, payload, true);
 
-      return NextResponse.json({
-        message: "Issue comment logged successfully",
-        eventType,
-        action: webhookEvent.action,
-        repository: webhookEvent.repository.full_name,
-        issue: webhookEvent.issue.number,
-        commenter: webhookEvent.comment.user.login,
-        installation: webhookEvent.installation?.id,
-        processingTime: Date.now() - startTime,
-      });
+              return NextResponse.json({
+          message: "Issue comment logged successfully",
+          eventType,
+          action: commentEvent.action,
+          repository: commentEvent.repository.full_name,
+          issue: commentEvent.issue.number,
+          commenter: commentEvent.comment.user.login,
+          installation: commentEvent.installation?.id,
+          processingTime: Date.now() - startTime,
+        });
     }
 
     // Handle issue events (same as before, but with installation context)

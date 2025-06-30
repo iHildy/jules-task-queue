@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 // This endpoint is deprecated - GitHub App webhooks should use /api/webhooks/github-app
 // Redirecting all requests to the new endpoint
@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Redirect to GitHub App webhook handler
  */
-export async function POST(req: NextRequest) {
+export async function POST() {
   return NextResponse.json(
     { 
       error: "This webhook endpoint is deprecated",

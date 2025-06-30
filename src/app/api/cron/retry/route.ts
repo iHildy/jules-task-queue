@@ -162,8 +162,8 @@ export async function GET() {
       take: 5,
     });
 
-    const lastSuccessfulRun = recentCronLogs.find((log) => log.success);
-    const lastFailedRun = recentCronLogs.find((log) => !log.success);
+    const lastSuccessfulRun = recentCronLogs.find((log: { success: boolean }) => log.success);
+    const lastFailedRun = recentCronLogs.find((log: { success: boolean }) => !log.success);
 
     return NextResponse.json({
       status: "healthy",
