@@ -47,9 +47,34 @@ Automated task queue management for Jules bot interactions. Monitors issue label
 https://github.com/iHildy/jules-task-queue
 ```
 
-**User authorization callback URL:** *(Leave blank for now)*
+**User authorization callback URL:** 
+```
+https://your-domain.com/github-app/success
+```
 
-### 1.3 Configure Webhook Settings
+*This URL is where users will be redirected after successfully installing your GitHub App. The Jules Task Queue app includes a styled success page that provides next steps and usage instructions.*
+
+Replace `your-domain.com` with your actual deployment URL:
+- **Vercel**: `https://your-app-name.vercel.app/github-app/success`
+- **Firebase**: `https://your-backend-id--your-project-id.us-central1.hosted.app/github-app/success`
+- **Self-hosted**: `https://your-domain.com/github-app/success`
+
+### 1.3 Configure Post-installation Setup
+
+**Setup URL (optional):** 
+```
+https://your-domain.com/github-app/success
+```
+
+**Post-installation Options:**
+- ✅ **Redirect on update** - Redirect users to the 'Setup URL' after installations are updated (e.g. repositories added/removed)
+
+**User Authorization Options:**
+- ✅ **Expire user authorization tokens** - Provides a `refresh_token` for updated access tokens when they expire
+- ⬜ **Request user authorization (OAuth) during installation** - Leave unchecked unless you need user-level permissions
+- ⬜ **Enable Device Flow** - Leave unchecked unless you need device-based authentication
+
+### 1.4 Configure Webhook Settings
 
 **Webhook URL:**
 ```
@@ -67,15 +92,17 @@ Replace `your-domain.com` with your actual deployment URL:
 openssl rand -hex 32
 ```
 
-### 1.4 Configure Permissions
+**SSL verification:** ✅ **Enable SSL verification** (Recommended for production)
+
+### 1.5 Configure Permissions
 
 Set the following permissions for your GitHub App:
 
 #### Repository Permissions
 - **Issues**: `Read and write`
   - *Reason: Read issue details, add comments, manage labels*
-- **Metadata**: `Read`
-  - *Reason: Access basic repository information*
+- **Metadata**: `Read` *(Required by GitHub)*
+  - *Reason: Access basic repository information and validate repository access*
 
 #### Organization Permissions
 *(None required)*
@@ -83,20 +110,22 @@ Set the following permissions for your GitHub App:
 #### User Permissions  
 *(None required)*
 
-### 1.5 Configure Events
+### 1.6 Configure Events
 
 Subscribe to the following events:
 
 - **Issues** ✅
   - *Reason: Detect when 'jules' or 'jules-queue' labels are added/removed*
+- **Issue comments** ✅
+  - *Reason: Monitor Jules bot interactions and comment processing*
 
-### 1.6 Configure Installation
+### 1.7 Configure Installation
 
 **Where can this GitHub App be installed?**
 - Select "Any account" for public use
 - Select "Only on this account" for personal/organization use only
 
-### 1.7 Create the App
+### 1.8 Create the App
 
 Click "Create GitHub App" to create your app.
 

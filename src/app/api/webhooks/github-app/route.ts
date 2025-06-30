@@ -315,6 +315,63 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Handle issue comment events
+    if (eventType === "issue_comment") {
+      // Only process comment creation for now
+      if (webhookEvent.action !== "created") {
+        await logWebhookEvent(
+          eventType,
+          payload,
+          true,
+          `Action '${webhookEvent.action}' ignored`,
+        );
+        return NextResponse.json({
+          message: "Comment action not processed",
+          action: webhookEvent.action,
+          processingTime: Date.now() - startTime,
+        });
+      }
+
+      // Check if the issue has 'jules' label
+      const hasJulesLabel = webhookEvent.issue.labels.some(
+        (label: any) => label.name.toLowerCase() === "jules"
+      );
+
+      if (!hasJulesLabel) {
+        await logWebhookEvent(
+          eventType,
+          payload,
+          true,
+          "Issue does not have 'jules' label",
+        );
+        return NextResponse.json({
+          message: "Issue comment ignored - no 'jules' label",
+          processingTime: Date.now() - startTime,
+        });
+      }
+
+      // Log comment for monitoring Jules bot interactions
+      console.log(
+        `New comment on Jules-labeled issue ${webhookEvent.repository.full_name}#${webhookEvent.issue.number} by ${webhookEvent.comment.user.login}`,
+      );
+
+      // TODO: In the future, we could implement real-time comment processing here
+      // For now, just log the event for monitoring purposes
+
+      await logWebhookEvent(eventType, payload, true);
+
+      return NextResponse.json({
+        message: "Issue comment logged successfully",
+        eventType,
+        action: webhookEvent.action,
+        repository: webhookEvent.repository.full_name,
+        issue: webhookEvent.issue.number,
+        commenter: webhookEvent.comment.user.login,
+        installation: webhookEvent.installation?.id,
+        processingTime: Date.now() - startTime,
+      });
+    }
+
     // Handle issue events (same as before, but with installation context)
     if (eventType === "issues") {
       // Only process issue label events
