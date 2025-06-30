@@ -6,11 +6,11 @@
     "**/*": "prettier --write --ignore-unknown"
   },
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build:only": "next build",
-    "build": "prisma migrate deploy && next build",
+    "dev": "prisma generate && next dev --turbopack",
+    "build:only": "prisma generate && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "prisma generate && next lint",
     "format": "prettier --write .",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
