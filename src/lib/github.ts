@@ -1,23 +1,13 @@
-import { env, getAuthMethod } from "@/lib/env";
-import { Octokit } from "@octokit/rest";
 import { githubAppClient } from "@/lib/github-app";
+import type { Octokit } from "@octokit/rest";
 
 /**
- * GitHub API client singleton
+ * GitHub API client (now using GitHub App only)
  */
 class GitHubClient {
   private static instance: GitHubClient;
-  private octokit: Octokit | null = null;
 
-  private constructor() {
-    // Only initialize if personal token is available
-    if (env.GITHUB_TOKEN) {
-      this.octokit = new Octokit({
-        auth: env.GITHUB_TOKEN,
-        userAgent: "jules-task-queue/0.1.0",
-      });
-    }
-  }
+  private constructor() {}
 
   public static getInstance(): GitHubClient {
     if (!GitHubClient.instance) {
@@ -27,71 +17,37 @@ class GitHubClient {
   }
 
   /**
-   * Get the raw Octokit client for advanced operations
+   * Get the raw GitHub App client for advanced operations
    */
-  public getOctokit(): Octokit {
-    return this.octokit;
+  public getGitHubAppClient() {
+    return githubAppClient;
   }
 
   /**
    * Check if repository exists and is accessible
    */
   public async checkRepository(owner: string, repo: string): Promise<boolean> {
-    try {
-      await this.octokit.rest.repos.get({ owner, repo });
-      return true;
-    } catch (error) {
-      console.error(`Repository ${owner}/${repo} not accessible:`, error);
-      return false;
-    }
+    return githubAppClient.isRepositoryAccessible(owner, repo);
   }
 
   /**
-   * Get issue details by number
+   * Get issue details
    */
   public async getIssue(owner: string, repo: string, issue_number: number) {
-    try {
-      const response = await this.octokit.rest.issues.get({
-        owner,
-        repo,
-        issue_number,
-      });
-      return response.data;
-    } catch (error) {
-      console.error(
-        `Failed to get issue ${owner}/${repo}#${issue_number}:`,
-        error,
-      );
-      throw error;
-    }
+    const response = await githubAppClient.getIssue(owner, repo, issue_number);
+    return response.data;
   }
 
   /**
    * Get all comments for an issue
    */
-  public async getIssueComments(
-    owner: string,
-    repo: string,
-    issue_number: number,
-  ) {
-    try {
-      const response = await this.octokit.rest.issues.listComments({
-        owner,
-        repo,
-        issue_number,
-      });
-      return response.data;
-    } catch (error) {
-      console.error(
-        `Failed to get comments for ${owner}/${repo}#${issue_number}:`,
-        error,
-      );
-      throw error;
-    }
+  public async getIssueComments(owner: string, repo: string, issue_number: number) {
+    const response = await githubAppClient.getIssueComments(owner, repo, issue_number);
+    return response.data;
   }
 
   /**
-   * Get comments from a specific bot user (like google-labs-jules[bot])
+   * Get comments from a specific bot user
    */
   public async getBotComments(
     owner: string,
@@ -116,22 +72,9 @@ class GitHubClient {
     issue_number: number,
     body: string,
   ) {
-    try {
-      const response = await this.octokit.rest.issues.createComment({
-        owner,
-        repo,
-        issue_number,
-        body,
-      });
-      console.log(`Created comment on ${owner}/${repo}#${issue_number}`);
-      return response.data;
-    } catch (error) {
-      console.error(
-        `Failed to create comment on ${owner}/${repo}#${issue_number}:`,
-        error,
-      );
-      throw error;
-    }
+    const response = await githubAppClient.createComment(owner, repo, issue_number, body);
+    console.log(`Created comment on ${owner}/${repo}#${issue_number}`);
+    return response.data;
   }
 
   /**
@@ -141,34 +84,11 @@ class GitHubClient {
     owner: string,
     repo: string,
     comment_id: number,
-    content:
-      | "+1"
-      | "-1"
-      | "laugh"
-      | "confused"
-      | "heart"
-      | "hooray"
-      | "rocket"
-      | "eyes",
+    content: "+1" | "-1" | "laugh" | "confused" | "heart" | "hooray" | "rocket" | "eyes",
   ) {
-    try {
-      const response = await this.octokit.rest.reactions.createForIssueComment({
-        owner,
-        repo,
-        comment_id,
-        content,
-      });
-      console.log(
-        `Added ${content} reaction to comment ${comment_id} on ${owner}/${repo}`,
-      );
-      return response.data;
-    } catch (error) {
-      console.error(
-        `Failed to add reaction to comment ${comment_id} on ${owner}/${repo}:`,
-        error,
-      );
-      throw error;
-    }
+    const response = await githubAppClient.addReactionToComment(owner, repo, comment_id, content);
+    console.log(`Added ${content} reaction to comment ${comment_id} on ${owner}/${repo}`);
+    return response.data;
   }
 
   /**
@@ -202,21 +122,8 @@ class GitHubClient {
     issue_number: number,
     label: string,
   ) {
-    try {
-      await this.octokit.rest.issues.addLabels({
-        owner,
-        repo,
-        issue_number,
-        labels: [label],
-      });
-      console.log(`Added label '${label}' to ${owner}/${repo}#${issue_number}`);
-    } catch (error) {
-      console.error(
-        `Failed to add label '${label}' to ${owner}/${repo}#${issue_number}:`,
-        error,
-      );
-      throw error;
-    }
+    await githubAppClient.addLabel(owner, repo, issue_number, label);
+    console.log(`Added label '${label}' to ${owner}/${repo}#${issue_number}`);
   }
 
   /**
@@ -229,30 +136,14 @@ class GitHubClient {
     label: string,
   ) {
     try {
-      await this.octokit.rest.issues.removeLabel({
-        owner,
-        repo,
-        issue_number,
-        name: label,
-      });
-      console.log(
-        `Removed label '${label}' from ${owner}/${repo}#${issue_number}`,
-      );
-    } catch (error) {
+      await githubAppClient.removeLabel(owner, repo, issue_number, label);
+      console.log(`Removed label '${label}' from ${owner}/${repo}#${issue_number}`);
+    } catch (error: any) {
       // If label doesn't exist, that's fine
-      if (
-        error instanceof Error &&
-        error.message.includes("Label does not exist")
-      ) {
-        console.log(
-          `Label '${label}' doesn't exist on ${owner}/${repo}#${issue_number}`,
-        );
+      if (error.message && error.message.includes("Label does not exist")) {
+        console.log(`Label '${label}' doesn't exist on ${owner}/${repo}#${issue_number}`);
         return;
       }
-      console.error(
-        `Failed to remove label '${label}' from ${owner}/${repo}#${issue_number}:`,
-        error,
-      );
       throw error;
     }
   }
@@ -284,7 +175,6 @@ class GitHubClient {
 
   /**
    * Swap labels on an issue (remove one, add another)
-   * Useful for jules -> jules-queue transitions
    */
   public async swapLabels(
     owner: string,

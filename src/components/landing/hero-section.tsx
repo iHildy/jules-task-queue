@@ -75,6 +75,10 @@ export function HeroSection() {
           <Button
             size="lg"
             className="bg-white text-jules-dark cursor-pointer hover:bg-white/90 ring-2 ring-transparent hover:ring-jules-primary"
+            onClick={() => {
+              // Redirect to GitHub App installation
+              window.location.href = '/api/github-app/install';
+            }}
           >
             <SiGithub /> Link GitHub Repository
           </Button>
@@ -88,7 +92,7 @@ export function HeroSection() {
           <div className="flex gap-4 items-center justify-center">
             <a
               className=""
-              href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue&env=DATABASE_URL,GITHUB_TOKEN,GITHUB_WEBHOOK_SECRET,CRON_SECRET&envDescription=See%20the%20github%20repo%20.env.example%20file%20for%20the%20variables%20to%20add.&envLink=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue%2Fblob%2Fmain%2F.env.example&project-name=jules-task-queue&repository-name=jules-task-queue"
+              href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue&env=DATABASE_URL,GITHUB_APP_ID,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,CRON_SECRET&envDescription=See%20the%20github%20repo%20.env.example%20file%20for%20the%20variables%20to%20add.&envLink=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue%2Fblob%2Fmain%2F.env.example&project-name=jules-task-queue&repository-name=jules-task-queue"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -268,8 +272,9 @@ export function HeroSection() {
                       Add these environment variables to your Firebase project:
                     </p>
                     <CodeBlock copyId="env-vars">{`firebase apphosting:secrets:set DATABASE_URL
-firebase apphosting:secrets:set GITHUB_TOKEN  
-firebase apphosting:secrets:set GITHUB_WEBHOOK_SECRET
+firebase apphosting:secrets:set GITHUB_APP_ID
+firebase apphosting:secrets:set GITHUB_APP_PRIVATE_KEY
+firebase apphosting:secrets:set GITHUB_APP_WEBHOOK_SECRET
 firebase apphosting:secrets:set CRON_SECRET`}</CodeBlock>
                   </div>
 

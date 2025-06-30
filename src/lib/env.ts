@@ -4,16 +4,13 @@ const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
 
-  // GitHub Integration - Personal Token (Legacy/Self-hosted)
-  GITHUB_TOKEN: z.string().min(1, "GITHUB_TOKEN is required").optional(),
-  GITHUB_WEBHOOK_SECRET: z.string().optional(),
-
-  // GitHub App Integration (Hosted service)
-  GITHUB_APP_ID: z.string().optional(),
-  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
-  GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
+  // GitHub App Integration
+  GITHUB_APP_ID: z.string().min(1, "GITHUB_APP_ID is required"),
+  GITHUB_APP_PRIVATE_KEY: z.string().min(1, "GITHUB_APP_PRIVATE_KEY is required"),
+  GITHUB_APP_WEBHOOK_SECRET: z.string().min(1, "GITHUB_APP_WEBHOOK_SECRET is required"),
   GITHUB_APP_CLIENT_ID: z.string().optional(),
   GITHUB_APP_CLIENT_SECRET: z.string().optional(),
+  GITHUB_APP_NAME: z.string().optional().default("jules-task-queue"), // Default app name
 
   // Application
   NODE_ENV: z
@@ -46,23 +43,7 @@ export type Env = z.infer<typeof envSchema>;
  */
 function validateEnv(): Env {
   try {
-    const parsed = envSchema.parse(process.env);
-    
-    // Validate that at least one authentication method is configured
-    const hasPersonalToken = !!parsed.GITHUB_TOKEN;
-    const hasGitHubApp = !!(parsed.GITHUB_APP_ID && parsed.GITHUB_APP_PRIVATE_KEY);
-    
-    if (!hasPersonalToken && !hasGitHubApp) {
-      throw new Error(
-        "❌ GitHub authentication not configured!\n\n" +
-        "You must configure either:\n" +
-        "  - Personal Token: Set GITHUB_TOKEN\n" +
-        "  - GitHub App: Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY\n\n" +
-        "📝 See documentation for setup instructions."
-      );
-    }
-    
-    return parsed;
+    return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.errors
@@ -104,17 +85,9 @@ function validateEnv(): Env {
 export const env = validateEnv();
 
 // Helper functions for checking configurations
-export const hasPersonalToken = () => !!env.GITHUB_TOKEN;
 export const hasGitHubApp = () => !!(env.GITHUB_APP_ID && env.GITHUB_APP_PRIVATE_KEY);
-export const hasWebhookSecret = () => !!(env.GITHUB_WEBHOOK_SECRET || env.GITHUB_APP_WEBHOOK_SECRET);
+export const hasWebhookSecret = () => !!env.GITHUB_APP_WEBHOOK_SECRET;
 export const hasCronSecret = () => !!env.CRON_SECRET;
-
-// Authentication method detection
-export const getAuthMethod = (): 'personal-token' | 'github-app' | 'none' => {
-  if (hasGitHubApp()) return 'github-app';
-  if (hasPersonalToken()) return 'personal-token';
-  return 'none';
-};
 
 // Processing configuration with defaults
 export const processingConfig = {

@@ -13,11 +13,11 @@ Currently, the project:
 
 ## Migration Goals
 
-- [ ] Replace personal access tokens with GitHub App authentication
-- [ ] Automatically install webhooks when the app is installed
-- [ ] Reduce required permissions to specific scopes
-- [ ] Improve security for hosted deployments
-- [ ] Maintain backward compatibility during transition (if needed)
+- [x] Replace personal access tokens with GitHub App authentication
+- [x] Automatically install webhooks when the app is installed
+- [x] Reduce required permissions to specific scopes
+- [x] Improve security for hosted deployments
+- [x] Remove personal token support (no backward compatibility needed)
 - [ ] Update all deployment guides and documentation
 
 ## Phase 1: GitHub App Setup & Infrastructure
@@ -40,9 +40,10 @@ Currently, the project:
   - [ ] Installation (for app install/uninstall)
 
 ### 1.3 App Installation Flow
-- [ ] Create installation landing page at `/app/install`
-- [ ] Add GitHub App installation button to main landing page
-- [ ] Handle installation success/failure redirects
+- [x] Create installation redirect endpoint at `/api/github-app/install`
+- [x] Add GitHub App installation button to main landing page
+- [x] Create installation success page at `/github-app/success`
+- [x] Handle installation success/failure redirects
 
 ## Phase 2: Code Infrastructure Changes
 
@@ -104,16 +105,14 @@ Currently, the project:
 ## Phase 4: API & Service Updates
 
 ### 4.1 GitHub Service Layer
-- [ ] Update `src/lib/github.ts` to support both authentication methods:
-  - [ ] Personal token (legacy, for self-hosted)
-  - [ ] GitHub App (new, for hosted service)
-- [ ] Add installation context to all GitHub API calls
-- [ ] Implement proper error handling for missing installations
+- [x] Update `src/lib/github.ts` to use only GitHub App authentication
+- [x] Add installation context to all GitHub API calls
+- [x] Implement proper error handling for missing installations
 
 ### 4.2 Task Processing Updates
-- [ ] Update task processor to use installation-based authentication
-- [ ] Add installation validation before processing tasks
-- [ ] Handle cases where installation is removed mid-processing
+- [x] Update task processor to use installation-based authentication
+- [x] Add installation validation before processing tasks
+- [x] Handle cases where installation is removed mid-processing
 
 ### 4.3 Admin Panel Updates
 - [ ] Add installation management to admin panel
