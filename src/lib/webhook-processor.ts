@@ -141,6 +141,7 @@ async function executeCommentCheck(
  */
 export async function processJulesLabelEvent(
   event: GitHubLabelEvent,
+  installationId?: number,
 ): Promise<ProcessingResult> {
   const { action, label, issue, repository } = event;
   const labelName = label.name.toLowerCase();
@@ -166,6 +167,7 @@ export async function processJulesLabelEvent(
         githubIssueNumber: BigInt(issue.number),
         repoOwner: owner,
         repoName: repo,
+        installationId,
       });
 
       console.log(

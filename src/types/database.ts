@@ -16,6 +16,7 @@ export interface TaskCreationParams {
   githubIssueNumber: bigint;
   repoOwner: string;
   repoName: string;
+  installationId?: number;
 }
 
 export interface TaskUpdateParams {

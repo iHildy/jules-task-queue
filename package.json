@@ -23,7 +23,10 @@
   },
   "dependencies": {
     "@icons-pack/react-simple-icons": "^13.3.0",
+    "@octokit/app": "^16.0.1",
+    "@octokit/auth-app": "^8.0.1",
     "@octokit/rest": "^22.0.0",
+    "@octokit/webhooks": "^14.1.0",
     "@octokit/webhooks-types": "^7.6.1",
     "@prisma/client": "^6.10.1",
     "@radix-ui/react-dialog": "^1.1.14",

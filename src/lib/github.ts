@@ -1,18 +1,22 @@
-import { env } from "@/lib/env";
+import { env, getAuthMethod } from "@/lib/env";
 import { Octokit } from "@octokit/rest";
+import { githubAppClient } from "@/lib/github-app";
 
 /**
  * GitHub API client singleton
  */
 class GitHubClient {
   private static instance: GitHubClient;
-  private octokit: Octokit;
+  private octokit: Octokit | null = null;
 
   private constructor() {
-    this.octokit = new Octokit({
-      auth: env.GITHUB_TOKEN,
-      userAgent: "jules-task-queue/0.1.0",
-    });
+    // Only initialize if personal token is available
+    if (env.GITHUB_TOKEN) {
+      this.octokit = new Octokit({
+        auth: env.GITHUB_TOKEN,
+        userAgent: "jules-task-queue/0.1.0",
+      });
+    }
   }
 
   public static getInstance(): GitHubClient {

@@ -125,6 +125,7 @@ export async function upsertJulesTask(params: TaskCreationParams) {
     githubIssueNumber,
     repoOwner,
     repoName,
+    installationId,
   } = params;
 
   // Try to find existing task
@@ -141,6 +142,7 @@ export async function upsertJulesTask(params: TaskCreationParams) {
         githubIssueNumber,
         repoOwner,
         repoName,
+        installationId,
         updatedAt: new Date(),
       },
     });
@@ -153,6 +155,7 @@ export async function upsertJulesTask(params: TaskCreationParams) {
         githubIssueNumber,
         repoOwner,
         repoName,
+        installationId,
         flaggedForRetry: false,
         retryCount: 0,
       },
