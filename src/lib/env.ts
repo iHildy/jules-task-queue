@@ -12,8 +12,6 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
-  NEXTAUTH_SECRET: z.string().min(1, "NEXTAUTH_SECRET is required"),
-  NEXTAUTH_URL: z.string().url().optional(),
 
   // Cron Job Security
   CRON_SECRET: z.string().optional(),
@@ -83,11 +81,6 @@ function validateEnv(): Env {
 export const env = validateEnv();
 
 // Helper functions for checking optional configurations
-export const hasRedisConfig = () => {
-  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
-  return !!(redisUrl && redisToken && redisUrl !== "" && redisToken !== "");
-};
 export const hasWebhookSecret = () => !!env.GITHUB_WEBHOOK_SECRET;
 export const hasCronSecret = () => !!env.CRON_SECRET;
 

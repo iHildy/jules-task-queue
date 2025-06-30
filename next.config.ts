@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Allow for build and dev to be in different directories
   distDir: process.env.NODE_ENV === "development" ? ".next/dev" : ".next/build",
+
+  // Enable standalone output for Docker deployments
+  output: "standalone",
   // Configure headers for security and CORS
   async headers() {
     return [
@@ -31,11 +34,6 @@ const nextConfig: NextConfig = {
   webpack: (config) => {
     config.externals.push("@node-rs/argon2", "@node-rs/bcrypt");
     return config;
-  },
-
-  // Environment variables
-  env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   },
 
   // Enable source maps in production for better debugging

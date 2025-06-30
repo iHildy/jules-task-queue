@@ -104,6 +104,92 @@ class GitHubClient {
   }
 
   /**
+   * Create a comment on an issue
+   */
+  public async createComment(
+    owner: string,
+    repo: string,
+    issue_number: number,
+    body: string
+  ) {
+    try {
+      const response = await this.octokit.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number,
+        body,
+      });
+      console.log(`Created comment on ${owner}/${repo}#${issue_number}`);
+      return response.data;
+    } catch (error) {
+      console.error(
+        `Failed to create comment on ${owner}/${repo}#${issue_number}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Add an emoji reaction to a comment
+   */
+  public async addReactionToComment(
+    owner: string,
+    repo: string,
+    comment_id: number,
+    content:
+      | "+1"
+      | "-1"
+      | "laugh"
+      | "confused"
+      | "heart"
+      | "hooray"
+      | "rocket"
+      | "eyes"
+  ) {
+    try {
+      const response = await this.octokit.rest.reactions.createForIssueComment({
+        owner,
+        repo,
+        comment_id,
+        content,
+      });
+      console.log(
+        `Added ${content} reaction to comment ${comment_id} on ${owner}/${repo}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(
+        `Failed to add reaction to comment ${comment_id} on ${owner}/${repo}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Create a quote reply comment
+   */
+  public async createQuoteReply(
+    owner: string,
+    repo: string,
+    issue_number: number,
+    originalComment: string,
+    replyText: string,
+    originalAuthor?: string
+  ) {
+    const quotedText = originalComment
+      .split("\n")
+      .map((line) => `> ${line}`)
+      .join("\n");
+
+    const authorText = originalAuthor ? `@${originalAuthor} ` : "";
+    const body = `${authorText}${quotedText}\n\n${replyText}`;
+
+    return this.createComment(owner, repo, issue_number, body);
+  }
+
+  /**
    * Add a label to an issue
    */
   public async addLabel(

@@ -1,14 +1,25 @@
+/**
+ * Jules Task Queue - Cron Job for Retrying Flagged Tasks
+ *
+ * DEPLOYMENT NOTES:
+ * - Vercel: This endpoint is called every 30 minutes by Vercel's cron job feature (configured in vercel.json)
+ * - Self-Hosting: This endpoint is NOT automatically called. You need to set up your own cron job:
+ *
+ *   Option 1 (Docker): Use the provided docker-compose.yml which handles cron automatically
+ *   Option 2 (Manual): Add to your crontab: every 30 minutes run: cd /path/to/app && pnpm cron:run
+ *   Option 3 (Coolify): Add scheduled task with command: pnpm cron:run (every 30 minutes)
+ *   Option 4 (Manual API call): Call this endpoint directly: POST /api/cron/retry with CRON_SECRET header
+ *
+ * This endpoint finds all tasks flagged for retry and attempts to process them again.
+ */
+
 import { env } from "@/lib/env";
 import { cleanupOldTasks, retryAllFlaggedTasks } from "@/lib/jules";
 import { db } from "@/server/db";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Verify cron job authorization
- * This endpoint should be secured in production with:
- * - Vercel cron secret verification
- * - API key authentication
- * - IP allowlist
+ * Verify cron job authorization with cron secret verification
  */
 function verifyCronAuth(req: NextRequest): boolean {
   // Check for Vercel cron secret if available

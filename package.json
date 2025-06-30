@@ -11,7 +11,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "cron:run": "node scripts/retry-tasks.js"
   },
   "dependencies": {
     "@octokit/rest": "^22.0.0",

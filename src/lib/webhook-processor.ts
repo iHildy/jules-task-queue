@@ -1,8 +1,7 @@
 import {
   checkJulesComments,
-  handleTaskLimit,
-  handleWorking,
   parseRepoFromIssue,
+  processWorkflowDecision,
   upsertJulesTask,
 } from "@/lib/jules";
 import { db } from "@/server/db";
@@ -89,7 +88,9 @@ async function executeCommentCheck(
   issueNumber: number,
   taskId: number
 ): Promise<void> {
-  console.log(`Executing comment check for ${owner}/${repo}#${issueNumber}`);
+  console.log(
+    `Executing enhanced comment check for ${owner}/${repo}#${issueNumber}`
+  );
 
   try {
     // Check if task still exists and is relevant
@@ -102,36 +103,50 @@ async function executeCommentCheck(
       return;
     }
 
-    // Check Jules bot comments on the issue
-    const commentResult = await checkJulesComments(owner, repo, issueNumber);
+    // Jules bot comment analysis with retry logic
+    const commentResult = await checkJulesComments(
+      owner,
+      repo,
+      issueNumber,
+      3, // maxRetries
+      0.6 // minConfidence
+    );
 
-    switch (commentResult.action) {
-      case "task_limit":
-        console.log(
-          `Jules hit task limit for ${owner}/${repo}#${issueNumber}, queueing for retry`
-        );
-        await handleTaskLimit(owner, repo, issueNumber, taskId);
-        break;
+    console.log(
+      `Comment analysis result for ${owner}/${repo}#${issueNumber}:`,
+      {
+        action: commentResult.action,
+        confidence: commentResult.analysis?.confidence,
+        retryCount: commentResult.retryCount,
+        patterns: commentResult.analysis?.patterns_matched,
+      }
+    );
 
-      case "working":
-        console.log(`Jules is working on ${owner}/${repo}#${issueNumber}`);
-        await handleWorking(owner, repo, issueNumber, taskId);
-        break;
+    // Process the workflow decision using the enhanced system
+    await processWorkflowDecision(
+      owner,
+      repo,
+      issueNumber,
+      taskId,
+      commentResult
+    );
 
-      case "no_action":
-        console.log(
-          `No relevant Jules comments found for ${owner}/${repo}#${issueNumber}, assuming success or no response yet`
-        );
-        // Task is likely successful or Jules hasn't responded yet
-        // We could implement additional logic here, like:
-        // - Check again after a longer delay
-        // - Mark as completed if no response after a certain time
-        // For now, we'll just leave the task as-is
-        break;
-
-      default:
-        console.warn(`Unknown comment check result: ${commentResult.action}`);
-    }
+    // Log successful comment check
+    await db.webhookLog.create({
+      data: {
+        eventType: "comment_check_success",
+        payload: JSON.stringify({
+          owner,
+          repo,
+          issueNumber,
+          taskId,
+          action: commentResult.action,
+          confidence: commentResult.analysis?.confidence,
+          retryCount: commentResult.retryCount,
+        }),
+        success: true,
+      },
+    });
   } catch (error) {
     console.error(
       `Error during comment check for ${owner}/${repo}#${issueNumber}:`,

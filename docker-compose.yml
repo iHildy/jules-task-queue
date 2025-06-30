@@ -1,0 +1,76 @@
+version: "3.8"
+
+services:
+  # Jules Task Queue Application
+  app:
+    build: .
+    container_name: jules-task-queue
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://jules:jules_password@db:5432/jules_queue
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - CRON_SECRET=${CRON_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - jules-network
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: jules-postgres
+    environment:
+      - POSTGRES_DB=jules_queue
+      - POSTGRES_USER=jules
+      - POSTGRES_PASSWORD=jules_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" # Remove in production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jules -d jules_queue"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - jules-network
+
+  # Cron Job Service for Self-Hosting
+  # This replaces Vercel's cron jobs when self-hosting
+  cron:
+    build: .
+    container_name: jules-cron
+    command: >
+      sh -c "
+        echo '*/30 * * * * cd /app && node scripts/retry-tasks.js >> /var/log/cron.log 2>&1' > /etc/cron.d/jules-retry &&
+        chmod 0644 /etc/cron.d/jules-retry &&
+        crontab /etc/cron.d/jules-retry &&
+        touch /var/log/cron.log &&
+        crond -f -l 8
+      "
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://jules:jules_password@db:5432/jules_queue
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - CRON_SECRET=${CRON_SECRET}
+    depends_on:
+      - db
+      - app
+    restart: unless-stopped
+    networks:
+      - jules-network
+    user: root # Required for cron
+
+volumes:
+  postgres_data:
+
+networks:
+  jules-network:
+    driver: bridge

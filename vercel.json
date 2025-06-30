@@ -1,0 +1,35 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/retry",
+      "schedule": "*/30 * * * *"
+    }
+  ],
+  "functions": {
+    "src/app/api/cron/retry/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/webhooks/github/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+} 

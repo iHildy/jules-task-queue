@@ -4,54 +4,79 @@ import { db } from "@/server/db";
 /**
  * Jules bot username patterns to look for
  */
-const JULES_BOT_USERNAMES = [
-  "google-labs-jules[bot]",
-  "google-labs-jules",
-  "jules[bot]",
-  "jules-bot",
-];
+const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
 
 /**
  * Comment patterns that indicate Jules has hit task limits
  */
-const TASK_LIMIT_PATTERNS = [
-  "You are currently at your concurrent task limit",
-  "concurrent task limit",
-  "task limit reached",
-  "too many tasks",
-];
+const TASK_LIMIT_PATTERNS = ["You are currently at your concurrent task limit"];
 
 /**
  * Comment patterns that indicate Jules has started working
  */
-const WORKING_PATTERNS = [
-  "When finished, you will see another comment",
-  "I'll get started on this",
-  "Working on this now",
-  "Starting work on",
-];
+const WORKING_PATTERNS = ["When finished, you will see another comment"];
 
 /**
- * Type for GitHub issue data from webhooks
+ * Comment type classification
  */
-interface GitHubIssueData {
-  repository?: {
-    full_name?: string;
-  };
+export type CommentClassification =
+  | "task_limit"
+  | "working"
+  | "unknown"
+  | "no_action";
+
+/**
+ * Comment analysis result with metadata
+ */
+export interface CommentAnalysis {
+  classification: CommentClassification;
+  confidence: number; // 0-1 score
+  comment?: GitHubComment;
+  patterns_matched: string[];
+  timestamp: Date;
+  age_minutes: number;
 }
 
 /**
- * Type for GitHub comment data - matches GitHub API response
+ * Enhanced comment analysis with confidence scoring
  */
-interface GitHubComment {
-  id: number;
-  body?: string;
-  user?: {
-    login: string;
-    [key: string]: unknown;
-  } | null;
-  created_at: string;
-  [key: string]: unknown;
+export function analyzeComment(comment: GitHubComment): CommentAnalysis {
+  const body = comment.body?.toLowerCase() || "";
+  const timestamp = new Date(comment.created_at);
+  const age_minutes = (Date.now() - timestamp.getTime()) / (1000 * 60);
+
+  let classification: CommentClassification = "unknown";
+  let confidence = 0;
+  let patterns_matched: string[] = [];
+
+  // Check for task limit patterns
+  const taskLimitMatches = TASK_LIMIT_PATTERNS.filter((pattern) =>
+    body.includes(pattern.toLowerCase())
+  );
+  if (taskLimitMatches.length > 0) {
+    classification = "task_limit";
+    confidence = Math.min(1.0, taskLimitMatches.length * 0.4 + 0.4);
+    patterns_matched = taskLimitMatches;
+  }
+
+  // Check for working patterns (higher confidence than task limit)
+  const workingMatches = WORKING_PATTERNS.filter((pattern) =>
+    body.includes(pattern.toLowerCase())
+  );
+  if (workingMatches.length > 0 && confidence < 0.8) {
+    classification = "working";
+    confidence = Math.min(1.0, workingMatches.length * 0.3 + 0.5);
+    patterns_matched = workingMatches;
+  }
+
+  return {
+    classification,
+    confidence,
+    comment,
+    patterns_matched,
+    timestamp,
+    age_minutes,
+  };
 }
 
 /**
@@ -82,6 +107,29 @@ export function isJulesBot(username: string): boolean {
   return JULES_BOT_USERNAMES.some((botName) =>
     lowerUsername.includes(botName.toLowerCase().replace("[bot]", ""))
   );
+}
+
+/**
+ * Type for GitHub issue data from webhooks
+ */
+interface GitHubIssueData {
+  repository?: {
+    full_name?: string;
+  };
+}
+
+/**
+ * Type for GitHub comment data - matches GitHub API response
+ */
+interface GitHubComment {
+  id: number;
+  body?: string;
+  user?: {
+    login: string;
+    [key: string]: unknown;
+  } | null;
+  created_at: string;
+  [key: string]: unknown;
 }
 
 /**
@@ -159,57 +207,143 @@ export async function upsertJulesTask(params: {
 export async function checkJulesComments(
   owner: string,
   repo: string,
-  issueNumber: number
+  issueNumber: number,
+  maxRetries: number = 3,
+  minConfidence: number = 0.6
 ): Promise<{
-  action: "task_limit" | "working" | "no_action";
+  action: CommentClassification;
   comment?: GitHubComment;
+  analysis?: CommentAnalysis;
+  retryCount?: number;
 }> {
-  try {
-    // Get all comments on the issue
-    const comments = await githubClient.getIssueComments(
-      owner,
-      repo,
-      issueNumber
-    );
+  let lastError: Error | null = null;
 
-    // Filter for Jules bot comments (most recent first)
-    const julesComments = comments
-      .filter((comment) => comment.user && isJulesBot(comment.user.login))
-      .sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      console.log(
+        `Checking Jules comments for ${owner}/${repo}#${issueNumber} (attempt ${
+          attempt + 1
+        }/${maxRetries})`
       );
 
-    if (julesComments.length === 0) {
-      return { action: "no_action" };
-    }
+      // Get all comments on the issue
+      const comments = await githubClient.getIssueComments(
+        owner,
+        repo,
+        issueNumber
+      );
 
-    // Check the most recent Jules comment
-    const latestComment = julesComments[0] as GitHubComment;
-    const commentBody = latestComment?.body || "";
+      // Filter for Jules bot comments (most recent first)
+      const julesComments = comments
+        .filter((comment) => comment.user && isJulesBot(comment.user.login))
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
 
-    if (isTaskLimitComment(commentBody)) {
+      if (julesComments.length === 0) {
+        console.log(
+          `No Jules bot comments found for ${owner}/${repo}#${issueNumber}`
+        );
+        return { action: "no_action", retryCount: attempt };
+      }
+
+      // Analyze the most recent Jules comment
+      const latestComment = julesComments[0] as GitHubComment;
+      const analysis = analyzeComment(latestComment);
+
+      console.log(`Comment analysis for ${owner}/${repo}#${issueNumber}:`, {
+        classification: analysis.classification,
+        confidence: analysis.confidence,
+        patterns: analysis.patterns_matched,
+        age_minutes: analysis.age_minutes,
+      });
+
+      // Check if comment is too old (older than 2 hours might be stale)
+      if (analysis.age_minutes > 120) {
+        console.log(
+          `Latest Jules comment is ${analysis.age_minutes} minutes old, treating as stale`
+        );
+        return {
+          action: "no_action",
+          comment: latestComment,
+          analysis,
+          retryCount: attempt,
+        };
+      }
+
+      // Apply confidence threshold
+      if (analysis.confidence < minConfidence) {
+        console.log(
+          `Comment confidence ${analysis.confidence} below threshold ${minConfidence}, treating as uncertain`
+        );
+
+        // For uncertain comments, check if we have multiple recent comments
+        const recentComments = julesComments.filter(
+          (comment) =>
+            (Date.now() - new Date(comment.created_at).getTime()) /
+              (1000 * 60) <
+            30
+        );
+
+        if (recentComments.length > 1) {
+          // Analyze the second most recent comment for context
+          const secondAnalysis = analyzeComment(
+            recentComments[1] as GitHubComment
+          );
+          if (secondAnalysis.confidence >= minConfidence) {
+            console.log(
+              `Using second comment with higher confidence: ${secondAnalysis.confidence}`
+            );
+            return {
+              action: secondAnalysis.classification,
+              comment: recentComments[1] as GitHubComment,
+              analysis: secondAnalysis,
+              retryCount: attempt,
+            };
+          }
+        }
+
+        return {
+          action: "unknown",
+          comment: latestComment,
+          analysis,
+          retryCount: attempt,
+        };
+      }
+
+      // Return successful analysis
       return {
-        action: "task_limit",
+        action: analysis.classification,
         comment: latestComment,
+        analysis,
+        retryCount: attempt,
       };
-    }
+    } catch (error) {
+      lastError = error as Error;
+      console.error(
+        `Attempt ${attempt + 1} failed for ${owner}/${repo}#${issueNumber}:`,
+        error
+      );
 
-    if (isWorkingComment(commentBody)) {
-      return {
-        action: "working",
-        comment: latestComment,
-      };
+      // Wait before retry (exponential backoff)
+      if (attempt < maxRetries - 1) {
+        const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
     }
-
-    return { action: "no_action" };
-  } catch (error) {
-    console.error(
-      `Failed to check Jules comments for ${owner}/${repo}#${issueNumber}:`,
-      error
-    );
-    return { action: "no_action" };
   }
+
+  // All retries failed
+  console.error(
+    `All ${maxRetries} attempts failed for ${owner}/${repo}#${issueNumber}:`,
+    lastError
+  );
+
+  return {
+    action: "no_action",
+    retryCount: maxRetries,
+  };
 }
 
 /**
@@ -219,9 +353,46 @@ export async function handleTaskLimit(
   owner: string,
   repo: string,
   issueNumber: number,
-  taskId: number
+  taskId: number,
+  analysis?: CommentAnalysis
 ): Promise<void> {
   try {
+    console.log(
+      `Handling task limit for ${owner}/${repo}#${issueNumber}, confidence: ${
+        analysis?.confidence || "unknown"
+      }`
+    );
+
+    // Validate current state before making changes
+    const currentTask = await db.julesTask.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!currentTask) {
+      throw new Error(`Task ${taskId} not found in database`);
+    }
+
+    if (currentTask.flaggedForRetry) {
+      console.log(`Task ${taskId} already flagged for retry, skipping`);
+      return;
+    }
+
+    // Check if issue still has the jules label
+    const issue = await githubClient.getIssue(owner, repo, issueNumber);
+    const hasJulesLabel =
+      issue.labels?.some(
+        (label) =>
+          (typeof label === "string" ? label : label.name)?.toLowerCase() ===
+          "jules"
+      ) ?? false;
+
+    if (!hasJulesLabel) {
+      console.log(
+        `Issue ${owner}/${repo}#${issueNumber} no longer has 'jules' label, aborting task limit handling`
+      );
+      return;
+    }
+
     // Update task in database to be flagged for retry
     await db.julesTask.update({
       where: { id: taskId },
@@ -240,26 +411,79 @@ export async function handleTaskLimit(
       "jules-queue"
     );
 
-    console.log(`Queued task for retry: ${owner}/${repo}#${issueNumber}`);
+    // Add refresh emoji reaction to Jules' comment if analysis available
+    if (analysis?.comment) {
+      try {
+        await githubClient.addReactionToComment(
+          owner,
+          repo,
+          analysis.comment.id,
+          "eyes"
+        );
+        console.log(
+          `Added refresh emoji reaction to Jules comment for task limit`
+        );
+      } catch (reactionError) {
+        console.warn(`Failed to add refresh reaction: ${reactionError}`);
+      }
+    }
+
+    console.log(
+      `Successfully queued task for retry: ${owner}/${repo}#${issueNumber}`
+    );
   } catch (error) {
     console.error(
       `Failed to handle task limit for ${owner}/${repo}#${issueNumber}:`,
       error
     );
+
+    // Attempt to revert database changes if label swap failed
+    try {
+      await db.julesTask.update({
+        where: { id: taskId },
+        data: {
+          flaggedForRetry: false,
+          updatedAt: new Date(),
+        },
+      });
+      console.log(`Reverted database changes for task ${taskId} after failure`);
+    } catch (revertError) {
+      console.error(
+        `Failed to revert database changes for task ${taskId}:`,
+        revertError
+      );
+    }
+
     throw error;
   }
 }
 
 /**
- * Handle working scenario - Jules is actively working
+ * Enhanced working handler with validation
  */
 export async function handleWorking(
   owner: string,
   repo: string,
   issueNumber: number,
-  taskId: number
+  taskId: number,
+  analysis?: CommentAnalysis
 ): Promise<void> {
   try {
+    console.log(
+      `Handling working status for ${owner}/${repo}#${issueNumber}, confidence: ${
+        analysis?.confidence || "unknown"
+      }`
+    );
+
+    // Validate current state
+    const currentTask = await db.julesTask.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!currentTask) {
+      throw new Error(`Task ${taskId} not found in database`);
+    }
+
     // Update task in database to not be flagged for retry
     await db.julesTask.update({
       where: { id: taskId },
@@ -269,6 +493,23 @@ export async function handleWorking(
       },
     });
 
+    // Add thumbs up emoji reaction to Jules' comment if analysis available
+    if (analysis?.comment) {
+      try {
+        await githubClient.addReactionToComment(
+          owner,
+          repo,
+          analysis.comment.id,
+          "+1"
+        );
+        console.log(
+          `Added thumbs up emoji reaction to Jules comment for working status`
+        );
+      } catch (reactionError) {
+        console.warn(`Failed to add thumbs up reaction: ${reactionError}`);
+      }
+    }
+
     console.log(`Jules is working on: ${owner}/${repo}#${issueNumber}`);
   } catch (error) {
     console.error(
@@ -276,6 +517,78 @@ export async function handleWorking(
       error
     );
     throw error;
+  }
+}
+
+/**
+ * Enhanced workflow processor with comprehensive decision logic
+ */
+export async function processWorkflowDecision(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  taskId: number,
+  result: {
+    action: CommentClassification;
+    comment?: GitHubComment;
+    analysis?: CommentAnalysis;
+    retryCount?: number;
+  }
+): Promise<void> {
+  const { action, analysis } = result;
+
+  console.log(
+    `Processing workflow decision for ${owner}/${repo}#${issueNumber}: ${action} (confidence: ${
+      analysis?.confidence || "unknown"
+    })`
+  );
+
+  switch (action) {
+    case "task_limit":
+      await handleTaskLimit(owner, repo, issueNumber, taskId, analysis);
+      break;
+
+    case "working":
+      await handleWorking(owner, repo, issueNumber, taskId, analysis);
+      break;
+
+    case "unknown":
+      console.log(
+        `Uncertain comment classification for ${owner}/${repo}#${issueNumber}, no action taken`
+      );
+      // For unknown patterns, add warning reaction and quote reply
+      if (result.comment) {
+        try {
+          await githubClient.addReactionToComment(
+            owner,
+            repo,
+            result.comment.id,
+            "confused"
+          );
+          const errorMsg = `⚠️ **Jules Task Queue**: Detected an unknown Jules bot response pattern. This may require manual review.`;
+          await githubClient.createQuoteReply(
+            owner,
+            repo,
+            issueNumber,
+            result.comment.body || "Unknown comment",
+            errorMsg,
+            result.comment.user?.login
+          );
+        } catch (reactionError) {
+          console.warn(
+            `Failed to add warning reaction/comment for ${owner}/${repo}#${issueNumber}:`,
+            reactionError
+          );
+        }
+      }
+      break;
+
+    case "no_action":
+    default:
+      console.log(
+        `No action needed for ${owner}/${repo}#${issueNumber}: ${action}`
+      );
+      break;
   }
 }
 
