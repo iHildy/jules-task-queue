@@ -5,60 +5,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import { processJulesLabelEvent } from "@/lib/webhook-processor";
 import { db } from "@/server/db";
-
-// GitHub webhook event schemas
-const GitHubLabelEventSchema = z.object({
-  action: z.enum(["labeled", "unlabeled"]),
-  label: z.object({
-    name: z.string(),
-  }),
-  issue: z.object({
-    id: z.number(),
-    number: z.number(),
-    state: z.enum(["open", "closed"]),
-    labels: z.array(
-      z.object({
-        name: z.string(),
-      })
-    ),
-  }),
-  repository: z.object({
-    id: z.number(),
-    name: z.string(),
-    full_name: z.string(),
-    owner: z.object({
-      login: z.string(),
-    }),
-  }),
-  sender: z.object({
-    login: z.string(),
-    type: z.string(),
-  }),
-});
-
-const GitHubWebhookEventSchema = z.object({
-  action: z.string(),
-  issue: z
-    .object({
-      id: z.number(),
-      number: z.number(),
-      state: z.string(),
-      labels: z.array(z.object({ name: z.string() })).optional(),
-    })
-    .optional(),
-  repository: z.object({
-    id: z.number(),
-    name: z.string(),
-    full_name: z.string(),
-    owner: z.object({
-      login: z.string(),
-    }),
-  }),
-  sender: z.object({
-    login: z.string(),
-    type: z.string(),
-  }),
-});
+import { GitHubLabelEventSchema, GitHubWebhookEventSchema } from "@/types";
 
 /**
  * Verify GitHub webhook signature
@@ -66,7 +13,7 @@ const GitHubWebhookEventSchema = z.object({
 function verifyGitHubSignature(payload: string, signature: string): boolean {
   if (!env.GITHUB_WEBHOOK_SECRET) {
     console.warn(
-      "GITHUB_WEBHOOK_SECRET not configured - webhook verification disabled"
+      "GITHUB_WEBHOOK_SECRET not configured - webhook verification disabled",
     );
     return true; // Allow in development if not configured
   }
@@ -83,7 +30,7 @@ function verifyGitHubSignature(payload: string, signature: string): boolean {
   try {
     return timingSafeEqual(
       Buffer.from(expectedSignature, "hex"),
-      Buffer.from(computedSignature, "hex")
+      Buffer.from(computedSignature, "hex"),
     );
   } catch {
     return false;
@@ -97,7 +44,7 @@ async function logWebhookEvent(
   eventType: string,
   payload: unknown,
   success: boolean,
-  error?: string
+  error?: string,
 ): Promise<void> {
   try {
     await db.webhookLog.create({
@@ -129,7 +76,7 @@ export async function POST(req: NextRequest) {
       await logWebhookEvent(eventType, payload, false, "Invalid content type");
       return NextResponse.json(
         { error: "Content-Type must be application/json" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -147,11 +94,11 @@ export async function POST(req: NextRequest) {
         eventType,
         payload,
         false,
-        "Missing signature header"
+        "Missing signature header",
       );
       return NextResponse.json(
         { error: "Missing X-Hub-Signature-256 header" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -159,7 +106,7 @@ export async function POST(req: NextRequest) {
       await logWebhookEvent(eventType, payload, false, "Invalid signature");
       return NextResponse.json(
         { error: "Invalid webhook signature" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -185,7 +132,7 @@ export async function POST(req: NextRequest) {
         eventType,
         payload,
         true,
-        `Action '${webhookEvent.action}' ignored`
+        `Action '${webhookEvent.action}' ignored`,
       );
       return NextResponse.json({
         message: "Action not processed",
@@ -204,7 +151,7 @@ export async function POST(req: NextRequest) {
         eventType,
         payload,
         true,
-        `Label '${labelName}' ignored`
+        `Label '${labelName}' ignored`,
       );
       return NextResponse.json({
         message: "Label not processed",
@@ -225,7 +172,7 @@ export async function POST(req: NextRequest) {
 
     // Process the Jules label event
     console.log(
-      `Processing ${labelEvent.action} event for label '${labelName}' on ${labelEvent.repository.full_name}#${labelEvent.issue.number}`
+      `Processing ${labelEvent.action} event for label '${labelName}' on ${labelEvent.repository.full_name}#${labelEvent.issue.number}`,
     );
 
     const result = await processJulesLabelEvent(labelEvent);
@@ -261,7 +208,7 @@ export async function POST(req: NextRequest) {
           details: error.errors,
           processingTime: Date.now() - startTime,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -271,7 +218,7 @@ export async function POST(req: NextRequest) {
         message: errorMessage,
         processingTime: Date.now() - startTime,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -301,7 +248,7 @@ export async function GET() {
         error: error instanceof Error ? error.message : "Unknown error",
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

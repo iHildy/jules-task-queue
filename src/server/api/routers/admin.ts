@@ -23,7 +23,7 @@ export const adminRouter = createTRPCRouter({
       throw new Error(
         `Retry failed: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
       );
     }
   }),
@@ -48,7 +48,7 @@ export const adminRouter = createTRPCRouter({
         throw new Error(
           `Retry failed: ${
             error instanceof Error ? error.message : "Unknown error"
-          }`
+          }`,
         );
       }
     }),
@@ -80,7 +80,7 @@ export const adminRouter = createTRPCRouter({
         cursor: z.number().optional(),
         eventType: z.string().optional(),
         success: z.boolean().optional(),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const { limit, cursor, eventType, success } = input;
@@ -138,7 +138,7 @@ export const adminRouter = createTRPCRouter({
       throw new Error(
         `Health check failed: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
       );
     }
   }),
@@ -148,7 +148,7 @@ export const adminRouter = createTRPCRouter({
     .input(
       z.object({
         olderThanDays: z.number().min(1).max(365).default(30),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       try {
@@ -165,7 +165,7 @@ export const adminRouter = createTRPCRouter({
         throw new Error(
           `Cleanup failed: ${
             error instanceof Error ? error.message : "Unknown error"
-          }`
+          }`,
         );
       }
     }),
@@ -229,7 +229,7 @@ export const adminRouter = createTRPCRouter({
               acc[item.flaggedForRetry ? "queued" : "active"] = item._count;
               return acc;
             },
-            { active: 0, queued: 0 } as Record<string, number>
+            { active: 0, queued: 0 } as Record<string, number>,
           ),
         },
         timestamp: new Date().toISOString(),
@@ -239,7 +239,7 @@ export const adminRouter = createTRPCRouter({
       throw new Error(
         `Metrics failed: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
       );
     }
   }),

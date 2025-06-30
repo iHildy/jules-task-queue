@@ -1,5 +1,12 @@
 import { githubClient } from "@/lib/github";
 import { db } from "@/server/db";
+import type {
+  CommentAnalysis,
+  CommentClassification,
+  GitHubComment,
+  GitHubIssueData,
+  TaskCreationParams,
+} from "@/types";
 
 /**
  * Jules bot username patterns to look for
@@ -17,27 +24,6 @@ const TASK_LIMIT_PATTERNS = ["You are currently at your concurrent task limit"];
 const WORKING_PATTERNS = ["When finished, you will see another comment"];
 
 /**
- * Comment type classification
- */
-export type CommentClassification =
-  | "task_limit"
-  | "working"
-  | "unknown"
-  | "no_action";
-
-/**
- * Comment analysis result with metadata
- */
-export interface CommentAnalysis {
-  classification: CommentClassification;
-  confidence: number; // 0-1 score
-  comment?: GitHubComment;
-  patterns_matched: string[];
-  timestamp: Date;
-  age_minutes: number;
-}
-
-/**
  * Enhanced comment analysis with confidence scoring
  */
 export function analyzeComment(comment: GitHubComment): CommentAnalysis {
@@ -51,7 +37,7 @@ export function analyzeComment(comment: GitHubComment): CommentAnalysis {
 
   // Check for task limit patterns
   const taskLimitMatches = TASK_LIMIT_PATTERNS.filter((pattern) =>
-    body.includes(pattern.toLowerCase())
+    body.includes(pattern.toLowerCase()),
   );
   if (taskLimitMatches.length > 0) {
     classification = "task_limit";
@@ -61,7 +47,7 @@ export function analyzeComment(comment: GitHubComment): CommentAnalysis {
 
   // Check for working patterns (higher confidence than task limit)
   const workingMatches = WORKING_PATTERNS.filter((pattern) =>
-    body.includes(pattern.toLowerCase())
+    body.includes(pattern.toLowerCase()),
   );
   if (workingMatches.length > 0 && confidence < 0.8) {
     classification = "working";
@@ -85,7 +71,7 @@ export function analyzeComment(comment: GitHubComment): CommentAnalysis {
 export function isTaskLimitComment(commentBody: string): boolean {
   const body = commentBody.toLowerCase();
   return TASK_LIMIT_PATTERNS.some((pattern) =>
-    body.includes(pattern.toLowerCase())
+    body.includes(pattern.toLowerCase()),
   );
 }
 
@@ -95,7 +81,7 @@ export function isTaskLimitComment(commentBody: string): boolean {
 export function isWorkingComment(commentBody: string): boolean {
   const body = commentBody.toLowerCase();
   return WORKING_PATTERNS.some((pattern) =>
-    body.includes(pattern.toLowerCase())
+    body.includes(pattern.toLowerCase()),
   );
 }
 
@@ -105,38 +91,17 @@ export function isWorkingComment(commentBody: string): boolean {
 export function isJulesBot(username: string): boolean {
   const lowerUsername = username.toLowerCase();
   return JULES_BOT_USERNAMES.some((botName) =>
-    lowerUsername.includes(botName.toLowerCase().replace("[bot]", ""))
+    lowerUsername.includes(botName.toLowerCase().replace("[bot]", "")),
   );
 }
 
-/**
- * Type for GitHub issue data from webhooks
- */
-interface GitHubIssueData {
-  repository?: {
-    full_name?: string;
-  };
-}
-
-/**
- * Type for GitHub comment data - matches GitHub API response
- */
-interface GitHubComment {
-  id: number;
-  body?: string;
-  user?: {
-    login: string;
-    [key: string]: unknown;
-  } | null;
-  created_at: string;
-  [key: string]: unknown;
-}
+// GitHub types are now imported from @/types
 
 /**
  * Parse repository information from GitHub issue data
  */
 export function parseRepoFromIssue(
-  issueData: GitHubIssueData
+  issueData: GitHubIssueData,
 ): { owner: string; repo: string } | null {
   if (!issueData?.repository?.full_name) {
     return null;
@@ -153,13 +118,7 @@ export function parseRepoFromIssue(
 /**
  * Create or update a Jules task in the database
  */
-export async function upsertJulesTask(params: {
-  githubRepoId: bigint;
-  githubIssueId: bigint;
-  githubIssueNumber: bigint;
-  repoOwner: string;
-  repoName: string;
-}) {
+export async function upsertJulesTask(params: TaskCreationParams) {
   const {
     githubRepoId,
     githubIssueId,
@@ -209,7 +168,7 @@ export async function checkJulesComments(
   repo: string,
   issueNumber: number,
   maxRetries: number = 3,
-  minConfidence: number = 0.6
+  minConfidence: number = 0.6,
 ): Promise<{
   action: CommentClassification;
   comment?: GitHubComment;
@@ -223,14 +182,14 @@ export async function checkJulesComments(
       console.log(
         `Checking Jules comments for ${owner}/${repo}#${issueNumber} (attempt ${
           attempt + 1
-        }/${maxRetries})`
+        }/${maxRetries})`,
       );
 
       // Get all comments on the issue
       const comments = await githubClient.getIssueComments(
         owner,
         repo,
-        issueNumber
+        issueNumber,
       );
 
       // Filter for Jules bot comments (most recent first)
@@ -238,12 +197,12 @@ export async function checkJulesComments(
         .filter((comment) => comment.user && isJulesBot(comment.user.login))
         .sort(
           (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         );
 
       if (julesComments.length === 0) {
         console.log(
-          `No Jules bot comments found for ${owner}/${repo}#${issueNumber}`
+          `No Jules bot comments found for ${owner}/${repo}#${issueNumber}`,
         );
         return { action: "no_action", retryCount: attempt };
       }
@@ -262,7 +221,7 @@ export async function checkJulesComments(
       // Check if comment is too old (older than 2 hours might be stale)
       if (analysis.age_minutes > 120) {
         console.log(
-          `Latest Jules comment is ${analysis.age_minutes} minutes old, treating as stale`
+          `Latest Jules comment is ${analysis.age_minutes} minutes old, treating as stale`,
         );
         return {
           action: "no_action",
@@ -275,7 +234,7 @@ export async function checkJulesComments(
       // Apply confidence threshold
       if (analysis.confidence < minConfidence) {
         console.log(
-          `Comment confidence ${analysis.confidence} below threshold ${minConfidence}, treating as uncertain`
+          `Comment confidence ${analysis.confidence} below threshold ${minConfidence}, treating as uncertain`,
         );
 
         // For uncertain comments, check if we have multiple recent comments
@@ -283,17 +242,17 @@ export async function checkJulesComments(
           (comment) =>
             (Date.now() - new Date(comment.created_at).getTime()) /
               (1000 * 60) <
-            30
+            30,
         );
 
         if (recentComments.length > 1) {
           // Analyze the second most recent comment for context
           const secondAnalysis = analyzeComment(
-            recentComments[1] as GitHubComment
+            recentComments[1] as GitHubComment,
           );
           if (secondAnalysis.confidence >= minConfidence) {
             console.log(
-              `Using second comment with higher confidence: ${secondAnalysis.confidence}`
+              `Using second comment with higher confidence: ${secondAnalysis.confidence}`,
             );
             return {
               action: secondAnalysis.classification,
@@ -323,7 +282,7 @@ export async function checkJulesComments(
       lastError = error as Error;
       console.error(
         `Attempt ${attempt + 1} failed for ${owner}/${repo}#${issueNumber}:`,
-        error
+        error,
       );
 
       // Wait before retry (exponential backoff)
@@ -337,7 +296,7 @@ export async function checkJulesComments(
   // All retries failed
   console.error(
     `All ${maxRetries} attempts failed for ${owner}/${repo}#${issueNumber}:`,
-    lastError
+    lastError,
   );
 
   return {
@@ -354,13 +313,13 @@ export async function handleTaskLimit(
   repo: string,
   issueNumber: number,
   taskId: number,
-  analysis?: CommentAnalysis
+  analysis?: CommentAnalysis,
 ): Promise<void> {
   try {
     console.log(
       `Handling task limit for ${owner}/${repo}#${issueNumber}, confidence: ${
         analysis?.confidence || "unknown"
-      }`
+      }`,
     );
 
     // Validate current state before making changes
@@ -383,12 +342,12 @@ export async function handleTaskLimit(
       issue.labels?.some(
         (label) =>
           (typeof label === "string" ? label : label.name)?.toLowerCase() ===
-          "jules"
+          "jules",
       ) ?? false;
 
     if (!hasJulesLabel) {
       console.log(
-        `Issue ${owner}/${repo}#${issueNumber} no longer has 'jules' label, aborting task limit handling`
+        `Issue ${owner}/${repo}#${issueNumber} no longer has 'jules' label, aborting task limit handling`,
       );
       return;
     }
@@ -408,7 +367,7 @@ export async function handleTaskLimit(
       repo,
       issueNumber,
       "jules",
-      "jules-queue"
+      "jules-queue",
     );
 
     // Add refresh emoji reaction to Jules' comment if analysis available
@@ -418,10 +377,10 @@ export async function handleTaskLimit(
           owner,
           repo,
           analysis.comment.id,
-          "eyes"
+          "eyes",
         );
         console.log(
-          `Added refresh emoji reaction to Jules comment for task limit`
+          `Added refresh emoji reaction to Jules comment for task limit`,
         );
       } catch (reactionError) {
         console.warn(`Failed to add refresh reaction: ${reactionError}`);
@@ -429,12 +388,12 @@ export async function handleTaskLimit(
     }
 
     console.log(
-      `Successfully queued task for retry: ${owner}/${repo}#${issueNumber}`
+      `Successfully queued task for retry: ${owner}/${repo}#${issueNumber}`,
     );
   } catch (error) {
     console.error(
       `Failed to handle task limit for ${owner}/${repo}#${issueNumber}:`,
-      error
+      error,
     );
 
     // Attempt to revert database changes if label swap failed
@@ -450,7 +409,7 @@ export async function handleTaskLimit(
     } catch (revertError) {
       console.error(
         `Failed to revert database changes for task ${taskId}:`,
-        revertError
+        revertError,
       );
     }
 
@@ -466,13 +425,13 @@ export async function handleWorking(
   repo: string,
   issueNumber: number,
   taskId: number,
-  analysis?: CommentAnalysis
+  analysis?: CommentAnalysis,
 ): Promise<void> {
   try {
     console.log(
       `Handling working status for ${owner}/${repo}#${issueNumber}, confidence: ${
         analysis?.confidence || "unknown"
-      }`
+      }`,
     );
 
     // Validate current state
@@ -500,10 +459,10 @@ export async function handleWorking(
           owner,
           repo,
           analysis.comment.id,
-          "+1"
+          "+1",
         );
         console.log(
-          `Added thumbs up emoji reaction to Jules comment for working status`
+          `Added thumbs up emoji reaction to Jules comment for working status`,
         );
       } catch (reactionError) {
         console.warn(`Failed to add thumbs up reaction: ${reactionError}`);
@@ -514,7 +473,7 @@ export async function handleWorking(
   } catch (error) {
     console.error(
       `Failed to handle working status for ${owner}/${repo}#${issueNumber}:`,
-      error
+      error,
     );
     throw error;
   }
@@ -533,14 +492,14 @@ export async function processWorkflowDecision(
     comment?: GitHubComment;
     analysis?: CommentAnalysis;
     retryCount?: number;
-  }
+  },
 ): Promise<void> {
   const { action, analysis } = result;
 
   console.log(
     `Processing workflow decision for ${owner}/${repo}#${issueNumber}: ${action} (confidence: ${
       analysis?.confidence || "unknown"
-    })`
+    })`,
   );
 
   switch (action) {
@@ -554,7 +513,7 @@ export async function processWorkflowDecision(
 
     case "unknown":
       console.log(
-        `Uncertain comment classification for ${owner}/${repo}#${issueNumber}, no action taken`
+        `Uncertain comment classification for ${owner}/${repo}#${issueNumber}, no action taken`,
       );
       // For unknown patterns, add warning reaction and quote reply
       if (result.comment) {
@@ -563,7 +522,7 @@ export async function processWorkflowDecision(
             owner,
             repo,
             result.comment.id,
-            "confused"
+            "confused",
           );
           const errorMsg = `⚠️ **Jules Task Queue**: Detected an unknown Jules bot response pattern. This may require manual review.`;
           await githubClient.createQuoteReply(
@@ -572,12 +531,12 @@ export async function processWorkflowDecision(
             issueNumber,
             result.comment.body || "Unknown comment",
             errorMsg,
-            result.comment.user?.login
+            result.comment.user?.login,
           );
         } catch (reactionError) {
           console.warn(
             `Failed to add warning reaction/comment for ${owner}/${repo}#${issueNumber}:`,
-            reactionError
+            reactionError,
           );
         }
       }
@@ -586,7 +545,7 @@ export async function processWorkflowDecision(
     case "no_action":
     default:
       console.log(
-        `No action needed for ${owner}/${repo}#${issueNumber}: ${action}`
+        `No action needed for ${owner}/${repo}#${issueNumber}: ${action}`,
       );
       break;
   }
@@ -610,7 +569,7 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
     const issueNumber = Number(githubIssueNumber);
 
     console.log(
-      `Processing retry for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`
+      `Processing retry for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
     );
 
     // Check if issue still has 'Human' label - if so, skip
@@ -619,7 +578,7 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       issue.labels?.some(
         (label) =>
           (typeof label === "string" ? label : label.name)?.toLowerCase() ===
-          "human"
+          "human",
       ) ?? false;
 
     if (hasHumanLabel) {
@@ -633,7 +592,7 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       repoName,
       issueNumber,
       "jules-queue",
-      "jules"
+      "jules",
     );
 
     // Update retry metrics
@@ -647,7 +606,7 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
     });
 
     console.log(
-      `Successfully retried task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`
+      `Successfully retried task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
     );
     return true;
   } catch (error) {
@@ -705,7 +664,7 @@ export async function retryAllFlaggedTasks(): Promise<{
  * Clean up old completed tasks (housekeeping)
  */
 export async function cleanupOldTasks(
-  olderThanDays: number = 30
+  olderThanDays: number = 30,
 ): Promise<number> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
@@ -720,7 +679,7 @@ export async function cleanupOldTasks(
   });
 
   console.log(
-    `Cleaned up ${result.count} old tasks older than ${olderThanDays} days`
+    `Cleaned up ${result.count} old tasks older than ${olderThanDays} days`,
   );
   return result.count;
 }

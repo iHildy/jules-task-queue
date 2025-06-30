@@ -1,0 +1,32 @@
+{
+  "name": "jules-task-queue-functions",
+  "version": "1.0.0",
+  "description": "Firebase Cloud Functions for Jules Task Queue cron jobs",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "serve:debug": "npm run build && firebase emulators:start --only functions --debug",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "test": "npm run build && npm run test:functions",
+    "test:functions": "firebase emulators:exec --only functions 'npm run test:trigger'",
+    "test:trigger": "node test-functions.js",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "dev": "npm run build:watch & npm run serve"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.4.0",
+    "firebase-functions": "^6.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.7",
+    "typescript": "^5.8.3"
+  },
+  "private": true
+}

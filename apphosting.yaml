@@ -1,0 +1,44 @@
+# Firebase App Hosting configuration for Jules Task Queue
+# Cloud Run service settings optimized for a queue processing system
+runConfig:
+  # Keep at least 1 instance warm to handle webhooks quickly
+  minInstances: 1
+  # Scale up to handle traffic spikes
+  maxInstances: 10
+  # Allow multiple concurrent requests per instance
+  concurrency: 80
+  # 1 CPU should be sufficient for most operations
+  cpu: 1
+  # 1GB memory for database operations and task processing
+  memoryMiB: 1024
+
+# Environment variables and secrets
+env:
+  # Database connection - using secret for security
+  - variable: DATABASE_URL
+    secret: DATABASE_URL
+
+  # GitHub integration - using secrets for security
+  - variable: GITHUB_TOKEN
+    secret: GITHUB_TOKEN
+
+  - variable: GITHUB_WEBHOOK_SECRET
+    secret: GITHUB_WEBHOOK_SECRET
+
+  # Cron job authentication
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+
+  # Next.js environment
+  - variable: NODE_ENV
+    value: production
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Optimize Next.js build
+  - variable: NEXT_TELEMETRY_DISABLED
+    value: "1"
+    availability:
+      - BUILD
+      - RUNTIME

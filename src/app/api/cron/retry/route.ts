@@ -31,7 +31,7 @@ function verifyCronAuth(req: NextRequest): boolean {
   // In development, allow without auth
   if (env.NODE_ENV === "development") {
     console.warn(
-      "Cron endpoint accessed without authentication in development mode"
+      "Cron endpoint accessed without authentication in development mode",
     );
     return true;
   }
@@ -48,7 +48,7 @@ async function logCronExecution(
   jobType: string,
   success: boolean,
   stats?: Record<string, unknown>,
-  error?: string
+  error?: string,
 ): Promise<void> {
   try {
     await db.webhookLog.create({
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
       "retry_tasks",
       false,
       { executionTimeMs: executionTime },
-      errorMessage
+      errorMessage,
     );
 
     return NextResponse.json(
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         message: errorMessage,
         executionTimeMs: executionTime,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -185,7 +185,7 @@ export async function GET() {
         error: error instanceof Error ? error.message : "Unknown error",
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -238,7 +238,7 @@ export async function PUT(req: NextRequest) {
         error: "Manual retry failed",
         message: errorMessage,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

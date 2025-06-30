@@ -1,0 +1,9 @@
+export { CTASection } from "./cta-section";
+export { Disclaimer } from "./disclaimer";
+export { FeaturesSection } from "./features-section";
+export { Footer } from "./footer";
+export { GitHubDashboard } from "./github-dashboard";
+export { HeroSection } from "./hero-section";
+export { HowItWorks } from "./how-it-works";
+export { Navigation } from "./navigation";
+export { ProblemSection } from "./problem-section";

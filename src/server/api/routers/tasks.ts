@@ -10,7 +10,7 @@ export const tasksRouter = createTRPCRouter({
         cursor: z.number().optional(), // for pagination
         flaggedForRetry: z.boolean().optional(),
         githubRepoId: z.bigint().optional(),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const { limit, cursor, flaggedForRetry, githubRepoId } = input;
@@ -110,7 +110,7 @@ export const tasksRouter = createTRPCRouter({
       z.object({
         id: z.number(),
         flaggedForRetry: z.boolean().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...updateData } = input;

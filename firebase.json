@@ -1,0 +1,47 @@
+{
+  "apphosting": [
+    {
+      "backendId": "jules-task-queue",
+      "rootDir": ".",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        ".next",
+        "out",
+        "build",
+        "coverage",
+        ".env*",
+        ".vercel",
+        "*.md",
+        "*.log",
+        ".DS_Store",
+        "Thumbs.db"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs18",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local",
+        "src/**/*.test.ts",
+        "src/**/*.spec.ts"
+      ],
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"],
+      "env": [
+        {
+          "variable": "NODE_ENV",
+          "value": "production"
+        }
+      ]
+    }
+  ]
+}

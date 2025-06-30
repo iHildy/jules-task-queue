@@ -57,22 +57,22 @@ graph TD
 
 ### 1. GitHub Webhook Handler
 
--   **Trigger**: When `jules` label is added to an issue
--   **Action**: Creates/updates JulesTask record
--   **Delay**: Waits 60 seconds before checking for bot responses
+- **Trigger**: When `jules` label is added to an issue
+- **Action**: Creates/updates JulesTask record
+- **Delay**: Waits 60 seconds before checking for bot responses
 
 ### 2. Comment Detection System
 
--   **Purpose**: Monitors Jules bot responses after label application
--   **Detection Patterns**:
-    -   Task limit: `"You are currently at your concurrent task limit"`
-    -   Success: `"When finished, you will see another comment"`
+- **Purpose**: Monitors Jules bot responses after label application
+- **Detection Patterns**:
+  - Task limit: `"You are currently at your concurrent task limit"`
+  - Success: `"When finished, you will see another comment"`
 
 ### 3. Queue Management
 
--   **Queueing**: Moves tasks from `jules` → `jules-queue` when limit reached
--   **Retry Logic**: Cron job processes queued tasks every 30 minutes
--   **Safety**: Skips tasks with `Human` label (manual intervention required)
+- **Queueing**: Moves tasks from `jules` → `jules-queue` when limit reached
+- **Retry Logic**: Cron job processes queued tasks every 30 minutes
+- **Safety**: Skips tasks with `Human` label (manual intervention required)
 
 ### 4. Database Schema
 
@@ -96,14 +96,14 @@ model JulesTask {
 
 ```typescript
 async function upsertJulesTask(params: {
-    githubRepoId: bigint;
-    githubIssueId: bigint;
-    githubIssueNumber: bigint;
+  githubRepoId: bigint;
+  githubIssueId: bigint;
+  githubIssueNumber: bigint;
 }) {
-    // Create/update task record
-    // Start 60-second delay timer
-    // Check for Jules bot comments
-    // Handle task limit or success responses
+  // Create/update task record
+  // Start 60-second delay timer
+  // Check for Jules bot comments
+  // Handle task limit or success responses
 }
 ```
 
@@ -111,57 +111,57 @@ async function upsertJulesTask(params: {
 
 ```typescript
 async function retryFlaggedJulesTasks() {
-    // Find all flagged tasks
-    // Skip tasks with 'Human' label
-    // Re-apply 'jules' label
-    // Remove 'jules-queue' label
-    // Update retry metrics
+  // Find all flagged tasks
+  // Skip tasks with 'Human' label
+  // Re-apply 'jules' label
+  // Remove 'jules-queue' label
+  // Update retry metrics
 }
 ```
 
 ## GitHub Labels
 
--   **`jules`**: Active task - Jules should process this
--   **`jules-queue`**: Queued task - waiting for retry
--   **`Human`**: Manual intervention - skip automatic processing
+- **`jules`**: Active task - Jules should process this
+- **`jules-queue`**: Queued task - waiting for retry
+- **`Human`**: Manual intervention - skip automatic processing
 
 ## Environment Requirements
 
--   GitHub webhook configured for `issues.labeled` events
--   GitHub API token with repo access
--   Database for task persistence
--   Cron job capability for retries
+- GitHub webhook configured for `issues.labeled` events
+- GitHub API token with repo access
+- Database for task persistence
+- Cron job capability for retries
 
 ## Retry Strategy
 
--   **Interval**: Every 30 minutes
--   **Persistence**: Tasks remain queued until successful or manually resolved
--   **Metrics**: Tracks retry count and timestamps
--   **Safety**: Human label prevents infinite retries
+- **Interval**: Every 30 minutes
+- **Persistence**: Tasks remain queued until successful or manually resolved
+- **Metrics**: Tracks retry count and timestamps
+- **Safety**: Human label prevents infinite retries
 
 ## Error Handling
 
--   Graceful webhook failures
--   GitHub API rate limiting
--   Network timeouts
--   Database connection issues
--   Missing environment variables
+- Graceful webhook failures
+- GitHub API rate limiting
+- Network timeouts
+- Database connection issues
+- Missing environment variables
 
 ## Security Considerations
 
--   GitHub webhook signature verification
--   Encrypted API token storage
--   Input validation and sanitization
--   Rate limiting on endpoints
--   Audit logging for all operations
+- GitHub webhook signature verification
+- Encrypted API token storage
+- Input validation and sanitization
+- Rate limiting on endpoints
+- Audit logging for all operations
 
 ## Monitoring & Observability
 
--   Task creation and completion metrics
--   Retry attempt tracking
--   Queue depth monitoring
--   Error rate alerting
--   Performance metrics for webhook processing
+- Task creation and completion metrics
+- Retry attempt tracking
+- Queue depth monitoring
+- Error rate alerting
+- Performance metrics for webhook processing
 
 ## Future Enhancements
 

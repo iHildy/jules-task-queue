@@ -6,6 +6,13 @@ const nextConfig: NextConfig = {
 
   // Enable standalone output for Docker deployments
   output: "standalone",
+
+  // Configure images
+  images: {
+    dangerouslyAllowSVG: true,
+    remotePatterns: [new URL("https://vercel.com/*")],
+  },
+
   // Configure headers for security and CORS
   async headers() {
     return [
@@ -28,20 +35,6 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
-  },
-
-  // Webpack configuration for better builds
-  webpack: (config) => {
-    config.externals.push("@node-rs/argon2", "@node-rs/bcrypt");
-    return config;
-  },
-
-  // Enable source maps in production for better debugging
-  productionBrowserSourceMaps: true,
-
-  // Optimize images
-  images: {
-    domains: ["avatars.githubusercontent.com"],
   },
 };
 

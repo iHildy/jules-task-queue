@@ -341,7 +341,7 @@ async function getSystemStatus() {
 
   // Get recent logs
   const logs = await fetch(`${baseUrl}/admin.logs?input={"limit":5}`).then(
-    (r) => r.json()
+    (r) => r.json(),
   );
 
   console.log("System Health:", health);
@@ -362,7 +362,7 @@ async function retryAllTasks() {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-    }
+    },
   );
 
   const result = await response.json();
@@ -384,7 +384,7 @@ async function manageTask(taskId, shouldRetry) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: taskId, flaggedForRetry: shouldRetry }),
-    }
+    },
   );
 
   if (shouldRetry) {
@@ -395,7 +395,7 @@ async function manageTask(taskId, shouldRetry) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: taskId }),
-      }
+      },
     );
 
     console.log("Retry Result:", await retryResponse.json());

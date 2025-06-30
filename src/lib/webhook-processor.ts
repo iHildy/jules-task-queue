@@ -5,46 +5,7 @@ import {
   upsertJulesTask,
 } from "@/lib/jules";
 import { db } from "@/server/db";
-
-// GitHub label event type (matches webhook handler schema)
-interface GitHubLabelEvent {
-  action: "labeled" | "unlabeled";
-  label: {
-    name: string;
-  };
-  issue: {
-    id: number;
-    number: number;
-    state: "open" | "closed";
-    labels: Array<{
-      name: string;
-    }>;
-  };
-  repository: {
-    id: number;
-    name: string;
-    full_name: string;
-    owner: {
-      login: string;
-    };
-  };
-  sender: {
-    login: string;
-    type: string;
-  };
-}
-
-interface ProcessingResult {
-  action:
-    | "task_created"
-    | "task_updated"
-    | "timer_scheduled"
-    | "no_action"
-    | "error";
-  taskId?: number;
-  message: string;
-  delayMs?: number;
-}
+import type { GitHubLabelEvent, ProcessingResult } from "@/types";
 
 /**
  * Schedule a delayed comment check using Vercel Edge Config or simple timeout
@@ -55,10 +16,10 @@ async function scheduleCommentCheck(
   repo: string,
   issueNumber: number,
   taskId: number,
-  delayMs: number = 60000 // 60 seconds
+  delayMs: number = 60000, // 60 seconds
 ): Promise<void> {
   console.log(
-    `Scheduling comment check for ${owner}/${repo}#${issueNumber} in ${delayMs}ms`
+    `Scheduling comment check for ${owner}/${repo}#${issueNumber} in ${delayMs}ms`,
   );
 
   // For now, use a simple setTimeout. In production, you'd want to use:
@@ -73,7 +34,7 @@ async function scheduleCommentCheck(
     } catch (error) {
       console.error(
         `Comment check failed for ${owner}/${repo}#${issueNumber}:`,
-        error
+        error,
       );
     }
   }, delayMs);
@@ -86,10 +47,10 @@ async function executeCommentCheck(
   owner: string,
   repo: string,
   issueNumber: number,
-  taskId: number
+  taskId: number,
 ): Promise<void> {
   console.log(
-    `Executing enhanced comment check for ${owner}/${repo}#${issueNumber}`
+    `Executing enhanced comment check for ${owner}/${repo}#${issueNumber}`,
   );
 
   try {
@@ -109,7 +70,7 @@ async function executeCommentCheck(
       repo,
       issueNumber,
       3, // maxRetries
-      0.6 // minConfidence
+      0.6, // minConfidence
     );
 
     console.log(
@@ -119,7 +80,7 @@ async function executeCommentCheck(
         confidence: commentResult.analysis?.confidence,
         retryCount: commentResult.retryCount,
         patterns: commentResult.analysis?.patterns_matched,
-      }
+      },
     );
 
     // Process the workflow decision using the enhanced system
@@ -128,7 +89,7 @@ async function executeCommentCheck(
       repo,
       issueNumber,
       taskId,
-      commentResult
+      commentResult,
     );
 
     // Log successful comment check
@@ -150,7 +111,7 @@ async function executeCommentCheck(
   } catch (error) {
     console.error(
       `Error during comment check for ${owner}/${repo}#${issueNumber}:`,
-      error
+      error,
     );
 
     // Log the error to the database
@@ -179,7 +140,7 @@ async function executeCommentCheck(
  * Process a Jules label event (main workflow entry point)
  */
 export async function processJulesLabelEvent(
-  event: GitHubLabelEvent
+  event: GitHubLabelEvent,
 ): Promise<ProcessingResult> {
   const { action, label, issue, repository } = event;
   const labelName = label.name.toLowerCase();
@@ -208,16 +169,16 @@ export async function processJulesLabelEvent(
       });
 
       console.log(
-        `Created/updated task ${task.id} for ${owner}/${repo}#${issue.number}`
+        `Created/updated task ${task.id} for ${owner}/${repo}#${issue.number}`,
       );
 
       // Check if issue has 'Human' label - if so, skip automatic processing
       const hasHumanLabel = issue.labels.some(
-        (l) => l.name.toLowerCase() === "human"
+        (l) => l.name.toLowerCase() === "human",
       );
       if (hasHumanLabel) {
         console.log(
-          `Issue ${owner}/${repo}#${issue.number} has 'Human' label, skipping automatic processing`
+          `Issue ${owner}/${repo}#${issue.number} has 'Human' label, skipping automatic processing`,
         );
         return {
           action: "no_action",
@@ -256,7 +217,7 @@ export async function processJulesLabelEvent(
         });
 
         console.log(
-          `Jules label removed from ${owner}/${repo}#${issue.number}, updated task ${existingTask.id}`
+          `Jules label removed from ${owner}/${repo}#${issue.number}, updated task ${existingTask.id}`,
         );
 
         return {
@@ -275,7 +236,7 @@ export async function processJulesLabelEvent(
     // Handle 'jules-queue' label events (mostly for logging/monitoring)
     if (labelName === "jules-queue") {
       console.log(
-        `Jules-queue label ${action} on ${owner}/${repo}#${issue.number}`
+        `Jules-queue label ${action} on ${owner}/${repo}#${issue.number}`,
       );
 
       return {
@@ -312,7 +273,7 @@ export async function processJulesLabelEvent(
  * Manual trigger for comment checking (useful for testing and admin operations)
  */
 export async function triggerCommentCheck(
-  taskId: number
+  taskId: number,
 ): Promise<ProcessingResult> {
   try {
     const task = await db.julesTask.findUnique({
@@ -331,7 +292,7 @@ export async function triggerCommentCheck(
     const issueNumber = Number(githubIssueNumber);
 
     console.log(
-      `Manually triggering comment check for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`
+      `Manually triggering comment check for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
     );
 
     // Execute comment check immediately

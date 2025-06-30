@@ -56,7 +56,7 @@ class GitHubClient {
     } catch (error) {
       console.error(
         `Failed to get issue ${owner}/${repo}#${issue_number}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -68,7 +68,7 @@ class GitHubClient {
   public async getIssueComments(
     owner: string,
     repo: string,
-    issue_number: number
+    issue_number: number,
   ) {
     try {
       const response = await this.octokit.rest.issues.listComments({
@@ -80,7 +80,7 @@ class GitHubClient {
     } catch (error) {
       console.error(
         `Failed to get comments for ${owner}/${repo}#${issue_number}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -93,13 +93,13 @@ class GitHubClient {
     owner: string,
     repo: string,
     issue_number: number,
-    botUsername: string
+    botUsername: string,
   ) {
     const comments = await this.getIssueComments(owner, repo, issue_number);
     return comments.filter(
       (comment) =>
         comment.user?.login === botUsername ||
-        comment.user?.login.includes(botUsername.replace("[bot]", ""))
+        comment.user?.login.includes(botUsername.replace("[bot]", "")),
     );
   }
 
@@ -110,7 +110,7 @@ class GitHubClient {
     owner: string,
     repo: string,
     issue_number: number,
-    body: string
+    body: string,
   ) {
     try {
       const response = await this.octokit.rest.issues.createComment({
@@ -124,7 +124,7 @@ class GitHubClient {
     } catch (error) {
       console.error(
         `Failed to create comment on ${owner}/${repo}#${issue_number}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -145,7 +145,7 @@ class GitHubClient {
       | "heart"
       | "hooray"
       | "rocket"
-      | "eyes"
+      | "eyes",
   ) {
     try {
       const response = await this.octokit.rest.reactions.createForIssueComment({
@@ -155,13 +155,13 @@ class GitHubClient {
         content,
       });
       console.log(
-        `Added ${content} reaction to comment ${comment_id} on ${owner}/${repo}`
+        `Added ${content} reaction to comment ${comment_id} on ${owner}/${repo}`,
       );
       return response.data;
     } catch (error) {
       console.error(
         `Failed to add reaction to comment ${comment_id} on ${owner}/${repo}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -176,7 +176,7 @@ class GitHubClient {
     issue_number: number,
     originalComment: string,
     replyText: string,
-    originalAuthor?: string
+    originalAuthor?: string,
   ) {
     const quotedText = originalComment
       .split("\n")
@@ -196,7 +196,7 @@ class GitHubClient {
     owner: string,
     repo: string,
     issue_number: number,
-    label: string
+    label: string,
   ) {
     try {
       await this.octokit.rest.issues.addLabels({
@@ -209,7 +209,7 @@ class GitHubClient {
     } catch (error) {
       console.error(
         `Failed to add label '${label}' to ${owner}/${repo}#${issue_number}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -222,7 +222,7 @@ class GitHubClient {
     owner: string,
     repo: string,
     issue_number: number,
-    label: string
+    label: string,
   ) {
     try {
       await this.octokit.rest.issues.removeLabel({
@@ -232,7 +232,7 @@ class GitHubClient {
         name: label,
       });
       console.log(
-        `Removed label '${label}' from ${owner}/${repo}#${issue_number}`
+        `Removed label '${label}' from ${owner}/${repo}#${issue_number}`,
       );
     } catch (error) {
       // If label doesn't exist, that's fine
@@ -241,13 +241,13 @@ class GitHubClient {
         error.message.includes("Label does not exist")
       ) {
         console.log(
-          `Label '${label}' doesn't exist on ${owner}/${repo}#${issue_number}`
+          `Label '${label}' doesn't exist on ${owner}/${repo}#${issue_number}`,
         );
         return;
       }
       console.error(
         `Failed to remove label '${label}' from ${owner}/${repo}#${issue_number}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -260,19 +260,19 @@ class GitHubClient {
     owner: string,
     repo: string,
     issue_number: number,
-    label: string
+    label: string,
   ): Promise<boolean> {
     try {
       const issue = await this.getIssue(owner, repo, issue_number);
       return (
         issue.labels?.some((l) =>
-          typeof l === "string" ? l === label : l.name === label
+          typeof l === "string" ? l === label : l.name === label,
         ) ?? false
       );
     } catch (error) {
       console.error(
         `Failed to check label '${label}' on ${owner}/${repo}#${issue_number}:`,
-        error
+        error,
       );
       return false;
     }
@@ -287,7 +287,7 @@ class GitHubClient {
     repo: string,
     issue_number: number,
     removeLabel: string,
-    addLabel: string
+    addLabel: string,
   ) {
     try {
       // Remove the old label and add the new one
@@ -296,12 +296,12 @@ class GitHubClient {
         this.addLabel(owner, repo, issue_number, addLabel),
       ]);
       console.log(
-        `Swapped labels: '${removeLabel}' -> '${addLabel}' on ${owner}/${repo}#${issue_number}`
+        `Swapped labels: '${removeLabel}' -> '${addLabel}' on ${owner}/${repo}#${issue_number}`,
       );
     } catch (error) {
       console.error(
         `Failed to swap labels on ${owner}/${repo}#${issue_number}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -311,7 +311,7 @@ class GitHubClient {
    * Parse repository information from a GitHub URL or full name
    */
   public static parseRepoInfo(
-    repoString: string
+    repoString: string,
   ): { owner: string; repo: string } | null {
     // Handle format: "owner/repo"
     if (repoString.includes("/") && !repoString.includes("github.com")) {

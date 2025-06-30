@@ -36,13 +36,13 @@ async function executeCronJob() {
 
   try {
     console.log(
-      `🔄 [${new Date().toISOString()}] Starting self-hosted cron job [${executionId}]`
+      `🔄 [${new Date().toISOString()}] Starting self-hosted cron job [${executionId}]`,
     );
 
     // Get pre-execution stats
     const preStats = await getTaskStats();
     console.log(
-      `📊 Pre-execution stats: ${preStats.queuedTasks} queued tasks, ${preStats.totalTasks} total`
+      `📊 Pre-execution stats: ${preStats.queuedTasks} queued tasks, ${preStats.totalTasks} total`,
     );
 
     // Execute the retry process
@@ -64,19 +64,19 @@ async function executeCronJob() {
         skipped: result.skipped,
         processingTime: `${processingTime}ms`,
         queueReduction: queueReduction,
-      }
+      },
     );
 
     // Alert if there are concerning patterns
     if (result.failed > result.successful && result.attempted > 0) {
       console.warn(
-        `⚠️ ALERT: More failures (${result.failed}) than successes (${result.successful})`
+        `⚠️ ALERT: More failures (${result.failed}) than successes (${result.successful})`,
       );
     }
 
     if (postStats.queuedTasks > 50) {
       console.warn(
-        `⚠️ HIGH QUEUE DEPTH: ${postStats.queuedTasks} tasks still queued`
+        `⚠️ HIGH QUEUE DEPTH: ${postStats.queuedTasks} tasks still queued`,
       );
     }
 
@@ -93,12 +93,12 @@ async function executeCronJob() {
         error: errorMessage,
         processingTime: `${processingTime}ms`,
         stack: error instanceof Error ? error.stack : undefined,
-      }
+      },
     );
 
     // Critical alert for cron failures
     console.error(
-      `🚨 CRITICAL: Self-hosted cron job failure [${executionId}] - Manual intervention may be required`
+      `🚨 CRITICAL: Self-hosted cron job failure [${executionId}] - Manual intervention may be required`,
     );
 
     // Failure exit

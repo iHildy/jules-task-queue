@@ -44,13 +44,13 @@ function validateEnv(): Env {
     if (error instanceof z.ZodError) {
       const missingVars = error.errors
         .filter(
-          (err) => err.code === "invalid_type" && err.received === "undefined"
+          (err) => err.code === "invalid_type" && err.received === "undefined",
         )
         .map((err) => err.path.join("."));
 
       const invalidVars = error.errors
         .filter(
-          (err) => err.code !== "invalid_type" || err.received !== "undefined"
+          (err) => err.code !== "invalid_type" || err.received !== "undefined",
         )
         .map((err) => `${err.path.join(".")}: ${err.message}`);
 
