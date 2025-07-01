@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z, type ZodIssue } from "zod";
 
 const envSchema = z.object({
   // Database
@@ -25,15 +25,15 @@ const envSchema = z.object({
   // Optional: Custom processing settings
   COMMENT_CHECK_DELAY_MS: z
     .string()
-    .transform((val) => parseInt(val) || 60000)
+    .transform((val: string): number => Number.parseInt(val, 10) || 60000)
     .optional(),
   RETRY_INTERVAL_MINUTES: z
     .string()
-    .transform((val) => parseInt(val) || 30)
+    .transform((val: string): number => Number.parseInt(val, 10) || 30)
     .optional(),
   TASK_CLEANUP_DAYS: z
     .string()
-    .transform((val) => parseInt(val) || 7)
+    .transform((val: string): number => Number.parseInt(val, 10) || 7)
     .optional(),
 });
 
@@ -74,19 +74,21 @@ function validateEnv(): Env {
 
   try {
     return envSchema.parse(process.env);
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      const missingVars = (err.errors as z.ZodIssue[])
-        .filter(
-          (err) => err.code === "invalid_type" && err.received === "undefined",
-        )
-        .map((err) => err.path.join("."));
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const zodErr = error as z.ZodError;
 
-      const invalidVars = (err.errors as z.ZodIssue[])
+      const missingVars = (zodErr.errors as ZodIssue[])
         .filter(
-          (err) => err.code !== "invalid_type" || err.received !== "undefined",
+          (e) => e.code === "invalid_type" && e.received === "undefined",
         )
-        .map((err) => `${err.path.join(".")}: ${err.message}`);
+        .map((e) => e.path.join("."));
+
+      const invalidVars = (zodErr.errors as ZodIssue[])
+        .filter(
+          (e) => e.code !== "invalid_type" || e.received !== "undefined",
+        )
+        .map((e) => `${e.path.join(".")}: ${e.message}`);
 
       let errorMessage = "❌ Environment validation failed!\n\n";
 
@@ -107,7 +109,7 @@ function validateEnv(): Env {
 
       throw new Error(errorMessage);
     }
-    throw err;
+    throw error;
   }
 }
 
