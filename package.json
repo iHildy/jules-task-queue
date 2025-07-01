@@ -8,9 +8,9 @@
   "scripts": {
     "dev": "prisma generate && next dev --turbopack",
     "build:only": "prisma generate && next build",
-    "build": "prisma generate && prisma migrate deploy && next build",
-    "start": "next start",
-    "start:selfhosted": "node .next/standalone/server.js",
+    "build": "next build",
+    "start": "prisma generate && prisma migrate deploy && next start",
+    "start:selfhosted": "prisma generate && prisma migrate deploy && node .next/standalone/server.js",
     "lint": "prisma generate && next lint",
     "format": "prettier --write .",
     "db:generate": "prisma generate",
