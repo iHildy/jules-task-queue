@@ -22,14 +22,16 @@ GitHub Apps provide a more secure and scalable way to integrate with GitHub repo
 ### 1.1 Navigate to GitHub App Settings
 
 **For Personal Account:**
+
 1. Go to [GitHub Settings](https://github.com/settings/profile)
 2. Click "Developer settings" in the left sidebar
 3. Click "GitHub Apps"
 4. Click "New GitHub App"
 
 **For Organization:**
+
 1. Go to your organization settings
-2. Click "Developer settings" in the left sidebar  
+2. Click "Developer settings" in the left sidebar
 3. Click "GitHub Apps"
 4. Click "New GitHub App"
 
@@ -37,39 +39,46 @@ GitHub Apps provide a more secure and scalable way to integrate with GitHub repo
 
 **GitHub App name:** `Jules Task Queue` (or your preferred name)
 
-**Description:** 
+**Description:**
+
 ```
 Automated task queue management for Jules bot interactions. Monitors issue labels and manages task processing workflows.
 ```
 
-**Homepage URL:** 
+**Homepage URL:**
+
 ```
 https://github.com/iHildy/jules-task-queue
 ```
 
-**User authorization callback URL:** 
+**User authorization callback URL:**
+
 ```
 https://your-domain.com/github-app/success
 ```
 
-*This URL is where users will be redirected after successfully installing your GitHub App. The Jules Task Queue app includes a styled success page that provides next steps and usage instructions.*
+_This URL is where users will be redirected after successfully installing your GitHub App. The Jules Task Queue app includes a styled success page that provides next steps and usage instructions._
 
 Replace `your-domain.com` with your actual deployment URL:
+
 - **Vercel**: `https://your-app-name.vercel.app/github-app/success`
 - **Firebase**: `https://your-backend-id--your-project-id.us-central1.hosted.app/github-app/success`
 - **Self-hosted**: `https://your-domain.com/github-app/success`
 
 ### 1.3 Configure Post-installation Setup
 
-**Setup URL (optional):** 
+**Setup URL (optional):**
+
 ```
 https://your-domain.com/github-app/success
 ```
 
 **Post-installation Options:**
+
 - ✅ **Redirect on update** - Redirect users to the 'Setup URL' after installations are updated (e.g. repositories added/removed)
 
 **User Authorization Options:**
+
 - ✅ **Expire user authorization tokens** - Provides a `refresh_token` for updated access tokens when they expire
 - ⬜ **Request user authorization (OAuth) during installation** - Leave unchecked unless you need user-level permissions
 - ⬜ **Enable Device Flow** - Leave unchecked unless you need device-based authentication
@@ -77,16 +86,19 @@ https://your-domain.com/github-app/success
 ### 1.4 Configure Webhook Settings
 
 **Webhook URL:**
+
 ```
 https://your-domain.com/api/webhooks/github-app
 ```
 
 Replace `your-domain.com` with your actual deployment URL:
+
 - **Vercel**: `https://your-app-name.vercel.app/api/webhooks/github-app`
 - **Firebase**: `https://your-backend-id--your-project-id.us-central1.hosted.app/api/webhooks/github-app`
 - **Self-hosted**: `https://your-domain.com/api/webhooks/github-app`
 
 **Webhook secret:** Generate a strong random string (save this for later)
+
 ```bash
 # Generate a webhook secret
 openssl rand -hex 32
@@ -99,29 +111,33 @@ openssl rand -hex 32
 Set the following permissions for your GitHub App:
 
 #### Repository Permissions
+
 - **Issues**: `Read and write`
-  - *Reason: Read issue details, add comments, manage labels*
-- **Metadata**: `Read` *(Required by GitHub)*
-  - *Reason: Access basic repository information and validate repository access*
+  - _Reason: Read issue details, add comments, manage labels, and automatically create 'jules' and 'jules-queue' labels when installed_
+- **Metadata**: `Read` _(Required by GitHub)_
+  - _Reason: Access basic repository information and validate repository access_
 
 #### Organization Permissions
-*(None required)*
 
-#### User Permissions  
-*(None required)*
+_(None required)_
+
+#### User Permissions
+
+_(None required)_
 
 ### 1.6 Configure Events
 
 Subscribe to the following events:
 
 - **Issues** ✅
-  - *Reason: Detect when 'jules' or 'jules-queue' labels are added/removed*
+  - _Reason: Detect when 'jules' or 'jules-queue' labels are added/removed_
 - **Issue comments** ✅
-  - *Reason: Monitor Jules bot interactions and comment processing*
+  - _Reason: Monitor Jules bot interactions and comment processing_
 
 ### 1.7 Configure Installation
 
 **Where can this GitHub App be installed?**
+
 - Select "Any account" for public use
 - Select "Only on this account" for personal/organization use only
 
@@ -170,6 +186,7 @@ GITHUB_APP_CLIENT_SECRET="your-client-secret"
 The private key needs special formatting for environment variables:
 
 **Option 1: Base64 Encode (Recommended)**
+
 ```bash
 # Encode your private key
 base64 -i your-app-name.private-key.pem
@@ -179,6 +196,7 @@ GITHUB_APP_PRIVATE_KEY="LS0tLS1CRUdJTi..."
 ```
 
 **Option 2: Inline with Newlines**
+
 ```bash
 # Replace actual newlines with \n
 GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...\n-----END RSA PRIVATE KEY-----"
@@ -187,11 +205,13 @@ GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...\n--
 ### 4.3 Platform-Specific Configuration
 
 #### Vercel
+
 1. Go to your project settings → Environment Variables
 2. Add each environment variable
 3. Redeploy your application
 
 #### Firebase App Hosting
+
 ```bash
 # Set each secret
 firebase apphosting:secrets:set GITHUB_APP_ID
@@ -205,7 +225,9 @@ firebase deploy --only apphosting
 ```
 
 #### Self-Hosted
+
 Add to your `.env` file or environment:
+
 ```bash
 GITHUB_APP_ID="123456"
 GITHUB_APP_PRIVATE_KEY="your-private-key-here"
@@ -232,10 +254,18 @@ GITHUB_APP_CLIENT_SECRET="your-client-secret"
 
 2. Check your application logs for webhook processing
 
-### 5.3 Test Issue Processing
+### 5.3 Test Automatic Label Creation
+
+1. After installing the app, check that the following labels are automatically created:
+   - **jules** - Purple label (`#642cc2`) for issues that Jules bot should process
+   - **jules-queue** - Cyan label (`#00d3f2`) for issues queued for Jules bot processing
+2. For installations with many repositories (>10), labels are created in batches with rate limiting to prevent API issues
+3. If labels weren't created, check your app logs for permission errors
+
+### 5.4 Test Issue Processing
 
 1. Create a test issue in a repository where your app is installed
-2. Add the "jules" label to the issue
+2. Add the "jules" label to the issue (should be available in the label dropdown)
 3. Check that:
    - The webhook is received and processed
    - A task is created in your database
@@ -246,6 +276,7 @@ GITHUB_APP_CLIENT_SECRET="your-client-secret"
 ### 6.1 Monitor Webhook Deliveries
 
 Regularly check your GitHub App's webhook deliveries for failures:
+
 1. Go to your app settings
 2. Click "Advanced" → "Recent Deliveries"
 3. Investigate any failed deliveries
@@ -253,6 +284,7 @@ Regularly check your GitHub App's webhook deliveries for failures:
 ### 6.2 Monitor App Installations
 
 Track which repositories have your app installed:
+
 1. Use the `/api/admin/installations` endpoint (if implemented)
 2. Check your database's `github_installations` table
 3. Monitor installation/uninstallation events in your logs
@@ -260,6 +292,7 @@ Track which repositories have your app installed:
 ### 6.3 Update Permissions
 
 If you need to add new permissions:
+
 1. Update your GitHub App's permissions in settings
 2. Users will need to approve the new permissions
 3. Test with updated permissions
@@ -269,21 +302,32 @@ If you need to add new permissions:
 ### Common Issues
 
 #### Webhook Not Receiving Events
+
 - Verify webhook URL is accessible from GitHub
 - Check webhook secret matches your configuration
 - Ensure app is installed on the target repository
 - Check GitHub's webhook delivery logs
 
 #### Authentication Failures
+
 - Verify private key format (no extra whitespace, correct newlines)
 - Check App ID matches your configuration
 - Ensure app has required permissions
 - Verify installation is active (not suspended)
 
 #### Permission Errors
+
 - Check app has required repository permissions
 - Verify app is installed on the target repository
 - Ensure repository is not in a suspended installation
+
+#### Label Creation Issues
+
+- Verify the app has "Issues: Write" permission
+- Check application logs for label creation errors
+- Labels may already exist if they were created manually
+- Installation events should trigger automatic label creation
+- For large repositories (>10), label creation uses batching and rate limiting
 
 ### Debug Commands
 
