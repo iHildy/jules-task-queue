@@ -5,9 +5,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
 
   // GitHub App Integration
-  GITHUB_APP_ID: z
-    .string()
-    .min(1, "GITHUB_APP_ID is required"),
+  GITHUB_APP_ID: z.string().min(1, "GITHUB_APP_ID is required"),
   GITHUB_APP_PRIVATE_KEY: z
     .string()
     .min(1, "GITHUB_APP_PRIVATE_KEY is required"),
@@ -79,15 +77,11 @@ function validateEnv(): Env {
       const zodErr = error as ZodError;
 
       const missingVars = (zodErr.errors as ZodIssue[])
-        .filter(
-          (e) => e.code === "invalid_type" && e.received === "undefined",
-        )
+        .filter((e) => e.code === "invalid_type" && e.received === "undefined")
         .map((e) => e.path.join("."));
 
       const invalidVars = (zodErr.errors as ZodIssue[])
-        .filter(
-          (e) => e.code !== "invalid_type" || e.received !== "undefined",
-        )
+        .filter((e) => e.code !== "invalid_type" || e.received !== "undefined")
         .map((e) => `${e.path.join(".")}: ${e.message}`);
 
       let errorMessage = "❌ Environment validation failed!\n\n";

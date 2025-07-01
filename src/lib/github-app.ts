@@ -8,7 +8,10 @@ import { env, hasGitHubApp } from "@/lib/env";
 class GitHubAppClient {
   private static instance: GitHubAppClient | null = null;
   private app: App | null = null;
-  private installationTokenCache = new Map<number, { token: string; expiresAt: Date }>();
+  private installationTokenCache = new Map<
+    number,
+    { token: string; expiresAt: Date }
+  >();
 
   private constructor() {
     if (hasGitHubApp()) {
@@ -52,9 +55,12 @@ class GitHubAppClient {
 
     try {
       // Get new token
-      const response = await this.app.octokit.request("POST /app/installations/{installation_id}/access_tokens", {
-        installation_id: installationId,
-      });
+      const response = await this.app.octokit.request(
+        "POST /app/installations/{installation_id}/access_tokens",
+        {
+          installation_id: installationId,
+        },
+      );
 
       // Cache token (expires 1 hour early for safety)
       const safeExpiresAt = new Date(response.data.expires_at);
@@ -67,7 +73,10 @@ class GitHubAppClient {
 
       return response.data.token;
     } catch (error) {
-      console.error(`Failed to get installation token for ${installationId}:`, error);
+      console.error(
+        `Failed to get installation token for ${installationId}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -75,7 +84,9 @@ class GitHubAppClient {
   /**
    * Get Octokit instance for a specific installation
    */
-  public async getInstallationOctokit(installationId: number): Promise<Octokit> {
+  public async getInstallationOctokit(
+    installationId: number,
+  ): Promise<Octokit> {
     const token = await this.getInstallationToken(installationId);
     return new Octokit({
       auth: token,
@@ -109,12 +120,18 @@ class GitHubAppClient {
     }
 
     try {
-      const { data } = await this.app.octokit.request("GET /installation/repositories", {
-        installation_id: installationId,
-      });
+      const { data } = await this.app.octokit.request(
+        "GET /installation/repositories",
+        {
+          installation_id: installationId,
+        },
+      );
       return data.repositories;
     } catch (error) {
-      console.error(`Failed to get repositories for installation ${installationId}:`, error);
+      console.error(
+        `Failed to get repositories for installation ${installationId}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -122,13 +139,21 @@ class GitHubAppClient {
   /**
    * Find installation ID for a specific repository
    */
-  public async findInstallationForRepo(owner: string, repo: string): Promise<number | null> {
+  public async findInstallationForRepo(
+    owner: string,
+    repo: string,
+  ): Promise<number | null> {
     try {
       const installations = await this.getInstallations();
 
       for (const installation of installations) {
-        const repositories = await this.getInstallationRepositories(installation.id);
-        const found = repositories.find((r: { owner: { login: string }; name: string }) => r.owner.login === owner && r.name === repo);
+        const repositories = await this.getInstallationRepositories(
+          installation.id,
+        );
+        const found = repositories.find(
+          (r: { owner: { login: string }; name: string }) =>
+            r.owner.login === owner && r.name === repo,
+        );
         if (found) {
           return installation.id;
         }
@@ -144,7 +169,10 @@ class GitHubAppClient {
   /**
    * Check if repository is accessible through any installation
    */
-  public async isRepositoryAccessible(owner: string, repo: string): Promise<boolean> {
+  public async isRepositoryAccessible(
+    owner: string,
+    repo: string,
+  ): Promise<boolean> {
     const installationId = await this.findInstallationForRepo(owner, repo);
     return installationId !== null;
   }
@@ -152,8 +180,14 @@ class GitHubAppClient {
   /**
    * Get issue details using installation authentication
    */
-  public async getIssue(owner: string, repo: string, issue_number: number, installationId?: number) {
-    const instId = installationId || await this.findInstallationForRepo(owner, repo);
+  public async getIssue(
+    owner: string,
+    repo: string,
+    issue_number: number,
+    installationId?: number,
+  ) {
+    const instId =
+      installationId || (await this.findInstallationForRepo(owner, repo));
     if (!instId) {
       throw new Error(`No installation found for repository ${owner}/${repo}`);
     }
@@ -165,8 +199,14 @@ class GitHubAppClient {
   /**
    * Get issue comments using installation authentication
    */
-  public async getIssueComments(owner: string, repo: string, issue_number: number, installationId?: number) {
-    const instId = installationId || await this.findInstallationForRepo(owner, repo);
+  public async getIssueComments(
+    owner: string,
+    repo: string,
+    issue_number: number,
+    installationId?: number,
+  ) {
+    const instId =
+      installationId || (await this.findInstallationForRepo(owner, repo));
     if (!instId) {
       throw new Error(`No installation found for repository ${owner}/${repo}`);
     }
@@ -183,15 +223,21 @@ class GitHubAppClient {
     repo: string,
     issue_number: number,
     body: string,
-    installationId?: number
+    installationId?: number,
   ) {
-    const instId = installationId || await this.findInstallationForRepo(owner, repo);
+    const instId =
+      installationId || (await this.findInstallationForRepo(owner, repo));
     if (!instId) {
       throw new Error(`No installation found for repository ${owner}/${repo}`);
     }
 
     const octokit = await this.getInstallationOctokit(instId);
-    return octokit.rest.issues.createComment({ owner, repo, issue_number, body });
+    return octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number,
+      body,
+    });
   }
 
   /**
@@ -201,16 +247,30 @@ class GitHubAppClient {
     owner: string,
     repo: string,
     comment_id: number,
-    content: "+1" | "-1" | "laugh" | "confused" | "heart" | "hooray" | "rocket" | "eyes",
-    installationId?: number
+    content:
+      | "+1"
+      | "-1"
+      | "laugh"
+      | "confused"
+      | "heart"
+      | "hooray"
+      | "rocket"
+      | "eyes",
+    installationId?: number,
   ) {
-    const instId = installationId || await this.findInstallationForRepo(owner, repo);
+    const instId =
+      installationId || (await this.findInstallationForRepo(owner, repo));
     if (!instId) {
       throw new Error(`No installation found for repository ${owner}/${repo}`);
     }
 
     const octokit = await this.getInstallationOctokit(instId);
-    return octokit.rest.reactions.createForIssueComment({ owner, repo, comment_id, content });
+    return octokit.rest.reactions.createForIssueComment({
+      owner,
+      repo,
+      comment_id,
+      content,
+    });
   }
 
   /**
@@ -221,15 +281,21 @@ class GitHubAppClient {
     repo: string,
     issue_number: number,
     label: string,
-    installationId?: number
+    installationId?: number,
   ) {
-    const instId = installationId || await this.findInstallationForRepo(owner, repo);
+    const instId =
+      installationId || (await this.findInstallationForRepo(owner, repo));
     if (!instId) {
       throw new Error(`No installation found for repository ${owner}/${repo}`);
     }
 
     const octokit = await this.getInstallationOctokit(instId);
-    return octokit.rest.issues.addLabels({ owner, repo, issue_number, labels: [label] });
+    return octokit.rest.issues.addLabels({
+      owner,
+      repo,
+      issue_number,
+      labels: [label],
+    });
   }
 
   /**
@@ -240,15 +306,21 @@ class GitHubAppClient {
     repo: string,
     issue_number: number,
     label: string,
-    installationId?: number
+    installationId?: number,
   ) {
-    const instId = installationId || await this.findInstallationForRepo(owner, repo);
+    const instId =
+      installationId || (await this.findInstallationForRepo(owner, repo));
     if (!instId) {
       throw new Error(`No installation found for repository ${owner}/${repo}`);
     }
 
     const octokit = await this.getInstallationOctokit(instId);
-    return octokit.rest.issues.removeLabel({ owner, repo, issue_number, name: label });
+    return octokit.rest.issues.removeLabel({
+      owner,
+      repo,
+      issue_number,
+      name: label,
+    });
   }
 
   /**

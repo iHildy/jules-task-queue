@@ -42,7 +42,7 @@ export class InstallationService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
   }
@@ -61,7 +61,7 @@ export class InstallationService {
         },
         tasks: {
           orderBy: {
-            createdAt: 'desc',
+            createdAt: "desc",
           },
           take: 10, // Latest 10 tasks
         },
@@ -117,7 +117,9 @@ export class InstallationService {
 
       // Check if installation exists in GitHub
       const installations = await githubAppClient.getInstallations();
-      const githubInstallation = installations.find((inst: { id: number }) => inst.id === installationId);
+      const githubInstallation = installations.find(
+        (inst: { id: number }) => inst.id === installationId,
+      );
 
       if (!githubInstallation || !githubInstallation.account) {
         // Installation was removed from GitHub or has no account, mark as suspended
@@ -125,7 +127,7 @@ export class InstallationService {
           where: { id: installationId },
           data: {
             suspendedAt: new Date(),
-            suspendedBy: 'github_sync',
+            suspendedBy: "github_sync",
             updatedAt: new Date(),
           },
         });
@@ -136,7 +138,9 @@ export class InstallationService {
           data: { removedAt: new Date() },
         });
 
-        console.log(`Installation ${installationId} marked as suspended (not found in GitHub or missing account)`);
+        console.log(
+          `Installation ${installationId} marked as suspended (not found in GitHub or missing account)`,
+        );
         return null;
       }
 
@@ -152,7 +156,9 @@ export class InstallationService {
           events: JSON.stringify(githubInstallation.events),
           singleFileName: githubInstallation.single_file_name,
           repositorySelection: githubInstallation.repository_selection,
-          suspendedAt: githubInstallation.suspended_at ? new Date(githubInstallation.suspended_at) : null,
+          suspendedAt: githubInstallation.suspended_at
+            ? new Date(githubInstallation.suspended_at)
+            : null,
           suspendedBy: githubInstallation.suspended_by?.login,
           updatedAt: new Date(),
         },
@@ -166,14 +172,17 @@ export class InstallationService {
           events: JSON.stringify(githubInstallation.events),
           singleFileName: githubInstallation.single_file_name,
           repositorySelection: githubInstallation.repository_selection,
-          suspendedAt: githubInstallation.suspended_at ? new Date(githubInstallation.suspended_at) : null,
+          suspendedAt: githubInstallation.suspended_at
+            ? new Date(githubInstallation.suspended_at)
+            : null,
           suspendedBy: githubInstallation.suspended_by?.login,
         },
       });
 
       // Sync repositories
-      const githubRepositories = await githubAppClient.getInstallationRepositories(installationId);
-      
+      const githubRepositories =
+        await githubAppClient.getInstallationRepositories(installationId);
+
       // Mark all existing repositories as potentially removed
       await db.installationRepository.updateMany({
         where: { installationId },
@@ -211,9 +220,10 @@ export class InstallationService {
         });
       }
 
-      console.log(`Synced installation ${installationId}: ${githubRepositories.length} repositories`);
+      console.log(
+        `Synced installation ${installationId}: ${githubRepositories.length} repositories`,
+      );
       return await this.getInstallation(installationId);
-
     } catch (error) {
       console.error(`Failed to sync installation ${installationId}:`, error);
       throw error;
@@ -230,13 +240,17 @@ export class InstallationService {
     for (const installation of installations) {
       try {
         const synced = await this.syncInstallation(installation.id);
-        results.push({ installationId: installation.id, success: true, data: synced });
+        results.push({
+          installationId: installation.id,
+          success: true,
+          data: synced,
+        });
       } catch (error) {
         console.error(`Failed to sync installation ${installation.id}:`, error);
-        results.push({ 
-          installationId: installation.id, 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+        results.push({
+          installationId: installation.id,
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -250,12 +264,12 @@ export class InstallationService {
   async getInstallationHealth(installationId: number) {
     const installation = await this.getInstallation(installationId);
     if (!installation) {
-      return { status: 'not_found', installationId };
+      return { status: "not_found", installationId };
     }
 
     const health = {
       installationId,
-      status: installation.suspendedAt ? 'suspended' : 'active',
+      status: installation.suspendedAt ? "suspended" : "active",
       accountLogin: installation.accountLogin,
       repositoryCount: installation.repositories.length,
       taskCount: installation.tasks.length,
@@ -267,9 +281,9 @@ export class InstallationService {
     // Check if we can access the installation in GitHub
     try {
       await githubAppClient.getInstallationRepositories(installationId);
-      health.status = installation.suspendedAt ? 'suspended' : 'healthy';
+      health.status = installation.suspendedAt ? "suspended" : "healthy";
     } catch {
-      health.status = 'github_error';
+      health.status = "github_error";
     }
 
     return health;
@@ -314,9 +328,10 @@ export class InstallationService {
       totalRepositories,
       totalTasks,
       recentInstallations,
-      healthyPercentage: totalInstallations > 0 
-        ? Math.round((activeInstallations / totalInstallations) * 100) 
-        : 0,
+      healthyPercentage:
+        totalInstallations > 0
+          ? Math.round((activeInstallations / totalInstallations) * 100)
+          : 0,
     };
   }
 
@@ -324,8 +339,10 @@ export class InstallationService {
    * Clean up old suspended installations
    */
   async cleanupSuspendedInstallations(olderThanDays: number = 30) {
-    const cutoffDate = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
-    
+    const cutoffDate = new Date(
+      Date.now() - olderThanDays * 24 * 60 * 60 * 1000,
+    );
+
     // Find installations suspended longer than cutoff
     const suspendedInstallations = await db.gitHubInstallation.findMany({
       where: {
@@ -352,14 +369,20 @@ export class InstallationService {
       },
     });
 
-    console.log(`Cleaned up ${deletedCount.count} suspended installations older than ${olderThanDays} days`);
+    console.log(
+      `Cleaned up ${deletedCount.count} suspended installations older than ${olderThanDays} days`,
+    );
     return deletedCount.count;
   }
 
   /**
    * Validate installation access for a repository
    */
-  async validateRepositoryAccess(owner: string, repo: string, installationId?: number) {
+  async validateRepositoryAccess(
+    owner: string,
+    repo: string,
+    installationId?: number,
+  ) {
     if (installationId) {
       // Check specific installation
       const repository = await db.installationRepository.findFirst({

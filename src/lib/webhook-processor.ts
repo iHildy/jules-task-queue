@@ -163,7 +163,11 @@ export async function processJulesLabelEvent(
     if (labelName === "jules" && action === "labeled") {
       // Validate installation access if installationId is provided
       if (installationId) {
-        const hasAccess = await installationService.validateRepositoryAccess(owner, repo, installationId);
+        const hasAccess = await installationService.validateRepositoryAccess(
+          owner,
+          repo,
+          installationId,
+        );
         if (!hasAccess) {
           return {
             action: "error",

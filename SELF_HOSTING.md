@@ -139,17 +139,17 @@ In your platform's scheduled tasks:
 
 ### Environment Variables
 
-| Variable                      | Required    | Description                                                     |
-| ----------------------------- | ----------- | --------------------------------------------------------------- |
-| `DATABASE_URL`                | Yes         | PostgreSQL connection string                                    |
-| `GITHUB_APP_ID`               | Yes         | GitHub App ID from your app settings                           |
-| `GITHUB_APP_PRIVATE_KEY`      | Yes         | GitHub App private key (base64 encoded or with \n)             |
-| `GITHUB_APP_WEBHOOK_SECRET`   | Yes         | Secret used to verify GitHub App webhook signatures            |
-| `GITHUB_APP_CLIENT_ID`        | No          | GitHub App client ID (for OAuth, if needed)                   |
-| `GITHUB_APP_CLIENT_SECRET`    | No          | GitHub App client secret (for OAuth, if needed)               |
-| `GITHUB_APP_NAME`             | No          | GitHub App name (defaults to 'jules-task-queue')              |
-| `CRON_SECRET`                 | Recommended | Secret for authenticating cron job requests                     |
-| `NODE_ENV`                    | No          | Set to `production` for production deployments                  |
+| Variable                    | Required    | Description                                         |
+| --------------------------- | ----------- | --------------------------------------------------- |
+| `DATABASE_URL`              | Yes         | PostgreSQL connection string                        |
+| `GITHUB_APP_ID`             | Yes         | GitHub App ID from your app settings                |
+| `GITHUB_APP_PRIVATE_KEY`    | Yes         | GitHub App private key (base64 encoded or with \n)  |
+| `GITHUB_APP_WEBHOOK_SECRET` | Yes         | Secret used to verify GitHub App webhook signatures |
+| `GITHUB_APP_CLIENT_ID`      | No          | GitHub App client ID (for OAuth, if needed)         |
+| `GITHUB_APP_CLIENT_SECRET`  | No          | GitHub App client secret (for OAuth, if needed)     |
+| `GITHUB_APP_NAME`           | No          | GitHub App name (defaults to 'jules-task-queue')    |
+| `CRON_SECRET`               | Recommended | Secret for authenticating cron job requests         |
+| `NODE_ENV`                  | No          | Set to `production` for production deployments      |
 
 ### GitHub App Setup
 
