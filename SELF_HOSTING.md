@@ -221,7 +221,7 @@ psql $DATABASE_URL -c "DELETE FROM \"JulesTask\" WHERE \"createdAt\" < NOW() - I
 
 #### GitHub Webhook Failures
 
-1. **Secret**: Verify `GITHUB_WEBHOOK_SECRET` matches GitHub configuration
+1. **Secret**: Verify `GITHUB_APP_WEBHOOK_SECRET` matches GitHub configuration
 2. **URL**: Ensure webhook URL is accessible from GitHub
 3. **Events**: Confirm "Issues" events are selected in GitHub webhook settings
 
