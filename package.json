@@ -10,6 +10,7 @@
     "build:only": "prisma generate && next build",
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
+    "start:selfhosted": "node .next/standalone/server.js",
     "lint": "prisma generate && next lint",
     "format": "prettier --write .",
     "db:generate": "prisma generate",
