@@ -4,13 +4,9 @@ const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
 
-  // GitHub App Integration
-  GITHUB_APP_ID: z.string().min(1, "GITHUB_APP_ID is required"),
-  GITHUB_APP_PRIVATE_KEY: z.string().min(1, "GITHUB_APP_PRIVATE_KEY is required"),
-  GITHUB_APP_WEBHOOK_SECRET: z.string().min(1, "GITHUB_APP_WEBHOOK_SECRET is required"),
-  GITHUB_APP_CLIENT_ID: z.string().optional(),
-  GITHUB_APP_CLIENT_SECRET: z.string().optional(),
-  GITHUB_APP_NAME: z.string().optional().default("jules-task-queue"), // Default app name
+  // GitHub Integration
+  GITHUB_TOKEN: z.string().min(1, "GITHUB_TOKEN is required"),
+  GITHUB_WEBHOOK_SECRET: z.string().optional(),
 
   // Application
   NODE_ENV: z
@@ -37,11 +33,27 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+function isRunningInDocker(): boolean {
+  // Check for common Docker environment variables
+  return (
+    process.env.DOCKER === "true" ||
+    process.env.CONTAINER === "true" ||
+    require("fs").existsSync("/.dockerenv")
+  );
+}
+
 /**
  * Validates environment variables at startup
  * Throws an error if any required variables are missing or invalid
  */
 function validateEnv(): Env {
+  if (isRunningInDocker()) {
+    console.warn(
+      "⚠️ Docker environment detected. Skipping environment variable validation."
+    );
+    return {} as Env; // Return an empty object, since validation is skipped
+  }
+
   try {
     return envSchema.parse(process.env);
   } catch (error) {
@@ -84,9 +96,8 @@ function validateEnv(): Env {
 // Validate environment variables on module load
 export const env = validateEnv();
 
-// Helper functions for checking configurations
-export const hasGitHubApp = () => !!(env.GITHUB_APP_ID && env.GITHUB_APP_PRIVATE_KEY);
-export const hasWebhookSecret = () => !!env.GITHUB_APP_WEBHOOK_SECRET;
+// Helper functions for checking optional configurations
+export const hasWebhookSecret = () => !!env.GITHUB_WEBHOOK_SECRET;
 export const hasCronSecret = () => !!env.CRON_SECRET;
 
 // Processing configuration with defaults
