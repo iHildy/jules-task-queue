@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { SiGithub } from "@icons-pack/react-simple-icons";
+import { GitHubInstallButton } from "@/components/github-install-button";
 import { Copy, ExternalLink, Zap } from "lucide-react";
 import { useState } from "react";
 import { GitHubDashboard } from "./github-dashboard";
@@ -21,6 +21,14 @@ export function HeroSection() {
     await navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleInstallStart = () => {
+    console.log("GitHub App installation started");
+  };
+
+  const handleInstallError = (error: string) => {
+    console.error("GitHub App installation error:", error);
   };
 
   const CodeBlock = ({
@@ -72,16 +80,10 @@ export function HeroSection() {
         <GitHubDashboard />
 
         <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-8">
-          <Button
-            size="lg"
-            className="bg-white text-jules-dark cursor-pointer hover:bg-white/90 ring-2 ring-transparent hover:ring-jules-primary"
-            onClick={() => {
-              // Redirect to GitHub App installation
-              window.location.href = '/api/github-app/install';
-            }}
-          >
-            <SiGithub /> Link GitHub Repository
-          </Button>
+          <GitHubInstallButton
+            onInstallStart={handleInstallStart}
+            onInstallError={handleInstallError}
+          />
         </div>
 
         {/* One-Click Deploy */}
