@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "prisma generate && next dev --turbopack",
     "build": "prisma generate && next build",
+    "build:selfhosted": "SKIP_ENV_VALIDATION=true prisma generate && next build",
     "start": "prisma migrate deploy && next start",
     "start:selfhosted": "prisma migrate deploy && node .next/standalone/server.js",
     "lint": "prisma generate && next lint",

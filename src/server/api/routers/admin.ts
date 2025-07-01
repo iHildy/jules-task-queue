@@ -97,16 +97,27 @@ export const adminRouter = createTRPCRouter({
     const tasks = await getFlaggedTasks();
 
     return {
-      tasks: tasks.map((task: { id: number; githubIssueNumber: bigint; repoOwner: string; repoName: string; retryCount: number; lastRetryAt: Date | null; createdAt: Date; updatedAt: Date }) => ({
-        id: task.id,
-        githubIssueNumber: Number(task.githubIssueNumber),
-        repoOwner: task.repoOwner,
-        repoName: task.repoName,
-        retryCount: task.retryCount,
-        lastRetryAt: task.lastRetryAt,
-        createdAt: task.createdAt,
-        updatedAt: task.updatedAt,
-      })),
+      tasks: tasks.map(
+        (task: {
+          id: number;
+          githubIssueNumber: bigint;
+          repoOwner: string;
+          repoName: string;
+          retryCount: number;
+          lastRetryAt: Date | null;
+          createdAt: Date;
+          updatedAt: Date;
+        }) => ({
+          id: task.id,
+          githubIssueNumber: Number(task.githubIssueNumber),
+          repoOwner: task.repoOwner,
+          repoName: task.repoName,
+          retryCount: task.retryCount,
+          lastRetryAt: task.lastRetryAt,
+          createdAt: task.createdAt,
+          updatedAt: task.updatedAt,
+        }),
+      ),
       count: tasks.length,
     };
   }),
@@ -143,14 +154,23 @@ export const adminRouter = createTRPCRouter({
       }
 
       return {
-        logs: logs.map((log: { id: number; eventType: string; success: boolean; error: string | null; createdAt: Date; payload: string | null }) => ({
-          id: log.id,
-          eventType: log.eventType,
-          success: log.success,
-          error: log.error,
-          createdAt: log.createdAt,
-          payload: log.payload ? JSON.parse(log.payload) : null,
-        })),
+        logs: logs.map(
+          (log: {
+            id: number;
+            eventType: string;
+            success: boolean;
+            error: string | null;
+            createdAt: Date;
+            payload: string | null;
+          }) => ({
+            id: log.id,
+            eventType: log.eventType,
+            success: log.success,
+            error: log.error,
+            createdAt: log.createdAt,
+            payload: log.payload ? JSON.parse(log.payload) : null,
+          }),
+        ),
         nextCursor,
       };
     }),
@@ -264,7 +284,10 @@ export const adminRouter = createTRPCRouter({
         },
         tasks: {
           distribution: taskDistribution.reduce(
-            (acc: Record<string, number>, item: { flaggedForRetry: boolean; _count: number }) => {
+            (
+              acc: Record<string, number>,
+              item: { flaggedForRetry: boolean; _count: number },
+            ) => {
               acc[item.flaggedForRetry ? "queued" : "active"] = item._count;
               return acc;
             },
@@ -280,28 +303,30 @@ export const adminRouter = createTRPCRouter({
           error instanceof Error ? error.message : "Unknown error"
         }`,
       );
-          }
-    }),
+    }
+  }),
 
   // Installation management endpoints
   installations: createTRPCRouter({
     // Get all installations
     list: adminProcedure.query(async () => {
       const installations = await installationService.getActiveInstallations();
-      
+
       return {
-        installations: installations.map((installation: InstallationWithCounts) => ({
-          id: installation.id,
-          accountLogin: installation.accountLogin,
-          accountType: installation.accountType,
-          repositorySelection: installation.repositorySelection,
-          repositoryCount: installation._count.repositories,
-          taskCount: installation._count.tasks,
-          createdAt: installation.createdAt,
-          updatedAt: installation.updatedAt,
-          suspendedAt: installation.suspendedAt,
-          suspendedBy: installation.suspendedBy,
-        })),
+        installations: installations.map(
+          (installation: InstallationWithCounts) => ({
+            id: installation.id,
+            accountLogin: installation.accountLogin,
+            accountType: installation.accountType,
+            repositorySelection: installation.repositorySelection,
+            repositoryCount: installation._count.repositories,
+            taskCount: installation._count.tasks,
+            createdAt: installation.createdAt,
+            updatedAt: installation.updatedAt,
+            suspendedAt: installation.suspendedAt,
+            suspendedBy: installation.suspendedBy,
+          }),
+        ),
         count: installations.length,
       };
     }),
@@ -310,8 +335,10 @@ export const adminRouter = createTRPCRouter({
     detail: adminProcedure
       .input(z.object({ installationId: z.number() }))
       .query(async ({ input }) => {
-        const installation = await installationService.getInstallation(input.installationId);
-        
+        const installation = await installationService.getInstallation(
+          input.installationId,
+        );
+
         if (!installation) {
           throw new Error(`Installation ${input.installationId} not found`);
         }
@@ -329,16 +356,18 @@ export const adminRouter = createTRPCRouter({
           updatedAt: installation.updatedAt,
           suspendedAt: installation.suspendedAt,
           suspendedBy: installation.suspendedBy,
-          repositories: installation.repositories.map((repo: InstallationRepository) => ({
-            id: repo.id,
-            name: repo.name,
-            fullName: repo.fullName,
-            owner: repo.owner,
-            private: repo.private,
-            htmlUrl: repo.htmlUrl,
-            description: repo.description,
-            addedAt: repo.addedAt,
-          })),
+          repositories: installation.repositories.map(
+            (repo: InstallationRepository) => ({
+              id: repo.id,
+              name: repo.name,
+              fullName: repo.fullName,
+              owner: repo.owner,
+              private: repo.private,
+              htmlUrl: repo.htmlUrl,
+              description: repo.description,
+              addedAt: repo.addedAt,
+            }),
+          ),
           tasks: installation.tasks.map((task: InstallationTask) => ({
             id: task.id,
             githubIssueNumber: Number(task.githubIssueNumber),
@@ -357,20 +386,25 @@ export const adminRouter = createTRPCRouter({
       .input(z.object({ installationId: z.number() }))
       .mutation(async ({ input }) => {
         try {
-          const result = await installationService.syncInstallation(input.installationId);
-          
+          const result = await installationService.syncInstallation(
+            input.installationId,
+          );
+
           return {
             success: true,
             installationId: input.installationId,
-            message: result 
+            message: result
               ? `Installation ${input.installationId} synced successfully`
               : `Installation ${input.installationId} was suspended (not found in GitHub)`,
             data: result,
           };
         } catch (error) {
-          console.error(`Failed to sync installation ${input.installationId}:`, error);
+          console.error(
+            `Failed to sync installation ${input.installationId}:`,
+            error,
+          );
           throw new Error(
-            `Sync failed: ${error instanceof Error ? error.message : "Unknown error"}`
+            `Sync failed: ${error instanceof Error ? error.message : "Unknown error"}`,
           );
         }
       }),
@@ -379,9 +413,9 @@ export const adminRouter = createTRPCRouter({
     syncAll: adminProcedure.mutation(async () => {
       try {
         const results = await installationService.syncAllInstallations();
-        const successful = results.filter(r => r.success).length;
-        const failed = results.filter(r => !r.success).length;
-        
+        const successful = results.filter((r) => r.success).length;
+        const failed = results.filter((r) => !r.success).length;
+
         return {
           success: true,
           message: `Sync completed: ${successful} successful, ${failed} failed`,
@@ -391,7 +425,7 @@ export const adminRouter = createTRPCRouter({
       } catch (error) {
         console.error("Failed to sync all installations:", error);
         throw new Error(
-          `Sync all failed: ${error instanceof Error ? error.message : "Unknown error"}`
+          `Sync all failed: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
       }
     }),
@@ -410,11 +444,16 @@ export const adminRouter = createTRPCRouter({
 
     // Clean up old suspended installations
     cleanup: adminProcedure
-      .input(z.object({ olderThanDays: z.number().min(1).max(365).default(30) }))
+      .input(
+        z.object({ olderThanDays: z.number().min(1).max(365).default(30) }),
+      )
       .mutation(async ({ input }) => {
         try {
-          const deletedCount = await installationService.cleanupSuspendedInstallations(input.olderThanDays);
-          
+          const deletedCount =
+            await installationService.cleanupSuspendedInstallations(
+              input.olderThanDays,
+            );
+
           return {
             success: true,
             deletedCount,
@@ -423,7 +462,7 @@ export const adminRouter = createTRPCRouter({
         } catch (error) {
           console.error("Failed to cleanup suspended installations:", error);
           throw new Error(
-            `Cleanup failed: ${error instanceof Error ? error.message : "Unknown error"}`
+            `Cleanup failed: ${error instanceof Error ? error.message : "Unknown error"}`,
           );
         }
       }),

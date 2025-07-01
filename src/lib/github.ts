@@ -42,8 +42,16 @@ class GitHubClient {
   /**
    * Get all comments for an issue
    */
-  public async getIssueComments(owner: string, repo: string, issue_number: number) {
-    const response = await githubAppClient.getIssueComments(owner, repo, issue_number);
+  public async getIssueComments(
+    owner: string,
+    repo: string,
+    issue_number: number,
+  ) {
+    const response = await githubAppClient.getIssueComments(
+      owner,
+      repo,
+      issue_number,
+    );
     return response.data;
   }
 
@@ -73,7 +81,12 @@ class GitHubClient {
     issue_number: number,
     body: string,
   ) {
-    const response = await githubAppClient.createComment(owner, repo, issue_number, body);
+    const response = await githubAppClient.createComment(
+      owner,
+      repo,
+      issue_number,
+      body,
+    );
     console.log(`Created comment on ${owner}/${repo}#${issue_number}`);
     return response.data;
   }
@@ -85,10 +98,25 @@ class GitHubClient {
     owner: string,
     repo: string,
     comment_id: number,
-    content: "+1" | "-1" | "laugh" | "confused" | "heart" | "hooray" | "rocket" | "eyes",
+    content:
+      | "+1"
+      | "-1"
+      | "laugh"
+      | "confused"
+      | "heart"
+      | "hooray"
+      | "rocket"
+      | "eyes",
   ) {
-    const response = await githubAppClient.addReactionToComment(owner, repo, comment_id, content);
-    console.log(`Added ${content} reaction to comment ${comment_id} on ${owner}/${repo}`);
+    const response = await githubAppClient.addReactionToComment(
+      owner,
+      repo,
+      comment_id,
+      content,
+    );
+    console.log(
+      `Added ${content} reaction to comment ${comment_id} on ${owner}/${repo}`,
+    );
     return response.data;
   }
 
@@ -138,11 +166,18 @@ class GitHubClient {
   ) {
     try {
       await githubAppClient.removeLabel(owner, repo, issue_number, label);
-      console.log(`Removed label '${label}' from ${owner}/${repo}#${issue_number}`);
+      console.log(
+        `Removed label '${label}' from ${owner}/${repo}#${issue_number}`,
+      );
     } catch (error: unknown) {
       // If label doesn't exist, that's fine
-      if (error instanceof Error && error.message.includes("Label does not exist")) {
-        console.log(`Label '${label}' doesn't exist on ${owner}/${repo}#${issue_number}`);
+      if (
+        error instanceof Error &&
+        error.message.includes("Label does not exist")
+      ) {
+        console.log(
+          `Label '${label}' doesn't exist on ${owner}/${repo}#${issue_number}`,
+        );
         return;
       }
       throw error;

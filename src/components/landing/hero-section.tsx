@@ -77,7 +77,7 @@ export function HeroSection() {
             className="bg-white text-jules-dark cursor-pointer hover:bg-white/90 ring-2 ring-transparent hover:ring-jules-primary"
             onClick={() => {
               // Redirect to GitHub App installation
-              window.location.href = '/api/github-app/install';
+              window.location.href = "/api/github-app/install";
             }}
           >
             <SiGithub /> Link GitHub Repository
