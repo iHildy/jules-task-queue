@@ -1,4 +1,4 @@
-import { z, type ZodIssue, type ZodError } from "zod";
+import { z, ZodError, type ZodIssue } from "zod";
 
 const envSchema = z.object({
   // Database
