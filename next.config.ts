@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   distDir: process.env.NODE_ENV === "development" ? ".next/dev" : ".next/build",
 
   // Enable standalone output for Docker deployments
-  output: process.env.BUILD_STANDALONE === "true" ? "standalone" : undefined,
+  // output: process.env.BUILD_STANDALONE === "true" ? "standalone" : undefined,
 
   // Configure images
   images: {
