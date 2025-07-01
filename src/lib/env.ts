@@ -1,4 +1,4 @@
-import { z, type ZodIssue } from "zod";
+import { z, type ZodIssue, type ZodError } from "zod";
 
 const envSchema = z.object({
   // Database
@@ -76,7 +76,7 @@ function validateEnv(): Env {
     return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const zodErr = error as z.ZodError;
+      const zodErr = error as ZodError;
 
       const missingVars = (zodErr.errors as ZodIssue[])
         .filter(
