@@ -8,11 +8,11 @@ export function Disclaimer() {
         <Alert className="border bg-jules-darker border-jules-accent">
           <AlertCircle className="h-4 w-4 text-jules-accent" />
           <AlertDescription className="text-gray-300">
-            <strong className="text-white">Disclaimer:</strong> JulesQueue is an
-            independent productivity tool created by the developer community. We
-            are not affiliated with Jules, Google, or Google Labs in any way.
-            JulesQueue simply helps you manage your Jules task queue more
-            efficiently.
+            <strong className="text-white">Disclaimer:</strong> Jules Task Queue
+            is an independent productivity tool created by the developer
+            community. We are not affiliated with Jules, Google, or Google Labs
+            in any way. Jules Task Queue simply helps you manage your Jules task
+            queue more efficiently.
           </AlertDescription>
         </Alert>
       </div>

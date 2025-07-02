@@ -61,7 +61,7 @@ Currently, the project:
 ### 2.2 Environment Variables
 
 - [x] Add new environment variables:
-  - [x] `GITHUB_APP_ID` - GitHub App ID
+  - [x] `NEXT_PUBLIC_GITHUB_APP_ID` - GitHub App ID
   - [x] `GITHUB_APP_PRIVATE_KEY` - GitHub App private key (base64 encoded)
   - [x] `GITHUB_APP_WEBHOOK_SECRET` - GitHub App webhook secret
   - [x] `GITHUB_APP_CLIENT_ID` - For OAuth flow (optional)

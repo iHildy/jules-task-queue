@@ -27,7 +27,7 @@ export const INSTALLATION_ERRORS = {
     message: "GitHub App name is not configured",
     userMessage: "GitHub App configuration is missing. Please contact support.",
     suggestedAction:
-      "Contact your administrator to configure GITHUB_APP_NAME environment variable.",
+      "Contact your administrator to configure NEXT_PUBLIC_GITHUB_APP_NAME environment variable.",
   },
   INVALID_URL: {
     code: "INVALID_URL",
@@ -83,7 +83,7 @@ export function buildInstallationUrl(baseUrl: string): InstallationResult {
     }
 
     // Check if app name is configured
-    const appName = env.GITHUB_APP_NAME;
+    const appName = env.NEXT_PUBLIC_GITHUB_APP_NAME;
     if (!appName || appName.trim() === "") {
       return {
         success: false,
@@ -136,12 +136,15 @@ export function validateGitHubAppConfig(): {
 } {
   const errors: string[] = [];
 
-  if (!env.GITHUB_APP_NAME || env.GITHUB_APP_NAME.trim() === "") {
-    errors.push("GITHUB_APP_NAME is not configured");
+  if (
+    !env.NEXT_PUBLIC_GITHUB_APP_NAME ||
+    env.NEXT_PUBLIC_GITHUB_APP_NAME.trim() === ""
+  ) {
+    errors.push("NEXT_PUBLIC_GITHUB_APP_NAME is not configured");
   }
 
-  if (!env.GITHUB_APP_ID) {
-    errors.push("GITHUB_APP_ID is not configured");
+  if (!env.NEXT_PUBLIC_GITHUB_APP_ID) {
+    errors.push("NEXT_PUBLIC_GITHUB_APP_ID is not configured");
   }
 
   if (!env.GITHUB_APP_PRIVATE_KEY) {

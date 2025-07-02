@@ -1,29 +1,58 @@
+import { env } from "@/lib/env";
+import { githubAppClient } from "@/lib/github-app";
+import { db } from "@/server/db";
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  try {
-    const status = {
-      status: "healthy",
-      timestamp: new Date().toISOString(),
-      version: "0.1.0",
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || "development",
-      checks: {
-        database: "not_configured", // Will be updated when database is connected
-        github: "not_configured", // Will be updated when GitHub integration is complete
-        webhook: "not_configured", // Will be updated when webhooks are implemented
-      },
-    };
+export const dynamic = "force-dynamic";
 
-    return NextResponse.json(status, { status: 200 });
-  } catch {
-    return NextResponse.json(
-      {
-        status: "unhealthy",
-        error: "Health check failed",
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 },
-    );
+type Status = "ok" | "error" | "not_configured";
+
+async function checkDatabase(): Promise<Status> {
+  try {
+    await db.$queryRaw`SELECT 1`;
+    return "ok";
+  } catch (error) {
+    console.error("Database health check failed:", error);
+    return "error";
   }
+}
+
+async function checkGitHubApp(): Promise<Status> {
+  if (!githubAppClient.isConfigured()) {
+    return "not_configured";
+  }
+  try {
+    await githubAppClient.getAppInfo();
+    return "ok";
+  } catch (error) {
+    console.error("GitHub App health check failed:", error);
+    return "error";
+  }
+}
+
+function checkWebhook(): Status {
+  return env.GITHUB_APP_WEBHOOK_SECRET ? "ok" : "not_configured";
+}
+
+export async function GET() {
+  const checks = {
+    database: await checkDatabase(),
+    githubApp: await checkGitHubApp(),
+    webhook: checkWebhook(),
+  };
+
+  const hasError = Object.values(checks).some((status) => status === "error");
+  const overallStatus = hasError ? "unhealthy" : "healthy";
+  const httpStatus = hasError ? 503 : 200;
+
+  const responsePayload = {
+    status: overallStatus,
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || "0.1.0",
+    uptime: process.uptime(),
+    environment: env.NODE_ENV,
+    checks,
+  };
+
+  return NextResponse.json(responsePayload, { status: httpStatus });
 }

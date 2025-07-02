@@ -21,12 +21,12 @@ Create a `.env` file in the project root:
 DATABASE_URL=postgresql://jules:jules_password@db:5432/jules_queue
 
 # GitHub App Configuration
-GITHUB_APP_ID=your_github_app_id
+NEXT_PUBLIC_GITHUB_APP_ID=your_NEXT_PUBLIC_GITHUB_APP_ID
 GITHUB_APP_PRIVATE_KEY=your_github_app_private_key
 GITHUB_APP_WEBHOOK_SECRET=your_github_app_webhook_secret
 GITHUB_APP_CLIENT_ID=your_github_app_client_id
 GITHUB_APP_CLIENT_SECRET=your_github_app_client_secret
-GITHUB_APP_NAME=your_github_app_name
+NEXT_PUBLIC_GITHUB_APP_NAME=your_NEXT_PUBLIC_GITHUB_APP_NAME
 
 # Security
 CRON_SECRET=your_secure_random_string_for_cron_authentication
@@ -92,7 +92,7 @@ pnpm db:generate
 pnpm db:migrate
 
 # Build the application
-pnpm build
+pnpm build:selfhosted
 
 # Start production server
 pnpm start
@@ -139,17 +139,17 @@ In your platform's scheduled tasks:
 
 ### Environment Variables
 
-| Variable                    | Required    | Description                                         |
-| --------------------------- | ----------- | --------------------------------------------------- |
-| `DATABASE_URL`              | Yes         | PostgreSQL connection string                        |
-| `GITHUB_APP_ID`             | Yes         | GitHub App ID from your app settings                |
-| `GITHUB_APP_PRIVATE_KEY`    | Yes         | GitHub App private key (base64 encoded or with \n)  |
-| `GITHUB_APP_WEBHOOK_SECRET` | Yes         | Secret used to verify GitHub App webhook signatures |
-| `GITHUB_APP_CLIENT_ID`      | No          | GitHub App client ID (for OAuth, if needed)         |
-| `GITHUB_APP_CLIENT_SECRET`  | No          | GitHub App client secret (for OAuth, if needed)     |
-| `GITHUB_APP_NAME`           | No          | GitHub App name (defaults to 'jules-task-queue')    |
-| `CRON_SECRET`               | Recommended | Secret for authenticating cron job requests         |
-| `NODE_ENV`                  | No          | Set to `production` for production deployments      |
+| Variable                      | Required    | Description                                         |
+| ----------------------------- | ----------- | --------------------------------------------------- |
+| `DATABASE_URL`                | Yes         | PostgreSQL connection string                        |
+| `NEXT_PUBLIC_GITHUB_APP_ID`   | Yes         | GitHub App ID from your app settings                |
+| `GITHUB_APP_PRIVATE_KEY`      | Yes         | GitHub App private key (base64 encoded or with \n)  |
+| `GITHUB_APP_WEBHOOK_SECRET`   | Yes         | Secret used to verify GitHub App webhook signatures |
+| `GITHUB_APP_CLIENT_ID`        | No          | GitHub App client ID (for OAuth, if needed)         |
+| `GITHUB_APP_CLIENT_SECRET`    | No          | GitHub App client secret (for OAuth, if needed)     |
+| `NEXT_PUBLIC_GITHUB_APP_NAME` | No          | GitHub App name (defaults to 'jules-task-queue')    |
+| `CRON_SECRET`                 | Recommended | Secret for authenticating cron job requests         |
+| `NODE_ENV`                    | No          | Set to `production` for production deployments      |
 
 ### GitHub App Setup
 

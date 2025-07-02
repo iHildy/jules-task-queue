@@ -1,6 +1,6 @@
 "use client";
 
-import { GitHubInstallButton } from "@/components/github-install-button";
+import { GitHubInstallButton } from "@/components/landing/github-install-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,7 +52,7 @@ export function HeroSection() {
   );
 
   return (
-    <section className="relative overflow-hidden pt-20 pb-16">
+    <section className="relative overflow-hidden pt-20 pb-16" id="hero">
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <Badge
           variant="outline"
@@ -69,8 +69,8 @@ export function HeroSection() {
         </h1>
 
         <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto leading-relaxed text-jules-gray">
-          Jules gives you 60 tasks per day but only 5 concurrent slots.
-          JulesQueue automatically manages the queue so you can{" "}
+          Jules gives you 60 tasks per day but only 5 concurrent slots. Jules
+          Task Queue automatically manages the queue so you can{" "}
           <span className="font-semibold text-jules-pink">
             actually use them all
           </span>
@@ -94,7 +94,7 @@ export function HeroSection() {
           <div className="flex gap-4 items-center justify-center">
             <a
               className=""
-              href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue&env=DATABASE_URL,GITHUB_APP_ID,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,CRON_SECRET&envDescription=See%20the%20github%20repo%20.env.example%20file%20for%20the%20variables%20to%20add.&envLink=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue%2Fblob%2Fmain%2F.env.example&project-name=jules-task-queue&repository-name=jules-task-queue"
+              href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue&env=DATABASE_URL,NEXT_PUBLIC_GITHUB_APP_ID,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,CRON_SECRET&envDescription=See%20the%20github%20repo%20.env.example%20file%20for%20the%20variables%20to%20add.&envLink=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue%2Fblob%2Fmain%2F.env.example&project-name=jules-task-queue&repository-name=jules-task-queue"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -274,7 +274,7 @@ export function HeroSection() {
                       Add these environment variables to your Firebase project:
                     </p>
                     <CodeBlock copyId="env-vars">{`firebase apphosting:secrets:set DATABASE_URL
-firebase apphosting:secrets:set GITHUB_APP_ID
+firebase apphosting:secrets:set NEXT_PUBLIC_GITHUB_APP_ID
 firebase apphosting:secrets:set GITHUB_APP_PRIVATE_KEY
 firebase apphosting:secrets:set GITHUB_APP_WEBHOOK_SECRET
 firebase apphosting:secrets:set CRON_SECRET`}</CodeBlock>

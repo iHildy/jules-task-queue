@@ -19,8 +19,8 @@ env:
     secret: DATABASE_URL
 
   # GitHub App integration - using secrets for security
-  - variable: GITHUB_APP_ID
-    secret: GITHUB_APP_ID
+  - variable: NEXT_PUBLIC_GITHUB_APP_ID
+    secret: NEXT_PUBLIC_GITHUB_APP_ID
 
   - variable: GITHUB_APP_PRIVATE_KEY
     secret: GITHUB_APP_PRIVATE_KEY
@@ -34,8 +34,8 @@ env:
   - variable: GITHUB_APP_CLIENT_SECRET
     secret: GITHUB_APP_CLIENT_SECRET
 
-  - variable: GITHUB_APP_NAME
-    secret: GITHUB_APP_NAME
+  - variable: NEXT_PUBLIC_GITHUB_APP_NAME
+    secret: NEXT_PUBLIC_GITHUB_APP_NAME
 
   # Cron job authentication
   - variable: CRON_SECRET

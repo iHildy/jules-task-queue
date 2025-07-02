@@ -172,7 +172,7 @@ Add these environment variables to your deployment:
 
 ```bash
 # GitHub App Configuration
-GITHUB_APP_ID="123456"                    # Your App ID
+NEXT_PUBLIC_GITHUB_APP_ID="123456"                    # Your App ID
 GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
 ...your private key content...
 -----END RSA PRIVATE KEY-----"            # Content of your .pem file
@@ -214,7 +214,7 @@ GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...\n--
 
 ```bash
 # Set each secret
-firebase apphosting:secrets:set GITHUB_APP_ID
+firebase apphosting:secrets:set NEXT_PUBLIC_GITHUB_APP_ID
 firebase apphosting:secrets:set GITHUB_APP_PRIVATE_KEY
 firebase apphosting:secrets:set GITHUB_APP_WEBHOOK_SECRET
 firebase apphosting:secrets:set GITHUB_APP_CLIENT_ID
@@ -229,7 +229,7 @@ firebase deploy --only apphosting
 Add to your `.env` file or environment:
 
 ```bash
-GITHUB_APP_ID="123456"
+NEXT_PUBLIC_GITHUB_APP_ID="123456"
 GITHUB_APP_PRIVATE_KEY="your-private-key-here"
 GITHUB_APP_WEBHOOK_SECRET="your-webhook-secret"
 GITHUB_APP_CLIENT_ID="Iv1.your-client-id"

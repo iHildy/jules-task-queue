@@ -8,9 +8,8 @@
   "scripts": {
     "dev": "prisma generate && next dev --turbopack",
     "build": "prisma generate && next build",
-    "build:selfhosted": "SKIP_ENV_VALIDATION=true prisma generate && next build",
+    "build:selfhosted": "prisma generate && SKIP_ENV_VALIDATION=true next build",
     "start": "prisma migrate deploy && next start",
-    "start:selfhosted": "prisma migrate deploy && node .next/standalone/server.js",
     "lint": "prisma generate && next lint",
     "format": "prettier --write .",
     "db:generate": "prisma generate",
@@ -38,6 +37,7 @@
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.12",
+    "@t3-oss/env-nextjs": "^0.13.8",
     "@tanstack/react-query": "^5.81.5",
     "@trpc/client": "^11.4.3",
     "@trpc/next": "^11.4.3",

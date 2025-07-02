@@ -1,114 +1,84 @@
-import { z, type ZodError, type ZodIssue } from "zod";
+import { createEnv } from "@t3-oss/env-nextjs";
+import { z } from "zod";
 
-const envSchema = z.object({
-  // Database
-  DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
+export const env = createEnv({
+  /**
+   * Specify your server-side environment variables schema here.
+   */
+  server: {
+    // Database
+    DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
 
-  // GitHub App Integration
-  GITHUB_APP_ID: z.string().min(1, "GITHUB_APP_ID is required"),
-  GITHUB_APP_PRIVATE_KEY: z
-    .string()
-    .min(1, "GITHUB_APP_PRIVATE_KEY is required"),
-  GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
-  GITHUB_APP_NAME: z.string().optional(),
+    // GitHub App Integration
+    GITHUB_APP_PRIVATE_KEY: z
+      .string()
+      .min(1, "GITHUB_APP_PRIVATE_KEY is required"),
+    GITHUB_APP_WEBHOOK_SECRET: z
+      .string()
+      .min(1, "GITHUB_APP_WEBHOOK_SECRET is required"),
+    GITHUB_APP_CLIENT_ID: z.string().min(1, "GITHUB_APP_CLIENT_ID is required"),
+    GITHUB_APP_CLIENT_SECRET: z
+      .string()
+      .min(1, "GITHUB_APP_CLIENT_SECRET is required"),
 
-  // Application
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
+    // Application
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
 
-  // Cron Job Security
-  CRON_SECRET: z.string().optional(),
+    // Cron Job Security
+    CRON_SECRET: z.string().optional(),
 
-  // Optional: Custom processing settings
-  COMMENT_CHECK_DELAY_MS: z
-    .string()
-    .transform((val: string): number => Number.parseInt(val, 10) || 60000)
-    .optional(),
-  RETRY_INTERVAL_MINUTES: z
-    .string()
-    .transform((val: string): number => Number.parseInt(val, 10) || 30)
-    .optional(),
-  TASK_CLEANUP_DAYS: z
-    .string()
-    .transform((val: string): number => Number.parseInt(val, 10) || 7)
-    .optional(),
+    // Optional: Custom processing settings
+    COMMENT_CHECK_DELAY_MS: z.coerce.number().default(60000),
+    RETRY_INTERVAL_MINUTES: z.coerce.number().default(30),
+    TASK_CLEANUP_DAYS: z.coerce.number().default(7),
+  },
+
+  /**
+   * Specify your client-side environment variables schema here. To expose them to the client, prefix them with `NEXT_PUBLIC_`.
+   */
+  client: {
+    NEXT_PUBLIC_GITHUB_APP_NAME: z
+      .string()
+      .min(1, "NEXT_PUBLIC_GITHUB_APP_NAME is required"),
+    NEXT_PUBLIC_GITHUB_APP_ID: z
+      .string()
+      .min(1, "NEXT_PUBLIC_GITHUB_APP_ID is required"),
+  },
+
+  /**
+   * You can't destruct `process.env` as a regular object in the Next.js edge runtimes (e.g.
+   * middlewares) or client-side so we need to destruct manually.
+   */
+  runtimeEnv: {
+    // Server
+    DATABASE_URL: process.env.DATABASE_URL,
+    GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY,
+    GITHUB_APP_WEBHOOK_SECRET: process.env.GITHUB_APP_WEBHOOK_SECRET,
+    GITHUB_APP_CLIENT_ID: process.env.GITHUB_APP_CLIENT_ID,
+    GITHUB_APP_CLIENT_SECRET: process.env.GITHUB_APP_CLIENT_SECRET,
+    NODE_ENV: process.env.NODE_ENV,
+    CRON_SECRET: process.env.CRON_SECRET,
+    COMMENT_CHECK_DELAY_MS: process.env.COMMENT_CHECK_DELAY_MS,
+    RETRY_INTERVAL_MINUTES: process.env.RETRY_INTERVAL_MINUTES,
+    TASK_CLEANUP_DAYS: process.env.TASK_CLEANUP_DAYS,
+
+    // Client
+    NEXT_PUBLIC_GITHUB_APP_NAME: process.env.NEXT_PUBLIC_GITHUB_APP_NAME,
+    NEXT_PUBLIC_GITHUB_APP_ID: process.env.NEXT_PUBLIC_GITHUB_APP_ID,
+  },
+  /**
+   * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
+   * useful for Docker builds.
+   */
+  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  /**
+   * Makes it so that empty strings are treated as undefined. `SOME_VAR: z.string()` and
+   * `SOME_VAR=''` will throw an error.
+   */
+  emptyStringAsUndefined: true,
 });
-
-export type Env = z.infer<typeof envSchema>;
-
-/**
- * Returns true when environment validation should be skipped.
- *
- * We intentionally skip validation during **build time** (e.g. `next build`)
- * because most self-hosting platforms – Coolify, Railway Nixpacks, Vercel –
- * execute the build inside a clean container **without** runtime secrets.
- *
- * Runtime validation (when the container actually starts) is still executed
- * so we can safely crash fast if required variables are missing in
- * production.
- */
-function shouldSkipValidation(): boolean {
-  // Explicit opt-out (useful for CI / storybook etc.)
-  if (process.env.SKIP_ENV_VALIDATION === "true") return true;
-
-  // Next.js sets this during the compilation step.
-  if (process.env.NEXT_PHASE === "phase-production-build") return true;
-
-  return false;
-}
-
-/**
- * Validates environment variables at startup
- * Throws an error if any required variables are missing or invalid
- */
-function validateEnv(): Env {
-  if (shouldSkipValidation()) {
-    console.warn(
-      "⚠️ Skipping environment variable validation during build/CI phase.",
-    );
-    return {} as Env;
-  }
-
-  try {
-    return envSchema.parse(process.env);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const zodErr = error as ZodError;
-
-      const missingVars = (zodErr.errors as ZodIssue[])
-        .filter((e) => e.code === "invalid_type" && e.received === "undefined")
-        .map((e) => e.path.join("."));
-
-      const invalidVars = (zodErr.errors as ZodIssue[])
-        .filter((e) => e.code !== "invalid_type" || e.received !== "undefined")
-        .map((e) => `${e.path.join(".")}: ${e.message}`);
-
-      let errorMessage = "❌ Environment validation failed!\n\n";
-
-      if (missingVars.length > 0) {
-        errorMessage += `🔍 Missing required environment variables:\n`;
-        errorMessage += missingVars.map((v) => `  - ${v}`).join("\n");
-        errorMessage += "\n\n";
-      }
-
-      if (invalidVars.length > 0) {
-        errorMessage += `⚠️  Invalid environment variables:\n`;
-        errorMessage += invalidVars.map((v) => `  - ${v}`).join("\n");
-        errorMessage += "\n\n";
-      }
-
-      errorMessage += `📝 Copy .env.example to .env.local and configure the required variables.\n`;
-      errorMessage += `🔧 See README.md for setup instructions.\n`;
-
-      throw new Error(errorMessage);
-    }
-    throw error;
-  }
-}
-
-// Validate environment variables on module load
-export const env = validateEnv();
 
 // Helper functions for checking optional configurations
 export const hasWebhookSecret = () => !!env.GITHUB_APP_WEBHOOK_SECRET;
@@ -116,11 +86,4 @@ export const hasCronSecret = () => !!env.CRON_SECRET;
 
 // GitHub App configured helper
 export const hasGitHubApp = () =>
-  !!env.GITHUB_APP_ID && !!env.GITHUB_APP_PRIVATE_KEY;
-
-// Processing configuration with defaults
-export const processingConfig = {
-  commentCheckDelay: env.COMMENT_CHECK_DELAY_MS || 60000, // 60 seconds
-  retryInterval: env.RETRY_INTERVAL_MINUTES || 30, // 30 minutes
-  taskCleanupDays: env.TASK_CLEANUP_DAYS || 7, // 7 days
-};
+  !!env.NEXT_PUBLIC_GITHUB_APP_ID && !!env.GITHUB_APP_PRIVATE_KEY;

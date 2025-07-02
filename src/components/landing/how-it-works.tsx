@@ -6,10 +6,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SiGithub } from "@icons-pack/react-simple-icons";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { Button } from "../ui/button";
+import { GitHubInstallButton } from "./github-install-button";
 
 export function HowItWorks() {
   return (
@@ -50,11 +49,9 @@ export function HowItWorks() {
                   <CardTitle className="text-xl text-white mb-4">
                     Add to GitHub Repository
                   </CardTitle>
-                  <Button className="mb-4">
-                    <SiGithub /> Link GitHub
-                  </Button>
-                  <CardDescription className="text-gray-300">
-                    Set up GitHub webhooks and configure environment variables
+                  <GitHubInstallButton />
+                  <CardDescription className="text-gray-300 mt-4">
+                    GitHub webhooks and issue labels are configured
                     automatically
                   </CardDescription>
                 </CardContent>

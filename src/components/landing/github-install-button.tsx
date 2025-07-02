@@ -51,9 +51,6 @@ export function GitHubInstallButton({
         return;
       }
 
-      // Small delay to show loading state
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
       // Redirect to GitHub App installation
       window.location.href = result.url!;
     } catch (err) {
@@ -101,7 +98,7 @@ export function GitHubInstallButton({
       disabled={isLoading}
       className={
         className ||
-        "bg-white text-jules-dark cursor-pointer hover:bg-white/90 ring-2 ring-transparent hover:ring-jules-primary"
+        "bg-white text-jules-dark cursor-pointer hover:bg-white/90 ring-2 ring-transparent hover:ring-jules-primary font-semibold"
       }
     >
       {isLoading ? (
