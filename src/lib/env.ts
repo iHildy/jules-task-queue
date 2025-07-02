@@ -85,7 +85,7 @@ export const env = createEnv({
    * Makes it so that empty strings are treated as undefined. `SOME_VAR: z.string()` and
    * `SOME_VAR=''` will throw an error.
    */
-  emptyStringAsUndefined: true,
+  emptyStringAsUndefined: false,
 });
 
 // Helper functions for checking optional configurations
