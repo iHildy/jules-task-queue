@@ -4,6 +4,7 @@ import {
   processWorkflowDecision,
   upsertJulesTask,
 } from "@/lib/jules";
+import { installationService } from "@/lib/installation-service";
 import { db } from "@/server/db";
 import type { GitHubLabelEvent, ProcessingResult } from "@/types";
 
@@ -141,6 +142,7 @@ async function executeCommentCheck(
  */
 export async function processJulesLabelEvent(
   event: GitHubLabelEvent,
+  installationId?: number,
 ): Promise<ProcessingResult> {
   const { action, label, issue, repository } = event;
   const labelName = label.name.toLowerCase();
@@ -159,6 +161,21 @@ export async function processJulesLabelEvent(
 
     // Handle 'jules' label events
     if (labelName === "jules" && action === "labeled") {
+      // Validate installation access if installationId is provided
+      if (installationId) {
+        const hasAccess = await installationService.validateRepositoryAccess(
+          owner,
+          repo,
+          installationId,
+        );
+        if (!hasAccess) {
+          return {
+            action: "error",
+            message: `Repository ${owner}/${repo} is not accessible through installation ${installationId}`,
+          };
+        }
+      }
+
       // Create or update task in database
       const task = await upsertJulesTask({
         githubRepoId: BigInt(repository.id),
@@ -166,6 +183,7 @@ export async function processJulesLabelEvent(
         githubIssueNumber: BigInt(issue.number),
         repoOwner: owner,
         repoName: repo,
+        installationId,
       });
 
       console.log(

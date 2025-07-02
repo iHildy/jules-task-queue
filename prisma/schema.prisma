@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
 }
 
 model JulesTask {
@@ -19,6 +20,10 @@ model JulesTask {
   // Repository information for easier processing
   repoOwner String
   repoName  String
+
+  // GitHub App integration (optional for backward compatibility)
+  installationId Int?
+  installation   GitHubInstallation? @relation(fields: [installationId], references: [id])
 
   // Processing status
   flaggedForRetry Boolean   @default(false)
@@ -33,6 +38,7 @@ model JulesTask {
   @@index([flaggedForRetry])
   @@index([repoOwner, repoName])
   @@index([createdAt])
+  @@index([installationId])
   @@map("jules_tasks")
 }
 
@@ -49,4 +55,61 @@ model WebhookLog {
   @@index([success])
   @@index([createdAt])
   @@map("webhook_logs")
+}
+
+model GitHubInstallation {
+  id              Int      @id
+  accountId       BigInt
+  accountLogin    String
+  accountType     String // "User" or "Organization"
+  targetType      String // "User" or "Organization"
+  permissions     String // JSON string of permissions
+  events          String // JSON string of subscribed events
+  singleFileName  String?
+  repositorySelection String // "all" or "selected"
+  suspendedAt     DateTime?
+  suspendedBy     String?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  repositories InstallationRepository[]
+  tasks        JulesTask[]
+
+  // Indexes for performance
+  @@index([accountId])
+  @@index([accountLogin])
+  @@index([suspendedAt])
+  @@map("github_installations")
+}
+
+model InstallationRepository {
+  id           Int    @id @default(autoincrement())
+  installationId Int
+  repositoryId BigInt
+  name         String
+  fullName     String
+  owner        String
+  private      Boolean
+  htmlUrl      String
+  description  String?
+  
+  // Timestamps
+  addedAt   DateTime @default(now())
+  removedAt DateTime?
+
+  // Relations
+  installation GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  // Unique constraint
+  @@unique([installationId, repositoryId])
+  
+  // Indexes for performance
+  @@index([installationId])
+  @@index([repositoryId])
+  @@index([owner, name])
+  @@index([removedAt])
+  @@map("installation_repositories")
 }

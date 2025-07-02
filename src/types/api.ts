@@ -1,4 +1,4 @@
-import type { Env } from "@/lib/env";
+import type { env } from "@/lib/env";
 import type { PrismaClient } from "@prisma/client";
 
 // tRPC Context types
@@ -9,7 +9,7 @@ export interface CreateContextOptions {
 export interface TRPCContext {
   headers: Headers;
   db: PrismaClient;
-  env: Env;
+  env: typeof env;
 }
 
 // API Response types

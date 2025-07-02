@@ -4,6 +4,10 @@
 # Build stage
 FROM node:18-alpine AS builder
 
+# Pass flag so env validation is skipped during build
+ARG SKIP_ENV_VALIDATION=true
+ENV SKIP_ENV_VALIDATION=${SKIP_ENV_VALIDATION}
+
 # Set working directory
 WORKDIR /app
 
@@ -67,6 +71,7 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
+ENV SKIP_ENV_VALIDATION=
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

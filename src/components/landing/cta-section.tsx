@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import Link from "next/link";
+import { GitHubInstallButton } from "./github-install-button";
 
 export function CTASection() {
   return (
@@ -10,20 +11,11 @@ export function CTASection() {
           Ready to unlock all 60 tasks?
         </h2>
         <p className="text-xl text-gray-300 mb-8">
-          Stop babysitting the queue. Start building amazing things.
+          Stop babysitting the queue. Start shipping faster.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-          <Button
-            asChild
-            size="lg"
-            className="text-xl px-10 py-6 bg-jules-primary"
-          >
-            <Link href="https://github.com/ihildy/jules-task-queue">
-              Deploy JulesQueue
-              <ArrowRight className="w-6 h-6 ml-3" />
-            </Link>
-          </Button>
+          <GitHubInstallButton />
           <div className="text-center">
             <Button
               variant="outline"
@@ -36,7 +28,6 @@ export function CTASection() {
                 Star on GitHub
               </Link>
             </Button>
-            <p className="text-gray-400 text-sm mt-2">Show your support!</p>
           </div>
         </div>
       </div>
