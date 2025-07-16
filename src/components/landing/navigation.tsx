@@ -28,7 +28,7 @@ export function Navigation() {
             </Link>
             <Button
               asChild
-              className="bg-jules-primary hover:opacity-90 font-semibold"
+              className="bg-white text-jules-dark cursor-pointer hover:bg-white/90 ring-2 ring-transparent hover:ring-jules-primary font-semibold"
             >
               <Link
                 href="https://github.com/ihildy/jules-task-queue"

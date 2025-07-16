@@ -11,6 +11,7 @@ ARG NEXT_PUBLIC_GITHUB_APP_NAME
 ENV SKIP_ENV_VALIDATION=${SKIP_ENV_VALIDATION}
 ENV NEXT_PUBLIC_GITHUB_APP_ID=${NEXT_PUBLIC_GITHUB_APP_ID}
 ENV NEXT_PUBLIC_GITHUB_APP_NAME=${NEXT_PUBLIC_GITHUB_APP_NAME}
+ENV BUILD_STANDALONE=true
 
 # Set working directory
 WORKDIR /app
@@ -53,11 +54,9 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
 # Copy built application from builder stage
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/.next/build/standalone ./
+COPY --from=builder /app/.next/build/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Copy the cron script for self-hosting
 COPY --from=builder /app/scripts ./scripts

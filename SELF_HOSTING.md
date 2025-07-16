@@ -10,39 +10,62 @@ The easiest way to self-host is using the provided Docker Compose setup:
 
 - Docker and Docker Compose installed
 - GitHub App credentials (see [GitHub App Setup Guide](./GITHUB_APP_SETUP.md))
-- PostgreSQL database (provided in docker-compose.yml)
 
-### 2. Environment Setup
+### 2. Clone the repository
+
+```bash
+git clone https://github.com/iHildy/jules-task-queue.git
+cd jules-task-queue
+```
+
+### 3. Environment Setup
 
 Create a `.env` file in the project root:
 
 ```bash
-# Database (matches docker-compose.yml)
-DATABASE_URL=postgresql://jules:jules_password@db:5432/jules_queue
-
-# GitHub App Configuration
-NEXT_PUBLIC_GITHUB_APP_ID=your_NEXT_PUBLIC_GITHUB_APP_ID
-GITHUB_APP_PRIVATE_KEY=your_github_app_private_key
-GITHUB_APP_WEBHOOK_SECRET=your_github_app_webhook_secret
-GITHUB_APP_CLIENT_ID=your_github_app_client_id
-GITHUB_APP_CLIENT_SECRET=your_github_app_client_secret
-NEXT_PUBLIC_GITHUB_APP_NAME=your_NEXT_PUBLIC_GITHUB_APP_NAME
-
-# Security
-CRON_SECRET=your_secure_random_string_for_cron_authentication
-
-# Optional
-NODE_ENV=production
+cp .env.example .env
 ```
 
-### 3. Deploy
+**Important:** We recommend `.env` over `.env.local` because Prisma is picky about environment file locations.
+
+Edit the `.env` file with your specific configuration. See `.env.example` for all available options and their descriptions.
+
+**Key variables you need to configure:**
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `GITHUB_APP_ID`: Your GitHub App ID
+- `NEXT_PUBLIC_GITHUB_APP_NAME`: Your GitHub App name (for display)
+- `GITHUB_APP_PRIVATE_KEY`: Your GitHub App private key
+- `GITHUB_APP_WEBHOOK_SECRET`: Webhook verification secret
+- `GITHUB_APP_CLIENT_ID` & `GITHUB_APP_CLIENT_SECRET`: For OAuth (optional)
+
+**Note:** For `GITHUB_APP_PRIVATE_KEY`, you can either:
+
+- Base64 encode your private key: `cat private-key.pem | base64`
+- Or use the raw PEM format with `\n` escaped as `\\n`
+
+### 4. Deploy
+
+#### Full Self-Hosting (with database and cron)
 
 ```bash
-# Clone the repository
-git clone <your-repo>
-cd jules-task-queue
+# Start all services including PostgreSQL database and cron
+docker-compose -f docker-compose.selfhost.yml up -d
 
-# Start all services
+# Check status
+docker-compose -f docker-compose.selfhost.yml ps
+
+# View logs
+docker-compose -f docker-compose.selfhost.yml logs -f app
+docker-compose -f docker-compose.selfhost.yml logs -f cron
+```
+
+#### Coolify/Platform Hosting (app only)
+
+If you're using Coolify or another platform that provides managed databases and cron jobs:
+
+```bash
+# Use the standard docker-compose file
 docker-compose up -d
 
 # Check status
@@ -50,16 +73,19 @@ docker-compose ps
 
 # View logs
 docker-compose logs -f app
-docker-compose logs -f cron
 ```
 
-### 4. Services Overview
+### 5. Services Overview
 
-The Docker Compose setup includes:
+The self-hosting Docker Compose setup (`docker-compose.selfhost.yml`) includes:
 
 - **app**: The Next.js application (port 3000)
 - **db**: PostgreSQL database (port 5432)
 - **cron**: Automated retry job runner (runs every 30 minutes)
+
+The platform hosting setup (`docker-compose.yml`) includes:
+
+- **app**: The Next.js application only (expects external database and cron)
 
 ## Manual Installation
 
@@ -92,7 +118,7 @@ pnpm db:generate
 pnpm db:migrate
 
 # Build the application
-pnpm build:selfhosted
+pnpm build
 
 # Start production server
 pnpm start
@@ -111,24 +137,7 @@ Add to your crontab (`crontab -e`):
 */30 * * * * cd /path/to/your/jules-task-queue && pnpm cron:run >> /var/log/jules-cron.log 2>&1
 ```
 
-#### Option B: Process Manager (PM2)
-
-```bash
-# Install PM2
-npm install -g pm2
-
-# Start the application
-pm2 start pnpm --name "jules-app" -- start
-
-# Start the cron job
-pm2 start --name "jules-cron" --cron "*/30 * * * *" pnpm -- cron:run
-
-# Save PM2 configuration
-pm2 save
-pm2 startup
-```
-
-#### Option C: Coolify/Other Platforms
+#### Option B: Coolify/Other Platforms
 
 In your platform's scheduled tasks:
 
@@ -139,17 +148,17 @@ In your platform's scheduled tasks:
 
 ### Environment Variables
 
-| Variable                      | Required    | Description                                         |
-| ----------------------------- | ----------- | --------------------------------------------------- |
-| `DATABASE_URL`                | Yes         | PostgreSQL connection string                        |
-| `NEXT_PUBLIC_GITHUB_APP_ID`   | Yes         | GitHub App ID from your app settings                |
-| `GITHUB_APP_PRIVATE_KEY`      | Yes         | GitHub App private key (base64 encoded or with \n)  |
-| `GITHUB_APP_WEBHOOK_SECRET`   | Yes         | Secret used to verify GitHub App webhook signatures |
-| `GITHUB_APP_CLIENT_ID`        | No          | GitHub App client ID (for OAuth, if needed)         |
-| `GITHUB_APP_CLIENT_SECRET`    | No          | GitHub App client secret (for OAuth, if needed)     |
-| `NEXT_PUBLIC_GITHUB_APP_NAME` | No          | GitHub App name (defaults to 'jules-task-queue')    |
-| `CRON_SECRET`                 | Recommended | Secret for authenticating cron job requests         |
-| `NODE_ENV`                    | No          | Set to `production` for production deployments      |
+| Variable                      | Build Variable | Description                                         |
+| ----------------------------- | -------------- | --------------------------------------------------- |
+| `DATABASE_URL`                | No             | PostgreSQL connection string                        |
+| `NEXT_PUBLIC_GITHUB_APP_ID`   | Yes            | GitHub App ID from your app settings                |
+| `NEXT_PUBLIC_GITHUB_APP_NAME` | Yes            | GitHub App name (for client-side display)           |
+| `GITHUB_APP_PRIVATE_KEY`      | No             | GitHub App private key (base64 encoded or with \n)  |
+| `GITHUB_APP_WEBHOOK_SECRET`   | No             | Secret used to verify GitHub App webhook signatures |
+| `GITHUB_APP_CLIENT_ID`        | No             | GitHub App client ID (for OAuth, if needed)         |
+| `GITHUB_APP_CLIENT_SECRET`    | No             | GitHub App client secret (for OAuth, if needed)     |
+| `CRON_SECRET`                 | No             | Secret for authenticating cron job requests         |
+| `NODE_ENV`                    | No             | Set to `production` for production deployments      |
 
 ### GitHub App Setup
 
@@ -158,6 +167,28 @@ In your platform's scheduled tasks:
 1. Create your GitHub App following the [GitHub App Setup Guide](./GITHUB_APP_SETUP.md)
 2. Configure your GitHub App webhook URL to: `https://your-domain.com/api/webhooks/github-app`
 3. Users can install your app on their repositories for automatic webhook setup
+
+## Platform-Specific Deployment
+
+### Coolify
+
+Coolify provides managed services for databases and cron jobs. For Coolify deployment:
+
+1. **Use the standard `docker-compose.yml`** (not the selfhost version)
+2. **Set environment variables** in Coolify's interface
+3. **Mark build variables**: Ensure `NEXT_PUBLIC_GITHUB_APP_NAME` is marked as "Is Build Variable?" in Coolify
+4. **Use managed database**: Set `DATABASE_URL` to point to your Coolify-managed database
+5. **Configure scheduled tasks**: Use Coolify's scheduled tasks feature instead of the cron container
+
+### Vercel/Netlify
+
+**Note**: Vercel only allows once per day cron jobs for free accounts.
+
+These platforms handle the build and deployment automatically:
+
+1. Connect your GitHub repository
+2. Set environment variables in the platform's dashboard
+3. The platform will build and deploy automatically
 
 ## Monitoring & Maintenance
 
@@ -169,11 +200,8 @@ The system provides several health check endpoints:
 # Application health
 curl https://your-domain.com/api/health
 
-# Cron job health
-curl https://your-domain.com/api/cron/retry
-
-# Admin health check
-curl https://your-domain.com/api/trpc/admin.health
+# Example healthy response:
+# {"status":"healthy","timestamp":"2025-07-16T21:27:07.286Z","version":"0.1.0","uptime":323.494783647,"environment":"production","checks":{"database":"ok","githubApp":"ok","webhook":"ok"}}
 ```
 
 ### Logs
@@ -181,14 +209,29 @@ curl https://your-domain.com/api/trpc/admin.health
 #### Docker Logs
 
 ```bash
-# Application logs
+# Application logs (full self-hosting)
+docker-compose -f docker-compose.selfhost.yml logs -f app
+
+# Cron job logs (full self-hosting)
+docker-compose -f docker-compose.selfhost.yml logs -f cron
+
+# Database logs (full self-hosting)
+docker-compose -f docker-compose.selfhost.yml logs -f db
+
+# Application logs (platform hosting)
 docker-compose logs -f app
+```
 
-# Cron job logs
-docker-compose logs -f cron
+### Shutdown docker containers
 
-# Database logs
-docker-compose logs -f db
+```bash
+docker-compose -f docker-compose.selfhost.yml down
+```
+
+### Restart docker containers
+
+```bash
+docker-compose -f docker-compose.selfhost.yml restart
 ```
 
 #### Manual Installation Logs
@@ -213,11 +256,37 @@ psql $DATABASE_URL -c "DELETE FROM \"JulesTask\" WHERE \"createdAt\" < NOW() - I
 
 ### Common Issues
 
+#### Environment Variable Errors
+
+**Error**: "Invalid environment variables" or client-side variables not available
+
+**Solution**:
+
+- For **Coolify**: Ensure `NEXT_PUBLIC_GITHUB_APP_NAME` is marked as "Is Build Variable?"
+- For **self-hosting**: Make sure all required variables are set in your `.env` file
+- For **GitHub App private key**: Ensure it's properly formatted (base64 encoded or escaped newlines)
+
+#### GitHub App Private Key Issues
+
+**Error**: "Invalid keyData" or "Failed to read private key"
+
+**Solution**: Format your private key correctly. You can either:
+
+```bash
+# Option 1: Base64 encode the entire key
+cat your-private-key.pem | base64 > private-key-base64.txt
+# Then set GITHUB_APP_PRIVATE_KEY to the base64 string
+
+# Option 2: Escape newlines manually
+# Replace all \n with \\n in your private key string
+```
+
 #### Cron Jobs Not Running
 
-1. **Docker**: Check if cron container is running: `docker-compose ps`
+1. **Docker**: Check if cron container is running: `docker-compose -f docker-compose.selfhost.yml ps`
 2. **Manual**: Verify crontab is correctly configured: `crontab -l`
 3. **Logs**: Check cron execution logs for errors
+4. **Coolify**: Use the platform's scheduled tasks feature instead
 
 #### GitHub Webhook Failures
 
@@ -231,6 +300,14 @@ psql $DATABASE_URL -c "DELETE FROM \"JulesTask\" WHERE \"createdAt\" < NOW() - I
 2. **Network**: Ensure database is accessible from application
 3. **Migrations**: Run `pnpm db:migrate` if using manual installation
 
+#### 502 Bad Gateway Errors
+
+This usually indicates container/service conflicts:
+
+1. **Coolify**: Make sure you're using `docker-compose.yml` (not `docker-compose.selfhost.yml`)
+2. **Self-hosting**: Make sure you're using `docker-compose.selfhost.yml`
+3. **Port conflicts**: Ensure no other services are using ports 3000 or 5432
+
 ### Debug Mode
 
 Enable debug logging:
@@ -240,7 +317,7 @@ Enable debug logging:
 DEBUG=jules:*
 
 # Or check application logs for detailed information
-docker-compose logs -f app | grep -E "(ERROR|WARN|cron)"
+docker-compose -f docker-compose.selfhost.yml logs -f app | grep -E "(ERROR|WARN|cron)"
 ```
 
 ## Security Considerations
@@ -256,14 +333,15 @@ docker-compose logs -f app | grep -E "(ERROR|WARN|cron)"
 ### Backup Strategy
 
 ```bash
-# Database backup
-docker-compose exec db pg_dump -U jules jules_queue > backup.sql
+# Database backup (self-hosting)
+docker-compose -f docker-compose.selfhost.yml exec db pg_dump -U jules jules_queue > backup.sql
 
 # Restore from backup
-docker-compose exec -T db psql -U jules jules_queue < backup.sql
+docker-compose -f docker-compose.selfhost.yml exec -T db psql -U jules jules_queue < backup.sql
 ```
 
 ## Support
 
 - **API Documentation**: See `API_DOCUMENTATION.md` for tRPC endpoint details
 - **Issues**: Create GitHub issues for bugs or questions
+- **Health Check**: Always verify `/api/health` returns `{"status":"healthy"}` after deployment

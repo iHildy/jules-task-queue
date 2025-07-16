@@ -147,7 +147,7 @@ function displayTestInfo() {
   console.log("Prerequisites:");
   console.log("1. Firebase emulator running: npm run serve");
   console.log("2. Next.js app running on http://localhost:3000");
-  console.log("3. Environment variables set in functions/.env.local");
+  console.log("3. Environment variables set in functions/.env");
   console.log("");
 }
 

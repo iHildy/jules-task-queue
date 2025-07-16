@@ -1,4 +1,5 @@
-version: "3.8"
+# Docker Compose for Coolify deployment
+# For full self-hosting with database and cron, use docker-compose.selfhost.yml
 
 services:
   # Jules Task Queue Application
