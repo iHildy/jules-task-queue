@@ -14,11 +14,10 @@ export default function LimboPage() {
   return (
     <div className="min-h-screen bg-jules-dark flex items-center justify-center">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-white mb-4">
-          Almost there!
-        </h1>
+        <h1 className="text-4xl font-bold text-white mb-4">Almost there!</h1>
         <p className="text-lg text-gray-300 mb-8">
-          Please star our repository to continue. It's a small way to show your support!
+          Please star our repository to continue. It&apos;s a small way to show
+          your support!
         </p>
         <a
           href="https://github.com/iHildy/jules-task-queue"
@@ -30,7 +29,7 @@ export default function LimboPage() {
         </a>
         <div className="mt-8">
           <Button onClick={handleCheckStatus}>
-            I've starred the repo, continue!
+            I&apos;ve starred the repo, continue!
           </Button>
         </div>
       </div>
