@@ -54,7 +54,14 @@ export const env = createEnv({
   runtimeEnv: {
     // Server
     DATABASE_URL: process.env.DATABASE_URL,
-    GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY,
+    GITHUB_APP_PRIVATE_KEY:
+      typeof window === "undefined"
+        ? process.env.GITHUB_APP_PRIVATE_KEY
+          ? Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY, "base64").toString(
+              "utf-8",
+            )
+          : undefined
+        : process.env.GITHUB_APP_PRIVATE_KEY,
     GITHUB_APP_WEBHOOK_SECRET: process.env.GITHUB_APP_WEBHOOK_SECRET,
     GITHUB_APP_CLIENT_ID: process.env.GITHUB_APP_CLIENT_ID,
     GITHUB_APP_CLIENT_SECRET: process.env.GITHUB_APP_CLIENT_SECRET,
@@ -72,7 +79,8 @@ export const env = createEnv({
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
    * useful for Docker builds.
    */
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation:
+    !!process.env.SKIP_ENV_VALIDATION || typeof window !== "undefined",
   /**
    * Makes it so that empty strings are treated as undefined. `SOME_VAR: z.string()` and
    * `SOME_VAR=''` will throw an error.
