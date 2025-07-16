@@ -351,6 +351,17 @@ class GitHubAppClient {
 // Export singleton instance
 export const githubAppClient = GitHubAppClient.getInstance();
 
+export const userOwnedGithubAppClient = async (
+  installationId: number,
+): Promise<Octokit> => {
+  const githubApp = GitHubAppClient.getInstance();
+  const token = await githubApp.getInstallationToken(installationId);
+  return new Octokit({
+    auth: token,
+    userAgent: "jules-task-queue/1.0.0",
+  });
+};
+
 // Export types and utilities
 export { GitHubAppClient };
 export type { App };

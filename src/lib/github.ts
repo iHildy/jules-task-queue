@@ -1,4 +1,4 @@
-import { githubAppClient } from "@/lib/github-app";
+import { githubAppClient, userOwnedGithubAppClient } from "@/lib/github-app";
 import { installationService } from "@/lib/installation-service";
 import type { Octokit } from "@octokit/rest";
 
@@ -15,6 +15,13 @@ class GitHubClient {
       GitHubClient.instance = new GitHubClient();
     }
     return GitHubClient.instance;
+  }
+
+  /**
+   * Get a GitHub App client authenticated as the user
+   */
+  public async getUserOwnedGitHubAppClient(installationId: number) {
+    return userOwnedGithubAppClient(installationId);
   }
 
   /**
@@ -259,6 +266,49 @@ class GitHubClient {
     }
 
     return null;
+  }
+
+  /**
+   * Star a repository for the authenticated user
+   */
+  public async starRepository(
+    octokit: Octokit,
+    owner: string,
+    repo: string,
+  ): Promise<void> {
+    await octokit.request("PUT /user/starred/{owner}/{repo}", {
+      owner,
+      repo,
+      headers: {
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+  }
+
+  /**
+   * Check if a repository is starred by the authenticated user
+   */
+  public async checkIfRepositoryIsStarred(
+    octokit: Octokit,
+    owner: string,
+    repo: string,
+  ): Promise<boolean> {
+    try {
+      await octokit.request("GET /user/starred/{owner}/{repo}", {
+        owner,
+        repo,
+        headers: {
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      });
+      return true;
+    } catch (error: unknown) {
+      // Octokit throws an error for non-2xx status codes, 404 is expected if not starred
+      if (error instanceof Error && error.message.includes("Not Found")) {
+        return false;
+      }
+      throw error;
+    }
   }
 }
 
