@@ -1,11 +1,11 @@
-import { createHmac, timingSafeEqual } from "crypto";
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { env } from "@/lib/env";
+import { createJulesLabelsForRepositories } from "@/lib/github-labels";
 import { processJulesLabelEvent } from "@/lib/webhook-processor";
 import { db } from "@/server/db";
 import { GitHubLabelEventSchema } from "@/types";
-import { createJulesLabelsForRepositories } from "@/lib/github-labels";
+import { createHmac, timingSafeEqual } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 // GitHub webhook payload interfaces
 interface GitHubAccount {
@@ -160,7 +160,7 @@ async function handleInstallationEvent(
         suspendedAt: installation.suspended_at
           ? new Date(installation.suspended_at)
           : null,
-        suspendedBy: installation.suspended_by?.login,
+        suspendedBy: installation.suspended_by?.login || null,
         updatedAt: new Date(),
       },
       create: {
@@ -176,7 +176,7 @@ async function handleInstallationEvent(
         suspendedAt: installation.suspended_at
           ? new Date(installation.suspended_at)
           : null,
-        suspendedBy: installation.suspended_by?.login,
+        suspendedBy: installation.suspended_by?.login || null,
       },
     });
 
@@ -251,7 +251,7 @@ async function handleInstallationEvent(
         suspendedAt: installation.suspended_at
           ? new Date(installation.suspended_at)
           : null,
-        suspendedBy: installation.suspended_by?.login,
+        suspendedBy: installation.suspended_by?.login || null,
         updatedAt: new Date(),
       },
     });

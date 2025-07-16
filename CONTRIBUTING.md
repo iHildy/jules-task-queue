@@ -69,7 +69,7 @@ Ready to start coding? Here's how to get the project running locally.
     Copy the example environment file and fill in the required values.
 
     ```bash
-    cp .env.example .env.local
+    cp .env.example .env
     ```
 
     You will need to set `DATABASE_URL` to point to your local Docker container:

@@ -273,10 +273,10 @@ firebase functions:shell
 
    ```bash
    cd functions
-   cp local.env.example .env.local
+   cp local.env.example .env
    ```
 
-2. **Edit `.env.local`** with your values:
+2. **Edit `.env`** with your values:
 
    ```bash
    # Your local development URL
@@ -405,7 +405,7 @@ When running locally, your functions will be available at:
 1. **Check emulator logs**: The Firebase emulator shows detailed logs for function execution
 2. **Enable debug mode**: Use `npm run serve:debug` for more verbose logging
 3. **Test the centralized architecture**: Functions call your App Hosting endpoints, so test both layers
-4. **Check environment variables**: Ensure `.env.local` is correctly configured
+4. **Check environment variables**: Ensure `.env` is correctly configured
 5. **Verify database connection**: Make sure your local app can connect to your database
 
 #### Common Issues

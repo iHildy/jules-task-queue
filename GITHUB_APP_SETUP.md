@@ -23,10 +23,7 @@ GitHub Apps provide a more secure and scalable way to integrate with GitHub repo
 
 **For Personal Account:**
 
-1. Go to [GitHub Settings](https://github.com/settings/profile)
-2. Click "Developer settings" in the left sidebar
-3. Click "GitHub Apps"
-4. Click "New GitHub App"
+1. Go to [GitHub New App](https://github.com/settings/apps/new)
 
 **For Organization:**
 
@@ -54,7 +51,7 @@ https://github.com/iHildy/jules-task-queue
 **User authorization callback URL:**
 
 ```
-https://your-domain.com/github-app/success
+https://YOUR-DOMAIN.com/github-app/success
 ```
 
 _This URL is where users will be redirected after successfully installing your GitHub App. The Jules Task Queue app includes a styled success page that provides next steps and usage instructions._
@@ -64,6 +61,12 @@ Replace `your-domain.com` with your actual deployment URL:
 - **Vercel**: `https://your-app-name.vercel.app/github-app/success`
 - **Firebase**: `https://your-backend-id--your-project-id.us-central1.hosted.app/github-app/success`
 - **Self-hosted**: `https://your-domain.com/github-app/success`
+
+**User Authorization Options:**
+
+- ✅ **Expire user authorization tokens** - Provides a `refresh_token` for updated access tokens when they expire
+- ⬜ **Request user authorization (OAuth) during installation** - Leave unchecked unless you need user-level permissions
+- ⬜ **Enable Device Flow** - Leave unchecked unless you need device-based authentication
 
 ### 1.3 Configure Post-installation Setup
 
@@ -77,13 +80,9 @@ https://your-domain.com/github-app/success
 
 - ✅ **Redirect on update** - Redirect users to the 'Setup URL' after installations are updated (e.g. repositories added/removed)
 
-**User Authorization Options:**
-
-- ✅ **Expire user authorization tokens** - Provides a `refresh_token` for updated access tokens when they expire
-- ⬜ **Request user authorization (OAuth) during installation** - Leave unchecked unless you need user-level permissions
-- ⬜ **Enable Device Flow** - Leave unchecked unless you need device-based authentication
-
 ### 1.4 Configure Webhook Settings
+
+✅ **Active** - We will deliver event details when this hook is triggered.
 
 **Webhook URL:**
 
@@ -97,10 +96,10 @@ Replace `your-domain.com` with your actual deployment URL:
 - **Firebase**: `https://your-backend-id--your-project-id.us-central1.hosted.app/api/webhooks/github-app`
 - **Self-hosted**: `https://your-domain.com/api/webhooks/github-app`
 
-**Webhook secret:** Generate a strong random string (save this for later)
+**Webhook secret:** Generate a strong random string **(save this for later)**
 
 ```bash
-# Generate a webhook secret
+# Generate a webhook secret **(save this for later)**
 openssl rand -hex 32
 ```
 
