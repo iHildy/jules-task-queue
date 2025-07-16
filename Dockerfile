@@ -4,9 +4,13 @@
 # Build stage
 FROM node:18-alpine AS builder
 
-# Pass flag so env validation is skipped during build
+# Pass build-time arguments
 ARG SKIP_ENV_VALIDATION=true
+ARG NEXT_PUBLIC_GITHUB_APP_ID
+ARG NEXT_PUBLIC_GITHUB_APP_NAME
 ENV SKIP_ENV_VALIDATION=${SKIP_ENV_VALIDATION}
+ENV NEXT_PUBLIC_GITHUB_APP_ID=${NEXT_PUBLIC_GITHUB_APP_ID}
+ENV NEXT_PUBLIC_GITHUB_APP_NAME=${NEXT_PUBLIC_GITHUB_APP_NAME}
 
 # Set working directory
 WORKDIR /app

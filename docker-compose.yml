@@ -3,7 +3,11 @@ version: "3.8"
 services:
   # Jules Task Queue Application
   app:
-    build: .
+    build:
+      context: .
+      args:
+        - NEXT_PUBLIC_GITHUB_APP_ID=${NEXT_PUBLIC_GITHUB_APP_ID}
+        - NEXT_PUBLIC_GITHUB_APP_NAME=${NEXT_PUBLIC_GITHUB_APP_NAME}
     container_name: jules-task-queue
     ports:
       - "3000:3000"
@@ -48,7 +52,11 @@ services:
   # Cron Job Service for Self-Hosting
   # This replaces Vercel's cron jobs when self-hosting
   cron:
-    build: .
+    build:
+      context: .
+      args:
+        - NEXT_PUBLIC_GITHUB_APP_ID=${NEXT_PUBLIC_GITHUB_APP_ID}
+        - NEXT_PUBLIC_GITHUB_APP_NAME=${NEXT_PUBLIC_GITHUB_APP_NAME}
     container_name: jules-cron
     command: >
       sh -c "
