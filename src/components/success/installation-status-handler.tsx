@@ -131,7 +131,19 @@ export function InstallationStatusHandler() {
     const status = getInstallationStatus(searchParams);
     setInstallationStatus(status);
 
-    if (status.success && status.installationId) {
+    // Check if this is a redirect from label setup completion
+    const setupType = searchParams.get("setup_type");
+
+    if (setupType) {
+      // User is coming from successful label setup, show success directly
+      setInstallationStatus({
+        success: true,
+        installationId: status.installationId,
+        setupAction: "label_setup_complete",
+      });
+      setIsLoading(false);
+    } else if (status.success && status.installationId) {
+      // This is initial installation, proceed with star check
       performStarCheck(status.installationId);
     } else {
       setIsLoading(false);

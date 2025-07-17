@@ -100,7 +100,7 @@ export function SuccessState({ installationStatus }: SuccessStateProps) {
 
   return (
     <div className="min-h-screen bg-jules-dark flex items-center justify-center px-4">
-      <div className="relative max-w-4xl mx-auto text-center">
+      <div className="relative max-w-2xl mx-auto text-center">
         <Badge
           variant="outline"
           className="mb-8 border-2 bg-green-600/10 border-green-500/80 text-green-400 text-sm"
