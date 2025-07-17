@@ -33,6 +33,11 @@ export const env = createEnv({
     COMMENT_CHECK_DELAY_MS: z.coerce.number().default(60000),
     RETRY_INTERVAL_MINUTES: z.coerce.number().default(30),
     TASK_CLEANUP_DAYS: z.coerce.number().default(7),
+
+    // Optional: Star requirement
+    STAR_REQUIREMENT: z.string().optional(),
+    REPO_OWNER: z.string().optional(),
+    REPO_NAME: z.string().optional(),
   },
 
   /**
@@ -70,6 +75,9 @@ export const env = createEnv({
     COMMENT_CHECK_DELAY_MS: process.env.COMMENT_CHECK_DELAY_MS,
     RETRY_INTERVAL_MINUTES: process.env.RETRY_INTERVAL_MINUTES,
     TASK_CLEANUP_DAYS: process.env.TASK_CLEANUP_DAYS,
+    STAR_REQUIREMENT: process.env.STAR_REQUIREMENT,
+    REPO_OWNER: process.env.REPO_OWNER,
+    REPO_NAME: process.env.REPO_NAME,
 
     // Client
     NEXT_PUBLIC_GITHUB_APP_NAME: process.env.NEXT_PUBLIC_GITHUB_APP_NAME,
@@ -95,3 +103,7 @@ export const hasCronSecret = () => !!env.CRON_SECRET;
 // GitHub App configured helper
 export const hasGitHubApp = () =>
   !!env.NEXT_PUBLIC_GITHUB_APP_ID && !!env.GITHUB_APP_PRIVATE_KEY;
+
+// Star requirement configured helper
+export const isStarRequirementEnabled = () =>
+  env.STAR_REQUIREMENT === "true" && !!env.REPO_OWNER && !!env.REPO_NAME;
