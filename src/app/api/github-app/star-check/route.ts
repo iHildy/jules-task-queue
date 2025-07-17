@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ starred: isStarred });
   } catch (error) {
-    if ((error as unknown)?.status === 404) {
+    if ((error as { status?: number })?.status === 404) {
       return NextResponse.json(
         { error: "Repository not found. Please check configuration." },
         { status: 404 },
