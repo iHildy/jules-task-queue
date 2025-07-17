@@ -4,7 +4,7 @@
   <p align="center">
     An overengineered, enterprise-grade, open-source task queue for Jules power users.
     <br />
-    <a href="https://jules-task-queue.vercel.app/">View Demo</a>
+    <a href="https://julesqueue.hildy.io/">Visit Site</a>
     ·
     <a href="https://github.com/iHildy/jules-task-queue/issues/new?assignees=&labels=bug&template=bug_report.md&title=">Report Bug</a>
     ·
@@ -62,8 +62,8 @@ Deploy your own instance with one click:
 For detailed instructions on self-hosting with **Docker**, **Vercel**, or **Firebase**, please see our documentation:
 
 - [**SELF_HOSTING.md**](./SELF_HOSTING.md)
-- [**FIREBASE.md**](./FIREBASE.md)
 - [**GITHUB_APP_SETUP.md**](./GITHUB_APP_SETUP.md)
+- [**FIREBASE.md**](./FIREBASE.md)
 
 ## 🛠️ How It Works
 
