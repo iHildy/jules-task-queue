@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DATABASE_URL")
 }
 
@@ -58,25 +58,26 @@ model WebhookLog {
 }
 
 model GitHubInstallation {
-  id              Int      @id
-  accountId       BigInt
-  accountLogin    String
-  accountType     String // "User" or "Organization"
-  targetType      String // "User" or "Organization"
-  permissions     String // JSON string of permissions
-  events          String // JSON string of subscribed events
-  singleFileName  String?
+  id                  Int       @id
+  accountId           BigInt
+  accountLogin        String
+  accountType         String // "User" or "Organization"
+  targetType          String // "User" or "Organization"
+  permissions         String // JSON string of permissions
+  events              String // JSON string of subscribed events
+  singleFileName      String?
   repositorySelection String // "all" or "selected"
-  suspendedAt     DateTime?
-  suspendedBy     String?
-  
+  suspendedAt         DateTime?
+  suspendedBy         String?
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  repositories InstallationRepository[]
-  tasks        JulesTask[]
+  repositories    InstallationRepository[]
+  tasks           JulesTask[]
+  LabelPreference LabelPreference?
 
   // Indexes for performance
   @@index([accountId])
@@ -86,18 +87,18 @@ model GitHubInstallation {
 }
 
 model InstallationRepository {
-  id           Int    @id @default(autoincrement())
+  id             Int     @id @default(autoincrement())
   installationId Int
-  repositoryId BigInt
-  name         String
-  fullName     String
-  owner        String
-  private      Boolean
-  htmlUrl      String
-  description  String?
-  
+  repositoryId   BigInt
+  name           String
+  fullName       String
+  owner          String
+  private        Boolean
+  htmlUrl        String
+  description    String?
+
   // Timestamps
-  addedAt   DateTime @default(now())
+  addedAt   DateTime  @default(now())
   removedAt DateTime?
 
   // Relations
@@ -105,11 +106,56 @@ model InstallationRepository {
 
   // Unique constraint
   @@unique([installationId, repositoryId])
-  
   // Indexes for performance
   @@index([installationId])
   @@index([repositoryId])
   @@index([owner, name])
   @@index([removedAt])
   @@map("installation_repositories")
+}
+
+model LabelPreference {
+  id             Int    @id @default(autoincrement())
+  installationId Int
+  setupType      String // "all", "selected", "manual"
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  installation GitHubInstallation          @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  repositories LabelPreferenceRepository[]
+
+  // Unique constraint - one preference per installation
+  @@unique([installationId])
+  // Indexes for performance
+  @@index([installationId])
+  @@index([setupType])
+  @@map("label_preferences")
+}
+
+model LabelPreferenceRepository {
+  id                Int    @id @default(autoincrement())
+  labelPreferenceId Int
+  repositoryId      BigInt
+
+  // Repository info for easier querying
+  name     String
+  fullName String
+  owner    String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Relations
+  labelPreference LabelPreference @relation(fields: [labelPreferenceId], references: [id], onDelete: Cascade)
+
+  // Unique constraint
+  @@unique([labelPreferenceId, repositoryId])
+  // Indexes for performance
+  @@index([labelPreferenceId])
+  @@index([repositoryId])
+  @@index([owner, name])
+  @@map("label_preference_repositories")
 }

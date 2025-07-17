@@ -74,8 +74,8 @@ graph TD
     A["User adds 'jules' label to GitHub issue"] --> B["GitHub webhook triggers"]
     B --> C["Create/Update JulesTask in database"]
     C --> D["Start 60-second timer"]
-    D --> E["Timer expires - Check for Jules bot comments"]
-    E --> F{"Jules bot commented?"}
+    D --> E["Timer expires - Check for Jules comments"]
+    E --> F{"Jules commented?"}
     F -->|No| G["End - Jules probably working or no response yet"]
     F -->|Yes| H{"Comment type?"}
     H -->|"You are currently at your concurrent task limit"| I["Task Limit Reached"]
@@ -101,7 +101,7 @@ graph TD
     Y --> Z["Set flaggedForRetry = false"]
     Z --> AA["Increment retryCount"]
     AA --> BB["Update lastRetryAt timestamp"]
-    BB --> CC["Jules bot will see label and try again"]
+    BB --> CC["Jules will see label and try again"]
     CC --> D
 
     W --> DD{"More tasks?"}

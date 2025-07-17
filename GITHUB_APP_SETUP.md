@@ -39,7 +39,7 @@ GitHub Apps provide a more secure and scalable way to integrate with GitHub repo
 **Description:**
 
 ```
-Automated task queue management for Jules bot interactions. Monitors issue labels and manages task processing workflows.
+Automated task queue management for Jules interactions. Monitors issue labels and manages task processing workflows.
 ```
 
 **Homepage URL:**
@@ -131,7 +131,7 @@ Subscribe to the following events:
 - **Issues** ✅
   - _Reason: Detect when 'jules' or 'jules-queue' labels are added/removed_
 - **Issue comments** ✅
-  - _Reason: Monitor Jules bot interactions and comment processing_
+  - _Reason: Monitor Jules interactions and comment processing_
 
 ### 1.7 Configure Installation
 
@@ -256,8 +256,8 @@ GITHUB_APP_CLIENT_SECRET="your-client-secret"
 ### 5.3 Test Automatic Label Creation
 
 1. After installing the app, check that the following labels are automatically created:
-   - **jules** - Purple label (`#642cc2`) for issues that Jules bot should process
-   - **jules-queue** - Cyan label (`#00d3f2`) for issues queued for Jules bot processing
+   - **jules** - Purple label (`#642cc2`) for issues that Jules should process
+   - **jules-queue** - Cyan label (`#00d3f2`) for issues queued for Jules processing
 2. For installations with many repositories (>10), labels are created in batches with rate limiting to prevent API issues
 3. If labels weren't created, check your app logs for permission errors
 
@@ -268,7 +268,7 @@ GITHUB_APP_CLIENT_SECRET="your-client-secret"
 3. Check that:
    - The webhook is received and processed
    - A task is created in your database
-   - The system processes Jules bot comments correctly
+   - The system processes Jules comments correctly
 
 ## Step 6: Monitor and Maintain
 

@@ -23,6 +23,10 @@ export function ErrorState({ installationStatus }: ErrorStateProps) {
 
   const isPermissionError = installationStatus.error === "access_denied";
   const isConfigError = installationStatus.error === "configuration_error";
+  const isMissingPermission = installationStatus.error === "missing_permission";
+  const isStarCheckFailed = installationStatus.error === "star_check_failed";
+  const isInstallationInvalid =
+    installationStatus.error === "installation_invalid";
 
   return (
     <div className="min-h-screen bg-jules-dark flex items-center justify-center px-4">
@@ -36,10 +40,6 @@ export function ErrorState({ installationStatus }: ErrorStateProps) {
         </Badge>
 
         <div className="mb-8">
-          <div className="w-24 h-24 mx-auto mb-6 bg-red-600/20 rounded-full flex items-center justify-center">
-            <AlertCircle className="w-12 h-12 text-red-400" />
-          </div>
-
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-white">
             <span className="text-white">Installation</span>
             <br />
@@ -76,6 +76,56 @@ export function ErrorState({ installationStatus }: ErrorStateProps) {
                 </li>
                 <li>Try the installation process again</li>
                 <li>Contact the repository owner if you need permissions</li>
+              </ul>
+            </div>
+          ) : isMissingPermission ? (
+            <div className="space-y-3 text-jules-gray">
+              <p>
+                The GitHub App is missing required permissions to automatically
+                star repositories.
+              </p>
+              <p>
+                <strong className="text-white">To fix this:</strong>
+              </p>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                <li>
+                  The app administrator needs to update the GitHub App
+                  permissions
+                </li>
+                <li>
+                  Add &quot;Starring&quot; user permission with &quot;Read and
+                  write&quot; access
+                </li>
+                <li>Reinstall the app after updating permissions</li>
+              </ul>
+            </div>
+          ) : isStarCheckFailed ? (
+            <div className="space-y-3 text-jules-gray">
+              <p>There was an issue verifying the repository star status.</p>
+              <p>
+                <strong className="text-white">Please try:</strong>
+              </p>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                <li>Refreshing the page and trying again</li>
+                <li>Manually starring the repository if required</li>
+                <li>Contacting support if the issue persists</li>
+              </ul>
+            </div>
+          ) : isInstallationInvalid ? (
+            <div className="space-y-3 text-jules-gray">
+              <p>
+                The GitHub App installation is no longer valid. This usually
+                happens when the app was uninstalled and reinstalled.
+              </p>
+              <p>
+                <strong className="text-white">To fix this issue:</strong>
+              </p>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                <li>Go back to the homepage</li>
+                <li>Click &quot;Connect to GitHub&quot; again</li>
+                <li>
+                  Complete the installation process with the new installation
+                </li>
               </ul>
             </div>
           ) : isConfigError ? (

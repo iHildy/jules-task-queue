@@ -1,5 +1,5 @@
 import { env } from "@/lib/env";
-import { createJulesLabelsForRepositories } from "@/lib/github-labels";
+import { createJulesLabelsForRepository } from "@/lib/github-labels";
 import { processJulesLabelEvent } from "@/lib/webhook-processor";
 import { db } from "@/server/db";
 import { GitHubLabelEventSchema } from "@/types";
@@ -30,9 +30,9 @@ interface GitHubRepository {
   id: number;
   name: string;
   full_name: string;
-  owner: GitHubAccount;
+  owner?: GitHubAccount; // Optional for installation webhooks
   private: boolean;
-  html_url: string;
+  html_url?: string; // Optional for installation webhooks
   description?: string;
 }
 
@@ -183,8 +183,11 @@ async function handleInstallationEvent(
     // Add all repositories if "all" selection
     if (installation.repository_selection === "all" && payload.repositories) {
       await Promise.all(
-        payload.repositories.map((repo: GitHubRepository) =>
-          db.installationRepository.upsert({
+        payload.repositories.map((repo: GitHubRepository) => {
+          // Extract owner from full_name since installation webhooks don't include owner object
+          const owner = repo.full_name.split("/")[0] || "unknown";
+
+          return db.installationRepository.upsert({
             where: {
               installationId_repositoryId: {
                 installationId: installation.id,
@@ -194,9 +197,9 @@ async function handleInstallationEvent(
             update: {
               name: repo.name,
               fullName: repo.full_name,
-              owner: repo.owner.login,
+              owner: owner,
               private: repo.private,
-              htmlUrl: repo.html_url,
+              htmlUrl: repo.html_url || `https://github.com/${repo.full_name}`,
               description: repo.description,
               removedAt: null, // Reset if previously removed
             },
@@ -205,19 +208,19 @@ async function handleInstallationEvent(
               repositoryId: BigInt(repo.id),
               name: repo.name,
               fullName: repo.full_name,
-              owner: repo.owner.login,
+              owner: owner,
               private: repo.private,
-              htmlUrl: repo.html_url,
+              htmlUrl: repo.html_url || `https://github.com/${repo.full_name}`,
               description: repo.description,
             },
-          }),
-        ),
+          });
+        }),
       );
 
-      // Create Jules labels in all repositories
-      await createJulesLabelsForRepositories(
-        payload.repositories,
-        installation.id,
+      // Note: Label creation is now handled through the user-driven setup process
+      // Users can choose during installation whether to create labels automatically
+      console.log(
+        `Installation ${installation.id} completed. Labels will be created based on user preference.`,
       );
     }
 
@@ -288,8 +291,12 @@ async function handleInstallationRepositoriesEvent(
 
   if (action === "added") {
     await Promise.all(
-      repositories.map((repo: GitHubRepository) =>
-        db.installationRepository.upsert({
+      repositories.map((repo: GitHubRepository) => {
+        // Extract owner from full_name since installation repository webhooks may not include owner object
+        const owner =
+          repo.owner?.login || repo.full_name.split("/")[0] || "unknown";
+
+        return db.installationRepository.upsert({
           where: {
             installationId_repositoryId: {
               installationId: installation.id,
@@ -299,9 +306,9 @@ async function handleInstallationRepositoriesEvent(
           update: {
             name: repo.name,
             fullName: repo.full_name,
-            owner: repo.owner.login,
+            owner: owner,
             private: repo.private,
-            htmlUrl: repo.html_url,
+            htmlUrl: repo.html_url || `https://github.com/${repo.full_name}`,
             description: repo.description,
             removedAt: null, // Reset if previously removed
           },
@@ -310,17 +317,61 @@ async function handleInstallationRepositoriesEvent(
             repositoryId: BigInt(repo.id),
             name: repo.name,
             fullName: repo.full_name,
-            owner: repo.owner.login,
+            owner: owner,
             private: repo.private,
-            htmlUrl: repo.html_url,
+            htmlUrl: repo.html_url || `https://github.com/${repo.full_name}`,
             description: repo.description,
           },
-        }),
-      ),
+        });
+      }),
     );
 
-    // Create Jules labels in newly added repositories
-    await createJulesLabelsForRepositories(repositories, installation.id);
+    // Note: Label creation for new repositories should be handled based on user preferences
+    // Check if user has "all" preference and create labels accordingly
+    console.log(
+      `${repositories.length} repositories added to installation ${installation.id}`,
+    );
+
+    // Check user's label preference for this installation
+    const labelPreference = await db.labelPreference.findUnique({
+      where: { installationId: installation.id },
+    });
+
+    if (labelPreference?.setupType === "all") {
+      // User chose to create labels in all repositories, so create them for new repos
+      console.log(
+        `Creating Jules labels in ${repositories.length} newly added repositories`,
+      );
+
+      await Promise.allSettled(
+        repositories.map(async (repo) => {
+          const owner =
+            repo.owner?.login || repo.full_name.split("/")[0] || "unknown";
+
+          // Save repository to label preferences
+          await db.labelPreferenceRepository.create({
+            data: {
+              labelPreferenceId: labelPreference.id,
+              repositoryId: BigInt(repo.id),
+              name: repo.name,
+              fullName: repo.full_name,
+              owner: owner,
+            },
+          });
+
+          // Create labels in the repository
+          return createJulesLabelsForRepository(
+            owner,
+            repo.name,
+            installation.id,
+          );
+        }),
+      );
+    } else {
+      console.log(
+        `Label preference is "${labelPreference?.setupType || "not set"}" - skipping automatic label creation for new repositories`,
+      );
+    }
 
     console.log(
       `Added ${repositories.length} repositories to installation ${installation.id}`,
@@ -470,7 +521,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Log comment for monitoring Jules bot interactions
+      // Log comment for monitoring Jules interactions
       console.log(
         `New comment on Jules-labeled issue ${commentEvent.repository.full_name}#${commentEvent.issue.number} by ${commentEvent.comment.user.login}`,
       );

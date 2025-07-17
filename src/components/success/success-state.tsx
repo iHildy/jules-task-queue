@@ -1,8 +1,17 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SiGithub } from "@icons-pack/react-simple-icons";
-import { CheckCircle, ExternalLink, Home, Info, Star, Zap } from "lucide-react";
+import {
+  CheckCircle,
+  ExternalLink,
+  Home,
+  Info,
+  Settings2,
+  Tag,
+  Zap,
+} from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 interface SuccessStateProps {
   installationStatus: {
@@ -13,12 +22,80 @@ interface SuccessStateProps {
 }
 
 export function SuccessState({ installationStatus }: SuccessStateProps) {
+  const searchParams = useSearchParams();
+
+  // Get label setup results from URL params
+  const setupType = searchParams.get("setup_type");
+  const repositoriesProcessed = searchParams.get("repositories_processed");
+  const labelsSuccessful = searchParams.get("labels_successful");
+  const labelsFailed = searchParams.get("labels_failed");
+
   const handleViewInstallations = () => {
     window.open("https://github.com/settings/installations", "_blank");
   };
 
   const handleContactSupport = () => {
     window.open("https://github.com/iHildy/jules-task-queue/issues", "_blank");
+  };
+
+  // Render label setup results if available
+  const renderLabelSetupResults = () => {
+    if (!setupType) return null;
+
+    if (setupType === "manual") {
+      return (
+        <div className="bg-blue-600/10 border border-blue-500/20 rounded-lg p-6 mb-8">
+          <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
+            <Tag className="w-5 h-5 mr-2 text-blue-400" />
+            Manual Label Setup Selected
+          </h3>
+          <p className="text-gray-300">
+            You chose to set up Jules labels manually. Remember to create the{" "}
+            <code className="bg-jules-primary/20 px-2 py-1 rounded text-jules-secondary">
+              &quot;jules&quot;
+            </code>{" "}
+            and{" "}
+            <code className="bg-jules-primary/20 px-2 py-1 rounded text-jules-secondary">
+              &quot;jules-queue&quot;
+            </code>{" "}
+            labels in repositories where you want to use Jules Task Queue.
+          </p>
+        </div>
+      );
+    }
+
+    const totalProcessed = repositoriesProcessed
+      ? parseInt(repositoriesProcessed)
+      : 0;
+    const successful = labelsSuccessful ? parseInt(labelsSuccessful) : 0;
+    const failed = labelsFailed ? parseInt(labelsFailed) : 0;
+
+    return (
+      <div className="bg-green-600/10 border border-green-500/20 rounded-lg p-6 mb-8">
+        <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
+          <CheckCircle className="w-5 h-5 mr-2 text-green-400" />
+          Labels Setup Complete
+        </h3>
+        <div className="text-gray-300">
+          <p className="mb-2">
+            Jules labels are now ready in{" "}
+            <span className="text-white font-semibold">
+              {setupType === "all" ? "all" : "selected"}
+            </span>{" "}
+            repositories.
+          </p>
+          {totalProcessed > 0 && (
+            <div className="text-sm text-gray-400">
+              • {totalProcessed} repositories processed
+              {successful > 0 && <span> • {successful} labels configured</span>}
+              {failed > 0 && (
+                <span className="text-yellow-400"> • {failed} had issues</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -33,10 +110,6 @@ export function SuccessState({ installationStatus }: SuccessStateProps) {
         </Badge>
 
         <div className="mb-8">
-          <div className="w-24 h-24 mx-auto mb-6 bg-green-600/20 rounded-full flex items-center justify-center">
-            <CheckCircle className="w-12 h-12 text-green-400" />
-          </div>
-
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-white">
             <span className="text-white">Welcome to</span>
             <br />
@@ -48,6 +121,8 @@ export function SuccessState({ installationStatus }: SuccessStateProps) {
             will now automatically manage your task queue.
           </p>
         </div>
+
+        {renderLabelSetupResults()}
 
         <div className="bg-jules-primary/10 border border-jules-primary/20 rounded-lg p-6 mb-8 text-left max-w-2xl mx-auto">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
@@ -75,8 +150,8 @@ export function SuccessState({ installationStatus }: SuccessStateProps) {
               <CheckCircle className="w-5 h-5 mr-3 text-green-400 mt-0.5 flex-shrink-0" />
               <span>
                 <strong className="text-white">Intelligent processing:</strong>{" "}
-                We analyze Jules bot responses and automatically retry tasks
-                when slots become available.
+                We analyze Jules responses and automatically retry tasks when
+                slots become available.
               </span>
             </li>
             <li className="flex items-start">
@@ -141,8 +216,8 @@ export function SuccessState({ installationStatus }: SuccessStateProps) {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Star className="w-4 h-4 mr-2" />
-              Star on GitHub
+              <SiGithub className="w-4 h-4 mr-2" />
+              View Repository
             </Link>
           </Button>
 
@@ -152,7 +227,7 @@ export function SuccessState({ installationStatus }: SuccessStateProps) {
             variant="outline"
             className="border-jules-primary text-jules-primary cursor-pointer"
           >
-            <SiGithub className="w-4 h-4 mr-2" />
+            <Settings2 className="w-4 h-4 mr-2" />
             Manage Installation
             <ExternalLink className="w-4 h-4 ml-2" />
           </Button>

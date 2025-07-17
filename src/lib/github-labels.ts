@@ -4,9 +4,9 @@ interface Repository {
   id: number;
   name: string;
   full_name: string;
-  owner: { login: string };
+  owner?: { login: string }; // Optional for installation webhooks
   private: boolean;
-  html_url: string;
+  html_url?: string;
   description?: string;
 }
 
@@ -23,12 +23,12 @@ const JULES_LABELS: LabelDefinition[] = [
   {
     name: "jules",
     color: "642cc2", // Jules-primary color from globals.css
-    description: "Issues that Jules bot should process",
+    description: "Issues that Jules should process",
   },
   {
     name: "jules-queue",
     color: "00d3f2", // Jules-cyan color from globals.css
-    description: "Issues queued for Jules bot processing",
+    description: "Issues queued for Jules processing",
   },
 ];
 
@@ -122,13 +122,12 @@ async function processRepositoriesInChunks(
 
     // Process chunk in parallel
     await Promise.all(
-      chunk.map((repo) =>
-        createJulesLabelsInRepository(
-          repo.owner.login,
-          repo.name,
-          installationId,
-        ),
-      ),
+      chunk.map((repo) => {
+        // Extract owner from full_name if owner object is not available (installation webhooks)
+        const owner =
+          repo.owner?.login || repo.full_name.split("/")[0] || "unknown";
+        return createJulesLabelsInRepository(owner, repo.name, installationId);
+      }),
     );
 
     // Add delay between chunks to respect rate limits (except for the last chunk)
@@ -159,11 +158,10 @@ export async function createJulesLabelsForRepositories(
     // Single repository - no need for chunking
     const repo = repositories[0];
     if (repo) {
-      await createJulesLabelsInRepository(
-        repo.owner.login,
-        repo.name,
-        installationId,
-      );
+      // Extract owner from full_name if owner object is not available (installation webhooks)
+      const owner =
+        repo.owner?.login || repo.full_name.split("/")[0] || "unknown";
+      await createJulesLabelsInRepository(owner, repo.name, installationId);
     }
     return;
   }

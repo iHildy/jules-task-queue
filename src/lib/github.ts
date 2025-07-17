@@ -310,6 +310,70 @@ class GitHubClient {
       throw error;
     }
   }
+
+  /**
+   * Check if a user has starred a specific repository (passive check)
+   * Uses the installation token to check the user's starred repositories
+   */
+  public async checkIfUserStarredRepository(
+    octokit: Octokit,
+    username: string,
+    targetOwner: string,
+    targetRepo: string,
+  ): Promise<boolean> {
+    try {
+      // Use the GitHub API to get the user's starred repositories
+      // We'll paginate through them to find the target repository
+      let page = 1;
+      const perPage = 100; // Maximum per page
+
+      while (true) {
+        const response = await octokit.request(
+          "GET /users/{username}/starred",
+          {
+            username,
+            per_page: perPage,
+            page,
+            headers: {
+              "X-GitHub-Api-Version": "2022-11-28",
+            },
+          },
+        );
+
+        // Check if the target repository is in this page
+        const foundRepo = response.data.find(
+          (item: {
+            repo?: { owner?: { login?: string }; name?: string };
+            owner?: { login?: string };
+            name?: string;
+          }) => {
+            // Handle both formats: direct repo object or starred_at + repo object
+            const repo = item.repo || item;
+            return (
+              repo.owner?.login?.toLowerCase() === targetOwner.toLowerCase() &&
+              repo.name?.toLowerCase() === targetRepo.toLowerCase()
+            );
+          },
+        );
+
+        if (foundRepo) {
+          return true;
+        }
+
+        // If we got less than the full page, we've reached the end
+        if (response.data.length < perPage) {
+          break;
+        }
+
+        page++;
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Failed to check user starred repositories:", error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
