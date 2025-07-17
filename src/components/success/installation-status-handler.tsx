@@ -2,7 +2,7 @@
 
 import { getInstallationStatus } from "@/lib/github-app-utils";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ErrorState } from "./error-state";
 import { LoadingState } from "./loading-state";
 import { SuccessState } from "./success-state";
@@ -19,37 +19,47 @@ export function InstallationStatusHandler() {
     errorDescription?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [starCheck, setStarCheck] = useState(false);
+
+  const performStarCheck = useCallback(
+    async (installationId: string) => {
+      try {
+        const isEnabledResponse = await fetch(
+          "/api/github-app/star-check/is-enabled",
+        );
+        const { isEnabled } = await isEnabledResponse.json();
+
+        if (!isEnabled) {
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await fetch(
+          `/api/github-app/star-check?installation_id=${installationId}`,
+        );
+        const data = await response.json();
+
+        if (!data.starred) {
+          router.push("/github-app/limbo");
+        }
+      } catch (error) {
+        console.error("Failed to check star status:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [router],
+  );
 
   useEffect(() => {
     const status = getInstallationStatus(searchParams);
     setInstallationStatus(status);
 
-    if (status.success && status.installationId && !starCheck) {
-      const checkStar = async () => {
-        try {
-          const response = await fetch(
-            `/api/github-app/star-check?installation_id=${status.installationId}`,
-          );
-          const data = await response.json();
-
-          if (!data.starred) {
-            router.push("/github-app/limbo");
-          }
-        } catch (error) {
-          console.error("Failed to check star status:", error);
-          // Optional: handle error state
-        } finally {
-          setIsLoading(false);
-          setStarCheck(true);
-        }
-      };
-
-      checkStar();
+    if (status.success && status.installationId) {
+      performStarCheck(status.installationId);
     } else {
       setIsLoading(false);
     }
-  }, [searchParams, router, starCheck]);
+  }, [searchParams, performStarCheck]);
 
   if (isLoading) {
     return <LoadingState />;
