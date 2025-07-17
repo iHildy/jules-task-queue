@@ -1,6 +1,6 @@
+import { env, hasGitHubApp } from "@/lib/env";
 import { App } from "@octokit/app";
 import { Octokit } from "@octokit/rest";
-import { env, hasGitHubApp } from "@/lib/env";
 
 /**
  * GitHub App client for installation-based authentication
@@ -343,6 +343,31 @@ class GitHubAppClient {
       return data;
     } catch (error) {
       console.error("Failed to get app info:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get installation information including account details
+   */
+  public async getInstallationInfo(installationId: number) {
+    if (!this.app) {
+      throw new Error("GitHub App not configured");
+    }
+
+    try {
+      const { data } = await this.app.octokit.request(
+        "GET /app/installations/{installation_id}",
+        {
+          installation_id: installationId,
+        },
+      );
+      return data;
+    } catch (error) {
+      console.error(
+        `Failed to get installation info for ${installationId}:`,
+        error,
+      );
       throw error;
     }
   }

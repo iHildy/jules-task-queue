@@ -9,7 +9,7 @@ import type {
 } from "@/types";
 
 /**
- * Jules bot username patterns to look for
+ * Jules username patterns to look for
  */
 const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
 
@@ -86,7 +86,7 @@ export function isWorkingComment(commentBody: string): boolean {
 }
 
 /**
- * Check if a username is a Jules bot
+ * Check if a username is a Jules
  */
 export function isJulesBot(username: string): boolean {
   const lowerUsername = username.toLowerCase();
@@ -164,7 +164,7 @@ export async function upsertJulesTask(params: TaskCreationParams) {
 }
 
 /**
- * Check Jules bot comments on an issue and determine next action
+ * Check Jules comments on an issue and determine next action
  */
 export async function checkJulesComments(
   owner: string,
@@ -195,7 +195,7 @@ export async function checkJulesComments(
         issueNumber,
       );
 
-      // Filter for Jules bot comments (most recent first)
+      // Filter for Jules comments (most recent first)
       const julesComments = comments
         .filter((comment) => comment.user && isJulesBot(comment.user.login))
         .sort(
@@ -205,7 +205,7 @@ export async function checkJulesComments(
 
       if (julesComments.length === 0) {
         console.log(
-          `No Jules bot comments found for ${owner}/${repo}#${issueNumber}`,
+          `No Jules comments found for ${owner}/${repo}#${issueNumber}`,
         );
         return { action: "no_action", retryCount: attempt };
       }
@@ -527,7 +527,7 @@ export async function processWorkflowDecision(
             result.comment.id,
             "confused",
           );
-          const errorMsg = `⚠️ **Jules Task Queue**: Detected an unknown Jules bot response pattern. This may require manual review.`;
+          const errorMsg = `⚠️ **Jules Task Queue**: Detected an unknown Jules response pattern. This may require manual review.`;
           await githubClient.createQuoteReply(
             owner,
             repo,

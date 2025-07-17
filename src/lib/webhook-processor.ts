@@ -1,10 +1,10 @@
+import { installationService } from "@/lib/installation-service";
 import {
   checkJulesComments,
   parseRepoFromIssue,
   processWorkflowDecision,
   upsertJulesTask,
 } from "@/lib/jules";
-import { installationService } from "@/lib/installation-service";
 import { db } from "@/server/db";
 import type { GitHubLabelEvent, ProcessingResult } from "@/types";
 
@@ -65,7 +65,7 @@ async function executeCommentCheck(
       return;
     }
 
-    // Jules bot comment analysis with retry logic
+    // Jules comment analysis with retry logic
     const commentResult = await checkJulesComments(
       owner,
       repo,

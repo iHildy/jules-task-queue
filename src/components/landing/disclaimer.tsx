@@ -6,7 +6,7 @@ export function Disclaimer() {
     <section className="py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Alert className="border bg-jules-darker border-jules-accent">
-          <AlertCircle className="h-4 w-4 text-jules-accent" />
+          <AlertCircle className="h-4 w-4 fill-jules-accent" />
           <AlertDescription className="text-gray-300">
             <strong className="text-white">Disclaimer:</strong> Jules Task Queue
             is an independent productivity tool created by the developer
