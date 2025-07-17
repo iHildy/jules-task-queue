@@ -10,6 +10,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ starred: true });
   }
 
+  const owner = env.REPO_OWNER;
+  const repo = env.REPO_NAME;
+
+  if (!owner || !repo) {
+    console.error("REPO_OWNER or REPO_NAME environment variables not set.");
+    // Silently fail, but indicate that the star requirement is met.
+    // This prevents blocking users if the repo isn't configured.
+    return NextResponse.json({ starred: true });
+  }
+
   if (!installationId) {
     return NextResponse.json(
       { error: "Installation ID is required" },
@@ -21,15 +31,6 @@ export async function GET(req: NextRequest) {
     const octokit = await githubClient.getUserOwnedGitHubAppClient(
       parseInt(installationId),
     );
-    const owner = env.REPO_OWNER;
-    const repo = env.REPO_NAME;
-
-    if (!owner || !repo) {
-      return NextResponse.json(
-        { error: "Repo owner and name are not configured" },
-        { status: 500 },
-      );
-    }
 
     await githubClient.starRepository(octokit, owner, repo);
     const isStarred = await githubClient.checkIfRepositoryIsStarred(
@@ -40,6 +41,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ starred: isStarred });
   } catch (error) {
+    if ((error as any)?.status === 404) {
+      return NextResponse.json(
+        { error: "Repository not found. Please check configuration." },
+        { status: 404 },
+      );
+    }
     console.error("Failed to check star status:", error);
     return NextResponse.json(
       { error: "Failed to check star status" },
