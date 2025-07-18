@@ -1,8 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Clock, GitBranch, Loader2 } from "lucide-react";
-import React from "react";
-
 const tasks = [
   {
     id: 347,
