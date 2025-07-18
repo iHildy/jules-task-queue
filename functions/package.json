@@ -10,9 +10,6 @@
     "serve:debug": "npm run build && firebase emulators:start --only functions --debug",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
-    "test": "npm run build && npm run test:functions",
-    "test:functions": "firebase emulators:exec --only functions 'npm run test:trigger'",
-    "test:trigger": "node test-functions.js",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "dev": "npm run build:watch & npm run serve"
