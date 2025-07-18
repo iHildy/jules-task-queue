@@ -613,9 +613,21 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
     );
     return true;
   } catch (error) {
-    console.error(`Failed to process retry for task ${taskId}:`, error);
+    // Catch all errors, log them, and return false
+    console.error(
+      `Unhandled error processing task ${taskId}. Error: ${error}`,
+    );
     return false;
   }
+}
+
+/**
+ * Get a task by its ID
+ */
+export async function getTaskById(taskId: number) {
+  return await db.julesTask.findUnique({
+    where: { id: taskId },
+  });
 }
 
 /**
@@ -647,6 +659,10 @@ export async function retryAllFlaggedTasks(): Promise<{
 
   for (const task of flaggedTasks) {
     try {
+      // Detailed log for each task being processed
+      console.log(
+        `Processing flagged task ID: ${task.id} for issue #${task.githubIssueNumber}`,
+      );
       const success = await processTaskRetry(task.id);
       if (success) {
         stats.successful++;
@@ -659,7 +675,10 @@ export async function retryAllFlaggedTasks(): Promise<{
     }
   }
 
-  console.log(`Retry batch complete:`, stats);
+  // Summary log at the end of the cron job
+  console.log(
+    `Jules cron job summary: ${stats.attempted} tasks attempted, ${stats.successful} succeeded, ${stats.failed} failed, ${stats.skipped} skipped.`,
+  );
   return stats;
 }
 
