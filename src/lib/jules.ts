@@ -555,16 +555,18 @@ export async function processWorkflowDecision(
 }
 
 /**
- * Process retry for a flagged task (enhanced with stored repo info)
+ * Triggers a retry for a specific task.
+ * This function is intended for manual retries and does not require the task to be flagged.
+ * It directly attempts to swap labels and update task metrics.
  */
-export async function processTaskRetry(taskId: number): Promise<boolean> {
+export async function triggerTaskRetry(taskId: number): Promise<boolean> {
   try {
     const task = await db.julesTask.findUnique({
       where: { id: taskId },
     });
 
-    if (!task || !task.flaggedForRetry) {
-      console.log(`Task ${taskId} not found or not flagged for retry`);
+    if (!task) {
+      console.log(`Task ${taskId} not found`);
       return false;
     }
 
@@ -572,7 +574,7 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
     const issueNumber = Number(githubIssueNumber);
 
     console.log(
-      `Processing retry for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
+      `Triggering manual retry for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
     );
 
     // Check if issue still has 'Human' label - if so, skip
@@ -609,13 +611,29 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
     });
 
     console.log(
-      `Successfully retried task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
+      `Successfully triggered retry for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
     );
     return true;
   } catch (error) {
-    console.error(`Failed to process retry for task ${taskId}:`, error);
+    console.error(`Failed to trigger retry for task ${taskId}:`, error);
     return false;
   }
+}
+
+/**
+ * Process retry for a flagged task (enhanced with stored repo info)
+ */
+export async function processTaskRetry(taskId: number): Promise<boolean> {
+  const task = await db.julesTask.findUnique({
+    where: { id: taskId },
+  });
+
+  if (!task || !task.flaggedForRetry) {
+    console.log(`Task ${taskId} not found or not flagged for retry`);
+    return false;
+  }
+
+  return await triggerTaskRetry(taskId);
 }
 
 /**

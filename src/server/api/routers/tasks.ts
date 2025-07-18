@@ -1,3 +1,4 @@
+import { triggerTaskRetry, upsertJulesTask } from "@/lib/jules";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import { z } from "zod";
 
@@ -37,6 +38,21 @@ export const tasksRouter = createTRPCRouter({
         tasks,
         nextCursor,
       };
+    }),
+
+  // Get a single task by ID
+  getById: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const task = await ctx.db.julesTask.findUnique({
+        where: { id: input.id },
+      });
+
+      if (!task) {
+        throw new Error("Task not found");
+      }
+
+      return task;
     }),
 
   // Get task statistics
@@ -82,26 +98,16 @@ export const tasksRouter = createTRPCRouter({
   // Manual retry of a specific task
   retry: publicProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ ctx, input }) => {
-      const task = await ctx.db.julesTask.findUnique({
-        where: { id: input.id },
-      });
+    .mutation(async ({ input }) => {
+      const success = await triggerTaskRetry(input.id);
 
-      if (!task) {
-        throw new Error("Task not found");
+      if (!success) {
+        throw new Error(
+          `Task ${input.id} could not be retried. It might not exist or an error occurred.`,
+        );
       }
 
-      // Update task to be retried
-      const updatedTask = await ctx.db.julesTask.update({
-        where: { id: input.id },
-        data: {
-          flaggedForRetry: true,
-          retryCount: task.retryCount + 1,
-          lastRetryAt: new Date(),
-        },
-      });
-
-      return updatedTask;
+      return { success: true, taskId: input.id };
     }),
 
   // Update task status
@@ -121,5 +127,33 @@ export const tasksRouter = createTRPCRouter({
       });
 
       return updatedTask;
+    }),
+
+  // Delete a task by ID
+  delete: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.julesTask.delete({
+        where: { id: input.id },
+      });
+
+      return { success: true, taskId: input.id };
+    }),
+
+  // Create or update a task
+  upsert: publicProcedure
+    .input(
+      z.object({
+        githubRepoId: z.bigint(),
+        githubIssueId: z.bigint(),
+        githubIssueNumber: z.bigint(),
+        repoOwner: z.string(),
+        repoName: z.string(),
+        installationId: z.bigint(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const task = await upsertJulesTask(input);
+      return task;
     }),
 });
