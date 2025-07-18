@@ -119,7 +119,7 @@ export function parseRepoFromIssue(
  * Create or update a Jules task in the database
  */
 export async function upsertJulesTask(params: TaskCreationParams) {
-  const {
+  let {
     githubRepoId,
     githubIssueId,
     githubIssueNumber,
@@ -127,6 +127,15 @@ export async function upsertJulesTask(params: TaskCreationParams) {
     repoName,
     installationId,
   } = params;
+
+  if (!installationId) {
+    const repo = await db.repository.findUnique({
+      where: { githubRepoId },
+    });
+    if (repo?.installationId) {
+      installationId = repo.installationId;
+    }
+  }
 
   // Try to find existing task
   const existingTask = await db.julesTask.findUnique({
@@ -566,6 +575,23 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
     if (!task || !task.flaggedForRetry) {
       console.log(`Task ${taskId} not found or not flagged for retry`);
       return false;
+    }
+
+    // Ensure we have an installationId to proceed
+    if (!task.installationId) {
+      const repo = await db.repository.findUnique({
+        where: { githubRepoId: task.githubRepoId },
+      });
+      if (repo?.installationId) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        task.installationId = repo.installationId;
+      } else {
+        console.error(
+          `Could not find installationId for task ${taskId}, skipping retry`,
+        );
+        return false;
+      }
     }
 
     const { repoOwner, repoName, githubIssueNumber } = task;
