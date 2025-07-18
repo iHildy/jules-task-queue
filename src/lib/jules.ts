@@ -355,15 +355,6 @@ export async function handleTaskLimit(
       return;
     }
 
-    // Update task in database to be flagged for retry
-    await db.julesTask.update({
-      where: { id: taskId },
-      data: {
-        flaggedForRetry: true,
-        updatedAt: new Date(),
-      },
-    });
-
     // Swap labels: remove 'jules', add 'jules-queue'
     await githubClient.swapLabels(
       owner,
@@ -372,6 +363,15 @@ export async function handleTaskLimit(
       "jules",
       "jules-queue",
     );
+
+    // Update task in database to be flagged for retry
+    await db.julesTask.update({
+      where: { id: taskId },
+      data: {
+        flaggedForRetry: true,
+        updatedAt: new Date(),
+      },
+    });
 
     // Add refresh emoji reaction to Jules' comment if analysis available
     if (analysis?.comment) {
@@ -399,19 +399,21 @@ export async function handleTaskLimit(
       error,
     );
 
-    // Attempt to revert database changes if label swap failed
+    // Attempt to revert the label swap if the database update fails
     try {
-      await db.julesTask.update({
-        where: { id: taskId },
-        data: {
-          flaggedForRetry: false,
-          updatedAt: new Date(),
-        },
-      });
-      console.log(`Reverted database changes for task ${taskId} after failure`);
+      await githubClient.swapLabels(
+        owner,
+        repo,
+        issueNumber,
+        "jules-queue",
+        "jules",
+      );
+      console.log(
+        `Reverted label swap for ${owner}/${repo}#${issueNumber} after database failure`,
+      );
     } catch (revertError) {
       console.error(
-        `Failed to revert database changes for task ${taskId}:`,
+        `Failed to revert label swap for task ${taskId}:`,
         revertError,
       );
     }
