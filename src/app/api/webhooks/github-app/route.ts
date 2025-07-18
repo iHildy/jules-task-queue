@@ -531,6 +531,11 @@ export async function POST(req: NextRequest) {
 
       await logWebhookEvent(eventType, payload, true);
 
+      const installationId =
+        env.NODE_ENV !== "production" && env.TEST_FIXED_INSTALLATION_ID
+          ? parseInt(env.TEST_FIXED_INSTALLATION_ID, 10)
+          : commentEvent.installation?.id;
+
       return NextResponse.json({
         message: "Issue comment logged successfully",
         eventType,
@@ -538,7 +543,7 @@ export async function POST(req: NextRequest) {
         repository: commentEvent.repository.full_name,
         issue: commentEvent.issue.number,
         commenter: commentEvent.comment.user.login,
-        installation: commentEvent.installation?.id,
+        installation: installationId,
         processingTime: Date.now() - startTime,
       });
     }
@@ -593,14 +598,16 @@ export async function POST(req: NextRequest) {
       }
 
       // Process the Jules label event with installation context
+      const installationId =
+        env.NODE_ENV !== "production" && env.TEST_FIXED_INSTALLATION_ID
+          ? parseInt(env.TEST_FIXED_INSTALLATION_ID, 10)
+          : webhookEvent.installation?.id;
+
       console.log(
-        `Processing ${labelEvent.action} event for label '${labelName}' on ${labelEvent.repository.full_name}#${labelEvent.issue.number} (installation: ${webhookEvent.installation?.id})`,
+        `Processing ${labelEvent.action} event for label '${labelName}' on ${labelEvent.repository.full_name}#${labelEvent.issue.number} (installation: ${installationId})`,
       );
 
-      const result = await processJulesLabelEvent(
-        labelEvent,
-        webhookEvent.installation?.id,
-      );
+      const result = await processJulesLabelEvent(labelEvent, installationId);
 
       await logWebhookEvent(eventType, payload, true);
 
@@ -611,7 +618,7 @@ export async function POST(req: NextRequest) {
         label: labelName,
         repository: labelEvent.repository.full_name,
         issue: labelEvent.issue.number,
-        installation: webhookEvent.installation?.id,
+        installation: installationId,
         result,
         processingTime: Date.now() - startTime,
       });

@@ -38,6 +38,9 @@ export const env = createEnv({
     STAR_REQUIREMENT: z.string().optional(),
     REPO_OWNER: z.string().optional(),
     REPO_NAME: z.string().optional(),
+
+    // --- Testing only ---
+    TEST_FIXED_INSTALLATION_ID: z.string().optional(),
   },
 
   /**
@@ -78,6 +81,7 @@ export const env = createEnv({
     STAR_REQUIREMENT: process.env.STAR_REQUIREMENT,
     REPO_OWNER: process.env.REPO_OWNER,
     REPO_NAME: process.env.REPO_NAME,
+    TEST_FIXED_INSTALLATION_ID: process.env.TEST_FIXED_INSTALLATION_ID,
 
     // Client
     NEXT_PUBLIC_GITHUB_APP_NAME: process.env.NEXT_PUBLIC_GITHUB_APP_NAME,
