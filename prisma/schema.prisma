@@ -159,3 +159,16 @@ model LabelPreferenceRepository {
   @@index([owner, name])
   @@map("label_preference_repositories")
 }
+
+model CommentCheckJob {
+  id          Int      @id @default(autoincrement())
+  taskId      Int
+  task        JulesTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  owner       String
+  repo        String
+  issueNumber Int
+  scheduledAt DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([scheduledAt])
+}

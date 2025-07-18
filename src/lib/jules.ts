@@ -1,3 +1,4 @@
+import { scheduleCommentCheck } from "@/lib/comment-check/scheduler";
 import { githubClient } from "@/lib/github";
 import { db } from "@/server/db";
 import type {
@@ -148,7 +149,7 @@ export async function upsertJulesTask(params: TaskCreationParams) {
     });
   } else {
     // Create new task
-    return await db.julesTask.create({
+    const task = await db.julesTask.create({
       data: {
         githubRepoId,
         githubIssueId,
@@ -160,6 +161,10 @@ export async function upsertJulesTask(params: TaskCreationParams) {
         retryCount: 0,
       },
     });
+
+    // Schedule the first comment check
+    await scheduleCommentCheck(task, new Date());
+    return task;
   }
 }
 
