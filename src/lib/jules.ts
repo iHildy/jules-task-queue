@@ -598,6 +598,27 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       "jules",
     );
 
+    // Wait for a short period to allow Jules to respond
+    await new Promise((resolve) => setTimeout(resolve, 60000)); // 60 seconds
+
+    // Check for immediate "task limit" response
+    const result = await checkJulesComments(repoOwner, repoName, issueNumber);
+    await processWorkflowDecision(
+      repoOwner,
+      repoName,
+      issueNumber,
+      taskId,
+      result,
+    );
+
+    // If the task was re-queued, it's not a "successful" retry in the traditional sense
+    if (result.action === "task_limit") {
+      console.log(
+        `Jules hit task limit immediately after retry for task ${taskId}, re-queueing`,
+      );
+      return false;
+    }
+
     // Update retry metrics
     await db.julesTask.update({
       where: { id: taskId },
@@ -645,19 +666,22 @@ export async function retryAllFlaggedTasks(): Promise<{
     skipped: 0,
   };
 
-  for (const task of flaggedTasks) {
-    try {
-      const success = await processTaskRetry(task.id);
-      if (success) {
+  const promises = flaggedTasks.map((task) => processTaskRetry(task.id));
+  const results = await Promise.allSettled(promises);
+
+  results.forEach((result, index) => {
+    const task = flaggedTasks[index];
+    if (result.status === "fulfilled") {
+      if (result.value) {
         stats.successful++;
       } else {
         stats.skipped++;
       }
-    } catch (error) {
-      console.error(`Failed to retry task ${task.id}:`, error);
+    } else {
+      console.error(`Failed to retry task ${task.id}:`, result.reason);
       stats.failed++;
     }
-  }
+  });
 
   console.log(`Retry batch complete:`, stats);
   return stats;
