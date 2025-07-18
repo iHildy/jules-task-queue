@@ -14,45 +14,56 @@ import type {
 const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
 
 /**
- * Comment patterns that indicate Jules has hit task limits
+ * Comment patterns that indicate Jules has hit task limits.
+ * Uses more flexible keywords instead of exact phrases.
  */
-const TASK_LIMIT_PATTERNS = ["You are currently at your concurrent task limit"];
+const TASK_LIMIT_PATTERNS = [
+  /concurrent task limit/i,
+  /at your limit/i,
+  /too many tasks/i,
+];
 
 /**
- * Comment patterns that indicate Jules has started working
+ * Comment patterns that indicate Jules has started working.
+ * Uses more flexible keywords.
  */
-const WORKING_PATTERNS = ["When finished, you will see another comment"];
+const WORKING_PATTERNS = [
+  /Working on the task/i,
+  /When finished, you will see another comment/i,
+  /I have started working on your request/i,
+  /received your task/i,
+];
 
 /**
  * Enhanced comment analysis with confidence scoring
  */
 export function analyzeComment(comment: GitHubComment): CommentAnalysis {
-  const body = comment.body?.toLowerCase() || "";
+  const body = comment.body || "";
   const timestamp = new Date(comment.created_at);
   const age_minutes = (Date.now() - timestamp.getTime()) / (1000 * 60);
 
   let classification: CommentClassification = "unknown";
   let confidence = 0;
-  let patterns_matched: string[] = [];
+  const patterns_matched: string[] = [];
 
   // Check for task limit patterns
   const taskLimitMatches = TASK_LIMIT_PATTERNS.filter((pattern) =>
-    body.includes(pattern.toLowerCase()),
+    pattern.test(body),
   );
   if (taskLimitMatches.length > 0) {
     classification = "task_limit";
     confidence = Math.min(1.0, taskLimitMatches.length * 0.4 + 0.4);
-    patterns_matched = taskLimitMatches;
+    patterns_matched.push(...taskLimitMatches.map((p) => p.toString()));
   }
 
   // Check for working patterns (higher confidence than task limit)
   const workingMatches = WORKING_PATTERNS.filter((pattern) =>
-    body.includes(pattern.toLowerCase()),
+    pattern.test(body),
   );
   if (workingMatches.length > 0 && confidence < 0.8) {
     classification = "working";
     confidence = Math.min(1.0, workingMatches.length * 0.3 + 0.5);
-    patterns_matched = workingMatches;
+    patterns_matched.push(...workingMatches.map((p) => p.toString()));
   }
 
   return {
@@ -69,20 +80,14 @@ export function analyzeComment(comment: GitHubComment): CommentAnalysis {
  * Detect if a comment indicates Jules has hit task limits
  */
 export function isTaskLimitComment(commentBody: string): boolean {
-  const body = commentBody.toLowerCase();
-  return TASK_LIMIT_PATTERNS.some((pattern) =>
-    body.includes(pattern.toLowerCase()),
-  );
+  return TASK_LIMIT_PATTERNS.some((pattern) => pattern.test(commentBody));
 }
 
 /**
  * Detect if a comment indicates Jules is working
  */
 export function isWorkingComment(commentBody: string): boolean {
-  const body = commentBody.toLowerCase();
-  return WORKING_PATTERNS.some((pattern) =>
-    body.includes(pattern.toLowerCase()),
-  );
+  return WORKING_PATTERNS.some((pattern) => pattern.test(commentBody));
 }
 
 /**
@@ -188,16 +193,38 @@ export async function checkJulesComments(
         }/${maxRetries})`,
       );
 
-      // Get all comments on the issue
+      // Get all comments and events on the issue
       const comments = await githubClient.getIssueComments(
         owner,
         repo,
         issueNumber,
       );
+      const events = await githubClient.getIssueEvents(owner, repo, issueNumber);
 
-      // Filter for Jules comments (most recent first)
+      // Find the timestamp when the 'jules' label was added
+      const julesLabelEvent = events
+        .filter(
+          (event) =>
+            event.event === "labeled" &&
+            event.label?.name.toLowerCase() === "jules",
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )[0];
+
+      const julesLabelTimestamp = julesLabelEvent
+        ? new Date(julesLabelEvent.created_at)
+        : new Date(0); // If no label event, check all comments
+
+      // Filter for Jules comments since the label was added
       const julesComments = comments
-        .filter((comment) => comment.user && isJulesBot(comment.user.login))
+        .filter(
+          (comment) =>
+            comment.user &&
+            isJulesBot(comment.user.login) &&
+            new Date(comment.created_at) >= julesLabelTimestamp,
+        )
         .sort(
           (a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -205,7 +232,7 @@ export async function checkJulesComments(
 
       if (julesComments.length === 0) {
         console.log(
-          `No Jules comments found for ${owner}/${repo}#${issueNumber}`,
+          `No new Jules comments found for ${owner}/${repo}#${issueNumber} since label was added.`,
         );
         return { action: "no_action", retryCount: attempt };
       }
@@ -239,33 +266,6 @@ export async function checkJulesComments(
         console.log(
           `Comment confidence ${analysis.confidence} below threshold ${minConfidence}, treating as uncertain`,
         );
-
-        // For uncertain comments, check if we have multiple recent comments
-        const recentComments = julesComments.filter(
-          (comment) =>
-            (Date.now() - new Date(comment.created_at).getTime()) /
-              (1000 * 60) <
-            30,
-        );
-
-        if (recentComments.length > 1) {
-          // Analyze the second most recent comment for context
-          const secondAnalysis = analyzeComment(
-            recentComments[1] as GitHubComment,
-          );
-          if (secondAnalysis.confidence >= minConfidence) {
-            console.log(
-              `Using second comment with higher confidence: ${secondAnalysis.confidence}`,
-            );
-            return {
-              action: secondAnalysis.classification,
-              comment: recentComments[1] as GitHubComment,
-              analysis: secondAnalysis,
-              retryCount: attempt,
-            };
-          }
-        }
-
         return {
           action: "unknown",
           comment: latestComment,
@@ -515,34 +515,16 @@ export async function processWorkflowDecision(
       break;
 
     case "unknown":
-      console.log(
-        `Uncertain comment classification for ${owner}/${repo}#${issueNumber}, no action taken`,
+      console.warn(
+        `Uncertain comment classification for ${owner}/${repo}#${issueNumber}.`,
+        {
+          confidence: analysis?.confidence,
+          patterns_matched: analysis?.patterns_matched,
+          age_minutes: analysis?.age_minutes,
+        },
       );
-      // For unknown patterns, add warning reaction and quote reply
-      if (result.comment) {
-        try {
-          await githubClient.addReactionToComment(
-            owner,
-            repo,
-            result.comment.id,
-            "confused",
-          );
-          const errorMsg = `⚠️ **Jules Task Queue**: Detected an unknown Jules response pattern. This may require manual review.`;
-          await githubClient.createQuoteReply(
-            owner,
-            repo,
-            issueNumber,
-            result.comment.body || "Unknown comment",
-            errorMsg,
-            result.comment.user?.login,
-          );
-        } catch (reactionError) {
-          console.warn(
-            `Failed to add warning reaction/comment for ${owner}/${repo}#${issueNumber}:`,
-            reactionError,
-          );
-        }
-      }
+      // No automatic action is taken for unknown comments to avoid incorrect interactions.
+      // Manual review is implicitly recommended by the warning log.
       break;
 
     case "no_action":

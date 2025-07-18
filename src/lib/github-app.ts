@@ -216,6 +216,25 @@ class GitHubAppClient {
   }
 
   /**
+   * Get issue events using installation authentication
+   */
+  public async getIssueEvents(
+    owner: string,
+    repo: string,
+    issue_number: number,
+    installationId?: number,
+  ) {
+    const instId =
+      installationId || (await this.findInstallationForRepo(owner, repo));
+    if (!instId) {
+      throw new Error(`No installation found for repository ${owner}/${repo}`);
+    }
+
+    const octokit = await this.getInstallationOctokit(instId);
+    return octokit.rest.issues.listEvents({ owner, repo, issue_number });
+  }
+
+  /**
    * Create a comment using installation authentication
    */
   public async createComment(

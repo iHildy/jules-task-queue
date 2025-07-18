@@ -20,7 +20,8 @@
     "db:studio": "prisma studio",
     "type-check": "tsc --noEmit",
     "cron:run": "node scripts/retry-tasks.js",
-    "ngrok": "ngrok http 3000"
+    "ngrok": "ngrok http 3000",
+    "test": "vitest"
   },
   "dependencies": {
     "@icons-pack/react-simple-icons": "^13.3.0",

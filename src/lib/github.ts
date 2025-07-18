@@ -63,6 +63,22 @@ class GitHubClient {
   }
 
   /**
+   * Get all events for an issue
+   */
+  public async getIssueEvents(
+    owner: string,
+    repo: string,
+    issue_number: number,
+  ) {
+    const response = await githubAppClient.getIssueEvents(
+      owner,
+      repo,
+      issue_number,
+    );
+    return response.data;
+  }
+
+  /**
    * Get comments from a specific bot user
    */
   public async getBotComments(
