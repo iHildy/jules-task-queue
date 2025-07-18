@@ -9,42 +9,9 @@ import { db } from "@/server/db";
 import type { GitHubLabelEvent, ProcessingResult } from "@/types";
 
 /**
- * Schedule a delayed comment check using Vercel Edge Config or simple timeout
- * In production, this would ideally use a proper queue system like Upstash QStash
- */
-async function scheduleCommentCheck(
-  owner: string,
-  repo: string,
-  issueNumber: number,
-  taskId: number,
-  delayMs: number = 60000, // 60 seconds
-): Promise<void> {
-  console.log(
-    `Scheduling comment check for ${owner}/${repo}#${issueNumber} in ${delayMs}ms`,
-  );
-
-  // For now, use a simple setTimeout. In production, you'd want to use:
-  // - Vercel Cron Jobs
-  // - Upstash QStash for reliable delayed execution
-  // - Redis with TTL
-  // - Database-based job queue
-
-  setTimeout(async () => {
-    try {
-      await executeCommentCheck(owner, repo, issueNumber, taskId);
-    } catch (error) {
-      console.error(
-        `Comment check failed for ${owner}/${repo}#${issueNumber}:`,
-        error,
-      );
-    }
-  }, delayMs);
-}
-
-/**
  * Execute the delayed comment check and handle the results
  */
-async function executeCommentCheck(
+export async function executeCommentCheck(
   owner: string,
   repo: string,
   issueNumber: number,
@@ -205,15 +172,28 @@ export async function processJulesLabelEvent(
         };
       }
 
-      // Schedule comment check after 60 seconds
-      const delayMs = 60000; // 60 seconds
-      await scheduleCommentCheck(owner, repo, issue.number, task.id, delayMs);
+      // Schedule the comment check via the new cron route
+      // This is a fire-and-forget request, we don't need to wait for the response
+      fetch(getAbsoluteUrl("/api/cron/comment-check"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          owner,
+          repo,
+          issueNumber: issue.number,
+          taskId: task.id,
+        }),
+      }).catch((error) => {
+        // Log the error, but don't block the main thread
+        console.error("Failed to trigger comment check:", error);
+      });
 
       return {
-        action: "timer_scheduled",
+        action: "comment_check_scheduled",
         taskId: task.id,
-        message: `Task created and comment check scheduled for ${delayMs}ms`,
-        delayMs,
+        message: "Task created and comment check scheduled via cron",
       };
     }
 
@@ -287,46 +267,13 @@ export async function processJulesLabelEvent(
   }
 }
 
-/**
- * Manual trigger for comment checking (useful for testing and admin operations)
- */
-export async function triggerCommentCheck(
-  taskId: number,
-): Promise<ProcessingResult> {
-  try {
-    const task = await db.julesTask.findUnique({
-      where: { id: taskId },
-    });
-
-    if (!task) {
-      return {
-        action: "error",
-        message: `Task ${taskId} not found`,
-      };
-    }
-
-    // With enhanced schema, we now have stored repo information
-    const { repoOwner, repoName, githubIssueNumber } = task;
-    const issueNumber = Number(githubIssueNumber);
-
-    console.log(
-      `Manually triggering comment check for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
-    );
-
-    // Execute comment check immediately
-    await executeCommentCheck(repoOwner, repoName, issueNumber, taskId);
-
-    return {
-      action: "task_updated",
-      taskId,
-      message: "Comment check executed manually",
-    };
-  } catch (error) {
-    return {
-      action: "error",
-      message: error instanceof Error ? error.message : "Unknown error",
-    };
+function getAbsoluteUrl(path: string) {
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) {
+    return `https://${vercelUrl}${path}`;
   }
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  return `${baseUrl}${path}`;
 }
 
 /**

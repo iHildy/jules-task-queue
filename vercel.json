@@ -3,9 +3,16 @@
     {
       "path": "/api/cron/retry",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/comment-check",
+      "schedule": "* * * * *"
     }
   ],
   "functions": {
+    "src/app/api/cron/comment-check/route.ts": {
+      "maxDuration": 300
+    },
     "src/app/api/cron/retry/route.ts": {
       "maxDuration": 300
     },
