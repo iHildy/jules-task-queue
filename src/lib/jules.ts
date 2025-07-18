@@ -90,8 +90,8 @@ export function isWorkingComment(commentBody: string): boolean {
  */
 export function isJulesBot(username: string): boolean {
   const lowerUsername = username.toLowerCase();
-  return JULES_BOT_USERNAMES.some((botName) =>
-    lowerUsername.includes(botName.toLowerCase().replace("[bot]", "")),
+  return JULES_BOT_USERNAMES.some(
+    (botName) => lowerUsername === botName.toLowerCase(),
   );
 }
 
