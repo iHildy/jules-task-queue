@@ -67,26 +67,24 @@ function LimboPageContent() {
   }, [installationId, router]);
 
   return (
-    <div className="min-h-screen bg-jules-dark flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        <Card className="bg-jules-darker border-jules-gray/20 p-8 text-center">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex justify-center mb-4">
-              <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-full">
-                <Star className="h-8 w-8 text-white" />
-              </div>
-            </div>
-            <h1 className="text-3xl font-bold text-white mb-2">
-              Almost There!
-            </h1>
-            <p className="text-lg text-jules-gray">
-              Please star the repository to complete the setup
-            </p>
+    <div className="min-h-screen bg-jules-dark">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 mb-6">
+            <Star className="h-8 w-8 text-white" />
           </div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            Almost There!
+          </h1>
+          <p className="text-lg sm:text-xl text-jules-gray max-w-2xl mx-auto">
+            Please star the repository to complete the setup
+          </p>
+        </div>
 
-          {/* Why Star Section */}
-          <div className="mb-8 p-6 bg-jules-dark/50 rounded-lg border border-jules-gray/10">
+        {/* Why Star Section */}
+        <Card className="mb-8 bg-jules-darker border-jules-gray/20">
+          <div className="p-6">
             <h2 className="text-xl font-semibold text-white mb-3">
               Why do we ask for a star?
             </h2>
@@ -96,73 +94,76 @@ function LimboPageContent() {
               for the project.
             </p>
           </div>
-
-          {/* Action Buttons */}
-          <div className="space-y-4">
-            <Button
-              asChild
-              size="lg"
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3"
-            >
-              <a
-                href="https://github.com/iHildy/jules-task-queue"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2"
-              >
-                <Star className="h-5 w-5" />
-                Star the Repository
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
-
-            <Button
-              onClick={handleRecheck}
-              disabled={isChecking}
-              variant="outline"
-              size="lg"
-              className="w-full border-jules-gray/30 text-white bg-jules-gray/10 hover:bg-jules-gray/20 hover:text-white font-semibold py-3"
-            >
-              {isChecking ? (
-                <>
-                  <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                  Checking...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-5 w-5 mr-2" />
-                  I&apos;ve starred it, continue!
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="ghost"
-              onClick={() => router.push("/")}
-              className="w-full text-jules-gray hover:text-white hover:bg-jules-gray/10"
-            >
-              <Home className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
-          </div>
-
-          {/* Help Text */}
-          <div className="mt-8 pt-6 border-t border-jules-gray/20">
-            <p className="text-sm text-jules-gray">
-              If you&apos;d like to avoid the star requirement, you can
-              self-host the app by following the instructions in the{" "}
-              <a
-                href="https://github.com/iHildy/jules-task-queue/blob/main/README.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-jules-accent hover:underline"
-              >
-                Documentation
-              </a>
-              .
-            </p>
-          </div>
         </Card>
+
+        {/* Action Buttons */}
+        <div className="space-y-4 mb-8">
+          <Button
+            asChild
+            size="lg"
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3"
+          >
+            <a
+              href="https://github.com/iHildy/jules-task-queue"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2"
+            >
+              <Star className="h-5 w-5" />
+              Star the Repository
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </Button>
+
+          <Button
+            onClick={handleRecheck}
+            disabled={isChecking}
+            variant="outline"
+            size="lg"
+            className="w-full border-jules-gray/30 text-white bg-jules-gray/10 hover:bg-jules-gray/20 hover:text-white font-semibold py-3"
+          >
+            {isChecking ? (
+              <>
+                <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                Checking...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-5 w-5 mr-2" />
+                I&apos;ve starred it, continue!
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
+          <Button
+            variant="ghost"
+            onClick={() => router.push("/")}
+            className="w-full sm:w-auto text-jules-gray hover:text-white hover:bg-jules-gray/10"
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+
+        {/* Help Text */}
+        <div className="mt-12 pt-6 border-t border-jules-gray/20 text-center">
+          <p className="text-sm text-jules-gray">
+            If you&apos;d like to avoid the star requirement, you can self-host
+            the app by following the instructions in the{" "}
+            <a
+              href="https://github.com/iHildy/jules-task-queue/blob/main/README.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-jules-accent hover:underline"
+            >
+              Documentation
+            </a>
+            .
+          </p>
+        </div>
       </div>
     </div>
   );

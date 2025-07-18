@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { Check, GitBranch, Globe, Lock, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -72,13 +73,13 @@ export function RepositorySelectionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[90vh] max-h-[90vh] flex flex-col">
+      <DialogContent className="w-full h-full max-w-none sm:max-w-4xl sm:h-[90vh] sm:max-h-[90vh] flex flex-col bg-jules-darker border-jules-gray/20">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-white">
             <GitBranch className="h-5 w-5" />
             Select Repositories
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-jules-gray">
             Choose which repositories should have Jules labels created. You can
             search by name or description.
           </DialogDescription>
@@ -92,11 +93,11 @@ export function RepositorySelectionModal({
               placeholder="Search repositories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 text-white"
             />
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Button
                 variant="outline"
@@ -164,10 +165,10 @@ export function RepositorySelectionModal({
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex justify-between items-center pt-4 border-t flex-shrink-0">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex justify-between items-center pt-4 border-t border-jules-gray/20 flex-shrink-0">
+          <div className="text-sm text-jules-gray">
             {selectedCount > 0 && (
-              <span className="text-foreground font-medium">
+              <span className="text-white font-medium">
                 {selectedCount} repositor{selectedCount === 1 ? "y" : "ies"}{" "}
                 selected
               </span>
@@ -204,8 +205,8 @@ function RepositoryItem({
   return (
     <div
       className={`
-        flex items-start gap-3 p-4 rounded-lg border-2 transition-all cursor-pointer hover:bg-accent/50
-        ${isSelected ? "border-jules-accent bg-jules-accent/5" : "border-border hover:border-accent"}
+        flex items-start gap-3 p-4 rounded-lg border-2 transition-all cursor-pointer hover:bg-jules-darker/60
+        ${isSelected ? "border-jules-accent bg-jules-accent/5" : "border-jules-gray/20 hover:border-jules-accent"}
       `}
       onClick={() => onSelectionChange(repository.id, !isSelected)}
     >
@@ -214,7 +215,7 @@ function RepositoryItem({
         onCheckedChange={(checked) =>
           onSelectionChange(repository.id, !!checked)
         }
-        className="mt-1"
+        className={cn("mt-1", isSelected && "!border-white")}
       />
 
       <div className="flex-1 min-w-0">
@@ -225,23 +226,22 @@ function RepositoryItem({
             ) : (
               <Globe className="h-4 w-4 text-muted-foreground" />
             )}
-            <span className="font-medium truncate">{repository.name}</span>
+            <span className="font-medium truncate text-white">
+              {repository.name}
+            </span>
           </div>
 
           <div className="flex items-center gap-1">
-            <Badge
-              variant={repository.private ? "secondary" : "outline"}
-              className="text-xs"
-            >
+            <Badge variant="outline" className="text-xs text-white">
               {repository.private ? "Private" : "Public"}
             </Badge>
           </div>
         </div>
 
-        <p className="text-xs text-gray-400 mb-1">{repository.fullName}</p>
+        <p className="text-xs text-jules-gray mb-1">{repository.fullName}</p>
 
         {repository.description && (
-          <p className="text-sm text-gray-300 line-clamp-2">
+          <p className="text-sm text-jules-gray line-clamp-2">
             {repository.description}
           </p>
         )}
