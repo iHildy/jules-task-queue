@@ -176,17 +176,15 @@ class GitHubClient {
       console.log(
         `Removed label '${label}' from ${owner}/${repo}#${issue_number}`,
       );
-    } catch (error: unknown) {
-      // If label doesn't exist, that's fine
-      if (
-        error instanceof Error &&
-        error.message.includes("Label does not exist")
-      ) {
-        console.log(
-          `Label '${label}' doesn't exist on ${owner}/${repo}#${issue_number}`,
+    } catch (error: any) {
+      // If the label doesn't exist, GitHub API returns a 404
+      if (error.status === 404) {
+        console.warn(
+          `Label '${label}' not found on issue ${owner}/${repo}#${issue_number}.`,
         );
-        return;
+        return; // Suppress the error
       }
+      // For other errors, re-throw
       throw error;
     }
   }
