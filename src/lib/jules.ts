@@ -11,7 +11,7 @@ import type {
 /**
  * Jules username patterns to look for
  */
-const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
+const JULES_BOT_USERNAMES = ["google-labs-jules[bot]"];
 
 /**
  * Comment patterns that indicate Jules has hit task limits
