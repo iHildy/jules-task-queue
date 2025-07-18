@@ -589,14 +589,28 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       return false;
     }
 
-    // Swap labels: remove 'jules-queue', add 'jules'
-    await githubClient.swapLabels(
-      repoOwner,
-      repoName,
-      issueNumber,
-      "jules-queue",
-      "jules",
-    );
+    // Check if the issue has the "jules-queue" label before swapping
+    const hasJulesQueueLabel =
+      issue.labels?.some(
+        (label) =>
+          (typeof label === "string" ? label : label.name)?.toLowerCase() ===
+          "jules-queue",
+      ) ?? false;
+
+    if (hasJulesQueueLabel) {
+      // Swap labels: remove 'jules-queue', add 'jules'
+      await githubClient.swapLabels(
+        repoOwner,
+        repoName,
+        issueNumber,
+        "jules-queue",
+        "jules",
+      );
+    } else {
+      console.log(
+        `Task ${taskId} does not have 'jules-queue' label, skipping label swap`,
+      );
+    }
 
     // Update retry metrics
     await db.julesTask.update({
