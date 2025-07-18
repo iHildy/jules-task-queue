@@ -31,6 +31,7 @@ const { retryAllFlaggedTasks, getTaskStats } = await import(
  * Main execution function
  */
 async function executeCronJob() {
+  console.log("Cron job heartbeat");
   const startTime = Date.now();
   const executionId = `self_hosted_cron_${Date.now()}`;
 

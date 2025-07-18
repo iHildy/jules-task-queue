@@ -16,18 +16,21 @@ const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
 /**
  * Comment patterns that indicate Jules has hit task limits
  */
-const TASK_LIMIT_PATTERNS = ["You are currently at your concurrent task limit"];
+const TASK_LIMIT_PATTERNS = [
+  /You are currently at your concurrent task limit/i,
+];
 
 /**
  * Comment patterns that indicate Jules has started working
  */
-const WORKING_PATTERNS = ["When finished, you will see another comment"];
+const WORKING_PATTERNS = [/When finished, you will see another comment/i];
 
 /**
  * Enhanced comment analysis with confidence scoring
  */
 export function analyzeComment(comment: GitHubComment): CommentAnalysis {
-  const body = comment.body?.toLowerCase() || "";
+  console.log(`Analyzing comment: ${comment.body}`);
+  const body = comment.body || "";
   const timestamp = new Date(comment.created_at);
   const age_minutes = (Date.now() - timestamp.getTime()) / (1000 * 60);
 
@@ -37,22 +40,22 @@ export function analyzeComment(comment: GitHubComment): CommentAnalysis {
 
   // Check for task limit patterns
   const taskLimitMatches = TASK_LIMIT_PATTERNS.filter((pattern) =>
-    body.includes(pattern.toLowerCase()),
+    pattern.test(body),
   );
   if (taskLimitMatches.length > 0) {
     classification = "task_limit";
     confidence = Math.min(1.0, taskLimitMatches.length * 0.4 + 0.4);
-    patterns_matched = taskLimitMatches;
+    patterns_matched = taskLimitMatches.map((p) => p.toString());
   }
 
   // Check for working patterns (higher confidence than task limit)
   const workingMatches = WORKING_PATTERNS.filter((pattern) =>
-    body.includes(pattern.toLowerCase()),
+    pattern.test(body),
   );
   if (workingMatches.length > 0 && confidence < 0.8) {
     classification = "working";
     confidence = Math.min(1.0, workingMatches.length * 0.3 + 0.5);
-    patterns_matched = workingMatches;
+    patterns_matched = workingMatches.map((p) => p.toString());
   }
 
   return {
@@ -69,20 +72,14 @@ export function analyzeComment(comment: GitHubComment): CommentAnalysis {
  * Detect if a comment indicates Jules has hit task limits
  */
 export function isTaskLimitComment(commentBody: string): boolean {
-  const body = commentBody.toLowerCase();
-  return TASK_LIMIT_PATTERNS.some((pattern) =>
-    body.includes(pattern.toLowerCase()),
-  );
+  return TASK_LIMIT_PATTERNS.some((pattern) => pattern.test(commentBody));
 }
 
 /**
  * Detect if a comment indicates Jules is working
  */
 export function isWorkingComment(commentBody: string): boolean {
-  const body = commentBody.toLowerCase();
-  return WORKING_PATTERNS.some((pattern) =>
-    body.includes(pattern.toLowerCase()),
-  );
+  return WORKING_PATTERNS.some((pattern) => pattern.test(commentBody));
 }
 
 /**
@@ -500,21 +497,32 @@ export async function processWorkflowDecision(
   const { action, analysis } = result;
 
   console.log(
-    `Processing workflow decision for ${owner}/${repo}#${issueNumber}: ${action} (confidence: ${
-      analysis?.confidence || "unknown"
-    })`,
+    `Processing workflow decision for ${owner}/${repo}#${issueNumber}:`,
+    {
+      action: action,
+      analysis: analysis,
+    },
   );
 
   switch (action) {
     case "task_limit":
+      console.log(
+        `Executing task_limit branch for ${owner}/${repo}#${issueNumber}`,
+      );
       await handleTaskLimit(owner, repo, issueNumber, taskId, analysis);
       break;
 
     case "working":
+      console.log(
+        `Executing working branch for ${owner}/${repo}#${issueNumber}`,
+      );
       await handleWorking(owner, repo, issueNumber, taskId, analysis);
       break;
 
     case "unknown":
+      console.log(
+        `Executing unknown branch for ${owner}/${repo}#${issueNumber}`,
+      );
       console.log(
         `Uncertain comment classification for ${owner}/${repo}#${issueNumber}, no action taken`,
       );
@@ -547,6 +555,9 @@ export async function processWorkflowDecision(
 
     case "no_action":
     default:
+      console.log(
+        `Executing no_action branch for ${owner}/${repo}#${issueNumber}`,
+      );
       console.log(
         `No action needed for ${owner}/${repo}#${issueNumber}: ${action}`,
       );
