@@ -19,9 +19,9 @@ export function FeaturesSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="border bg-jules-darker border-jules-primary">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <Shield className="w-8 h-8 mb-4 text-jules-cyan" />
               <CardTitle className="text-lg text-white mb-2">
                 Smart Task Detection
@@ -34,7 +34,7 @@ export function FeaturesSection() {
           </Card>
 
           <Card className="border bg-jules-darker border-jules-primary">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <Repeat className="w-8 h-8 mb-4 text-jules-pink" />
               <CardTitle className="text-lg text-white mb-2">
                 Auto-Retry Logic
@@ -47,7 +47,7 @@ export function FeaturesSection() {
           </Card>
 
           <Card className="border bg-jules-darker border-jules-primary">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <Server className="w-8 h-8 mb-4 text-jules-primary" />
               <CardTitle className="text-lg text-white mb-2">
                 Easy Self-Hosting
@@ -60,7 +60,7 @@ export function FeaturesSection() {
           </Card>
 
           <Card className="border bg-jules-darker border-jules-primary">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <GitBranch className="w-8 h-8 mb-4 text-jules-accent" />
               <CardTitle className="text-lg text-white mb-2">
                 GitHub Native
@@ -73,7 +73,7 @@ export function FeaturesSection() {
           </Card>
 
           <Card className="border bg-jules-darker border-jules-primary">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <Code className="w-8 h-8 mb-4 text-jules-cyan" />
               <CardTitle className="text-lg text-white mb-2">
                 Type Safe
@@ -86,7 +86,7 @@ export function FeaturesSection() {
           </Card>
 
           <Card className="border bg-jules-darker border-jules-primary">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <Zap className="w-8 h-8 mb-4 text-jules-yellow" />
               <CardTitle className="text-lg text-white mb-2">
                 Zero Config

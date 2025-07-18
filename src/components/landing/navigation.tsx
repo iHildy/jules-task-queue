@@ -15,19 +15,20 @@ export function Navigation() {
               width={32}
               height={32}
             />
-            <span className="font-bold text-xl text-white">
+            <span className="font-bold text-lg sm:text-xl text-white">
               Jules Task Queue
             </span>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <Link
               href="/api/health"
-              className="text-gray-300 hover:text-white transition-colors text-sm"
+              className="hidden sm:block text-gray-300 hover:text-white transition-colors text-sm px-2 py-1 rounded-md sm:px-0 sm:py-0 sm:rounded-none"
             >
               Health
             </Link>
             <Button
               asChild
+              size="sm"
               className="bg-white text-jules-dark cursor-pointer hover:bg-white/90 ring-2 ring-transparent hover:ring-jules-primary font-semibold"
             >
               <Link
@@ -36,7 +37,7 @@ export function Navigation() {
                 rel="noopener noreferrer"
               >
                 <GitBranch className="w-4 h-4 mr-1" />
-                GitHub
+                <span>GitHub</span>
               </Link>
             </Button>
           </div>

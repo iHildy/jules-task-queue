@@ -10,17 +10,17 @@ export function ProblemSection() {
           </h2>
         </div>
 
-        <blockquote className="text-xl md:text-2xl italic text-center leading-relaxed text-white">
+        <blockquote className="text-lg sm:text-xl md:text-2xl italic text-center leading-relaxed text-white">
           &ldquo;Jules gives you 60 tasks per day but only 5 concurrent slots.
           So you&rsquo;re constantly babysitting the queue, manually re-adding
           labels every time it hits the limit. There has to be a better
           way.&rdquo;
         </blockquote>
-        <p className="text-center mt-6 text-gray-300">
+        <p className="text-center text-sm sm:text-base mt-6 text-gray-300">
           — Every Jules power user, probably
         </p>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
           <Card className="border bg-jules-darker border-jules-yellow">
             <CardContent className="p-6 text-center">
               <div className="text-3xl font-bold mb-2 text-jules-yellow">
