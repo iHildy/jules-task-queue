@@ -1,61 +1,122 @@
-import { retryAllFlaggedTasks } from './jules';
-import { db } from '@/server/db';
-import { githubClient } from '@/lib/github';
+import { vi } from 'vitest';
+import { db } from '../server/db';
+import { githubClient } from './github';
+import { checkJulesComments, handleTaskLimit, retryAllFlaggedTasks } from './jules';
+import { JulesTask, Repository, Installation } from '@prisma/client';
 
-// Mock the database and GitHub client
-jest.mock('@/server/db', () => ({
+vi.mock('../server/db', () => ({
   db: {
-    julesTask: {
-      findMany: jest.fn(),
-      update: jest.fn(),
+    user: {
+      findFirst: vi.fn(),
     },
+    repository: {
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
+    installation: {
+      findFirst: vi.fn(),
+    },
+    julesTask: {
+      findMany: vi.fn(),
+      update: vi.fn(),
+    }
   },
 }));
 
-jest.mock('@/lib/github', () => ({
+vi.mock('./github', () => ({
   githubClient: {
-    swapLabels: jest.fn(),
-    getIssue: jest.fn().mockResolvedValue({ labels: [] }),
+    getRepoInfo: vi.fn(),
+    createInstallationAccessToken: vi.fn(),
+    getAuthenticatedApp: vi.fn(),
+    getInstallationRepos: vi.fn(),
+    getIssueComments: vi.fn(),
+    swapLabels: vi.fn(),
   },
 }));
 
-describe('retryAllFlaggedTasks', () => {
-  it('should retry a single flagged task', async () => {
-    // Arrange
-    const flaggedTask = {
+describe('jules', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should simulate the full queueing and retry workflow', async () => {
+    // 1. Set up mock data
+    const mockTask: JulesTask = {
       id: 1,
       githubIssueId: 123,
-      githubIssueNumber: 456,
-      repoOwner: 'test-owner',
-      repoName: 'test-repo',
+      repositoryId: 456,
       installationId: 789,
-      flaggedForRetry: true,
-      retryCount: 0,
+      status: 'in_progress',
+      retryAt: null,
+      flaggedForRetry: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
-    (db.julesTask.findMany as jest.Mock).mockResolvedValue([flaggedTask]);
-    (db.julesTask.update as jest.Mock).mockResolvedValue({});
-    (githubClient.swapLabels as jest.Mock).mockResolvedValue(undefined);
+    const mockRepo: Repository = {
+      id: 456,
+      name: 'test-repo',
+      owner: 'test-owner',
+      installationId: 789,
+    };
 
-    // Act
-    await retryAllFlaggedTasks();
+    const mockInstallation: Installation = {
+      id: 789,
+      githubInstallationId: 987,
+      suspended: false,
+    };
 
-    // Assert
+    const mockIssueComment = {
+      id: 1,
+      body: 'Jules is over capacity right now and will retry this task later. (ref: jules_task_limit)',
+      user: {
+        login: 'jules-app[bot]'
+      }
+    };
+
+    // 2. Mock the return values of `githubClient.getIssueComments`
+    vi.spyOn(githubClient, 'getIssueComments').mockResolvedValue([mockIssueComment]);
+    vi.spyOn(db.repository, 'findFirst').mockResolvedValue(mockRepo);
+    vi.spyOn(db.installation, 'findFirst').mockResolvedValue(mockInstallation);
+
+    // 3. Call `checkJulesComments` and assert that it returns a `task_limit` action
+    const action = await checkJulesComments(mockTask.installationId, mockRepo.owner, mockRepo.name, mockTask.githubIssueId);
+    expect(action).toBe('task_limit');
+
+    // 4. Call `handleTaskLimit` and assert the database is updated and labels are swapped
+    await handleTaskLimit(mockTask, mockRepo, mockInstallation.githubInstallationId);
+    expect(db.julesTask.update).toHaveBeenCalledWith({
+      where: { id: mockTask.id },
+      data: { flaggedForRetry: true },
+    });
     expect(githubClient.swapLabels).toHaveBeenCalledWith(
-      'test-owner',
-      'test-repo',
-      456,
-      'jules-queue',
-      'jules'
+      mockInstallation.githubInstallationId,
+      mockRepo.owner,
+      mockRepo.name,
+      mockTask.githubIssueId,
+      'jules_in_progress',
+      'jules_queued'
     );
 
+    // 5. Mock the return value of `db.julesTask.findMany`
+    const flaggedTask = { ...mockTask, flaggedForRetry: true };
+    vi.spyOn(db.julesTask, 'findMany').mockResolvedValue([flaggedTask]);
+    vi.spyOn(db.repository, 'findFirst').mockResolvedValue(mockRepo);
+    vi.spyOn(db.installation, 'findFirst').mockResolvedValue(mockInstallation);
+
+    // 6. Call `retryAllFlaggedTasks` and assert the labels are swapped back and the task is updated
+    await retryAllFlaggedTasks();
+    expect(githubClient.swapLabels).toHaveBeenCalledWith(
+      mockInstallation.githubInstallationId,
+      mockRepo.owner,
+      mockRepo.name,
+      mockTask.githubIssueId,
+      'jules_queued',
+      'jules_in_progress'
+    );
     expect(db.julesTask.update).toHaveBeenCalledWith({
-      where: { id: 1 },
-      data: {
-        flaggedForRetry: false,
-        retryCount: 1,
-        lastRetryAt: expect.any(Date),
-      },
+      where: { id: flaggedTask.id },
+      data: { flaggedForRetry: false },
     });
   });
 });
