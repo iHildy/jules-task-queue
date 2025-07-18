@@ -52,7 +52,7 @@ export function HeroSection() {
   );
 
   return (
-    <section className="relative overflow-hidden pt-20 pb-16" id="hero">
+    <section className="relative overflow-hidden pt-8 sm:pt-20 pb-16" id="hero">
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <Badge
           variant="outline"
@@ -62,13 +62,12 @@ export function HeroSection() {
           An overengineered task queue for Jules users
         </Badge>
 
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight text-white">
-          <span className="text-white">Break free from the</span>
-          <br />
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 leading-tight text-white">
+          <span className="sm:block">Break free from the</span>{" "}
           <span className="text-jules-secondary">5-task bottleneck</span>
         </h1>
 
-        <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto leading-relaxed text-jules-gray">
+        <p className="text-lg sm:text-xl md:text-2xl mb-8 max-w-4xl mx-auto leading-relaxed text-jules-gray">
           Jules gives you 60 tasks per day but only 5 concurrent slots. Jules
           Task Queue automatically manages the queue so you can{" "}
           <span className="font-semibold text-jules-pink">
@@ -83,6 +82,7 @@ export function HeroSection() {
           <GitHubInstallButton
             onInstallStart={handleInstallStart}
             onInstallError={handleInstallError}
+            className="w-full sm:w-auto bg-white text-jules-dark cursor-pointer hover:bg-white/90 ring-2 ring-transparent hover:ring-jules-primary font-semibold"
           />
         </div>
 
@@ -91,16 +91,16 @@ export function HeroSection() {
           <p className="text-gray-300 text-sm mb-4">
             Deploy your own instance:
           </p>
-          <div className="flex gap-4 items-center justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
             <a
-              className=""
+              className="w-full sm:w-auto"
               href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue&env=DATABASE_URL,NEXT_PUBLIC_GITHUB_APP_ID,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,CRON_SECRET&envDescription=See%20the%20github%20repo%20.env.example%20file%20for%20the%20variables%20to%20add.&envLink=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue%2Fblob%2Fmain%2F.env.example&project-name=jules-task-queue&repository-name=jules-task-queue"
               target="_blank"
               rel="noopener noreferrer"
             >
               <Button
                 size="lg"
-                className="mx-auto border border-[#414141] divide-x divide-[#414141] px-4 cursor-pointer"
+                className="w-full mx-auto border border-[#414141] divide-x divide-[#414141] px-4 cursor-pointer"
               >
                 <div className="pr-2">
                   <svg
@@ -125,7 +125,7 @@ export function HeroSection() {
               <DialogTrigger asChild>
                 <Button
                   size="lg"
-                  className="border border-[#FF9101] divide-x divide-[#FF9101] px-4 cursor-pointer"
+                  className="w-full sm:w-auto border border-[#FF9101] divide-x divide-[#FF9101] px-4 cursor-pointer"
                 >
                   <div className="pr-2">
                     <svg

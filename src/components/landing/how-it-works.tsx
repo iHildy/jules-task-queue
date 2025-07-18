@@ -24,7 +24,7 @@ export function HowItWorks() {
         </div>
 
         <Tabs defaultValue="hosted" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-12 bg-jules-darker border-jules-primary">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-jules-darker border-jules-primary">
             <TabsTrigger
               value="hosted"
               className="data-[state=active]:bg-jules-primary text-white cursor-pointer"

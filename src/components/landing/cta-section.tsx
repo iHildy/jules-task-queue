@@ -14,14 +14,16 @@ export function CTASection() {
           Stop babysitting the queue. Start shipping faster.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-          <GitHubInstallButton />
-          <div className="text-center">
+        <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-0 md:space-x-6">
+          <div className="w-full sm:w-auto">
+            <GitHubInstallButton className="w-full" />
+          </div>
+          <div className="w-full sm:w-auto text-center">
             <Button
               variant="outline"
               asChild
               size="lg"
-              className="border-2 border-jules-secondary text-jules-secondary"
+              className="border-2 border-jules-secondary text-jules-secondary w-full"
             >
               <Link href="https://github.com/ihildy/jules-task-queue">
                 <Star className="w-4 h-4 mr-2" />
