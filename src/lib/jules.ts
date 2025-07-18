@@ -654,8 +654,17 @@ export async function retryAllFlaggedTasks(): Promise<{
         stats.skipped++;
       }
     } catch (error) {
-      console.error(`Failed to retry task ${task.id}:`, error);
       stats.failed++;
+      console.error(`Error processing task ${task.id}:`, {
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
+        taskDetails: {
+          id: task.id,
+          repo: `${task.repoOwner}/${task.repoName}`,
+          issue: task.githubIssueNumber,
+        },
+        // Optionally log stack trace for debugging
+        // stack: error instanceof Error ? error.stack : undefined,
+      });
     }
   }
 

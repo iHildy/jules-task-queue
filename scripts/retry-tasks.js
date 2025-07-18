@@ -35,48 +35,50 @@ async function executeCronJob() {
   const executionId = `self_hosted_cron_${Date.now()}`;
 
   try {
+    // Heartbeat log message
     console.log(
-      `🔄 [${new Date().toISOString()}] Starting self-hosted cron job [${executionId}]`,
+      `[${new Date().toISOString()}] Cron job heartbeat [${executionId}]`,
     );
 
     // Get pre-execution stats
     const preStats = await getTaskStats();
     console.log(
-      `📊 Pre-execution stats: ${preStats.queuedTasks} queued tasks, ${preStats.totalTasks} total`,
+      `[${new Date().toISOString()}] Pre-execution stats: ${preStats.queuedTasks} queued tasks, ${preStats.totalTasks} total tasks.`,
     );
+
+    if (preStats.queuedTasks === 0) {
+      console.log(
+        `[${new Date().toISOString()}] No tasks to process. Exiting.`,
+      );
+      process.exit(0);
+      return;
+    }
 
     // Execute the retry process
     const result = await retryAllFlaggedTasks();
 
     // Get post-execution stats
     const postStats = await getTaskStats();
-
     const processingTime = Date.now() - startTime;
-    const queueReduction = preStats.queuedTasks - postStats.queuedTasks;
 
     // Log results
     console.log(
-      `✅ [${new Date().toISOString()}] Cron job completed [${executionId}]:`,
-      {
-        attempted: result.attempted,
-        successful: result.successful,
-        failed: result.failed,
-        skipped: result.skipped,
-        processingTime: `${processingTime}ms`,
-        queueReduction: queueReduction,
-      },
+      `[${new Date().toISOString()}] Cron job finished. Processed ${result.attempted} tasks in ${processingTime}ms.`,
+    );
+    console.log(
+      `[${new Date().toISOString()}] Success: ${result.successful}, Failures: ${result.failed}.`,
     );
 
     // Alert if there are concerning patterns
-    if (result.failed > result.successful && result.attempted > 0) {
+    if (result.failed > 0) {
       console.warn(
-        `⚠️ ALERT: More failures (${result.failed}) than successes (${result.successful})`,
+        `[${new Date().toISOString()}] ${result.failed} tasks failed. Please check the logs for details.`,
       );
     }
 
     if (postStats.queuedTasks > 50) {
       console.warn(
-        `⚠️ HIGH QUEUE DEPTH: ${postStats.queuedTasks} tasks still queued`,
+        `[${new Date().toISOString()}] High queue depth: ${postStats.queuedTasks} tasks still queued.`,
       );
     }
 
@@ -88,17 +90,16 @@ async function executeCronJob() {
       error instanceof Error ? error.message : "Unknown error";
 
     console.error(
-      `❌ [${new Date().toISOString()}] Cron job failed [${executionId}]:`,
+      `[${new Date().toISOString()}] Cron job failed after ${processingTime}ms.`,
       {
         error: errorMessage,
-        processingTime: `${processingTime}ms`,
-        stack: error instanceof Error ? error.stack : undefined,
+        executionId: executionId,
       },
     );
 
     // Critical alert for cron failures
     console.error(
-      `🚨 CRITICAL: Self-hosted cron job failure [${executionId}] - Manual intervention may be required`,
+      `[${new Date().toISOString()}] CRITICAL: Self-hosted cron job failure. Manual intervention may be required.`,
     );
 
     // Failure exit
