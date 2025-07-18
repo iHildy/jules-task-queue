@@ -667,17 +667,29 @@ export async function retryAllFlaggedTasks(): Promise<{
  * Clean up old completed tasks (housekeeping)
  */
 export async function cleanupOldTasks(
-  olderThanDays: number = 30,
+  olderThanDays: number = 7,
 ): Promise<number> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
   const result = await db.julesTask.deleteMany({
     where: {
-      flaggedForRetry: false,
-      updatedAt: {
-        lt: cutoffDate,
-      },
+      OR: [
+        {
+          // Condition 1: Completed tasks older than cutoff
+          flaggedForRetry: false,
+          updatedAt: {
+            lt: cutoffDate,
+          },
+        },
+        {
+          // Condition 2: Queued tasks that are stuck for more than the cutoff
+          flaggedForRetry: true,
+          updatedAt: {
+            lt: cutoffDate,
+          },
+        },
+      ],
     },
   });
 
