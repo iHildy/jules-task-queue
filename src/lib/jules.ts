@@ -365,13 +365,8 @@ export async function handleTaskLimit(
     });
 
     // Swap labels: remove 'jules', add 'jules-queue'
-    await githubClient.swapLabels(
-      owner,
-      repo,
-      issueNumber,
-      "jules",
-      "jules-queue",
-    );
+    await githubClient.removeLabel(owner, repo, issueNumber, "jules");
+    await githubClient.addLabel(owner, repo, issueNumber, "jules-queue");
 
     // Add refresh emoji reaction to Jules' comment if analysis available
     if (analysis?.comment) {
@@ -589,14 +584,14 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       return false;
     }
 
-    // Swap labels: remove 'jules-queue', add 'jules'
-    await githubClient.swapLabels(
+    // Add the 'jules' label back to the issue
+    await githubClient.removeLabel(
       repoOwner,
       repoName,
       issueNumber,
       "jules-queue",
-      "jules",
     );
+    await githubClient.addLabel(repoOwner, repoName, issueNumber, "jules");
 
     // Update retry metrics
     await db.julesTask.update({
