@@ -176,6 +176,56 @@ export async function processJulesLabelEvent(
         }
       }
 
+      // If a task was previously in the queue, reset its retry status
+      const wasInQueue = issue.labels.some(
+        (l) => l.name.toLowerCase() === "jules-queue",
+      );
+      if (wasInQueue) {
+        const existingTask = await db.julesTask.findUnique({
+          where: { githubIssueId: BigInt(issue.id) },
+        });
+
+        if (existingTask) {
+          await db.julesTask.update({
+            where: { id: existingTask.id },
+            data: {
+              flaggedForRetry: false,
+              retryCount: 0,
+              lastRetryAt: new Date(),
+              // We could also reset other fields if needed
+            },
+          });
+          console.log(
+            `Task ${existingTask.id} was manually re-queued, resetting retry status.`,
+          );
+        }
+      }
+
+      // If a task was previously in the queue, reset its retry status
+      const wasInQueue = issue.labels.some(
+        (l) => l.name.toLowerCase() === "jules-queue",
+      );
+      if (wasInQueue) {
+        const existingTask = await db.julesTask.findUnique({
+          where: { githubIssueId: BigInt(issue.id) },
+        });
+
+        if (existingTask) {
+          await db.julesTask.update({
+            where: { id: existingTask.id },
+            data: {
+              flaggedForRetry: false,
+              retryCount: 0,
+              lastRetryAt: new Date(),
+              // We could also reset other fields if needed
+            },
+          });
+          console.log(
+            `Task ${existingTask.id} was manually re-queued, resetting retry status.`,
+          );
+        }
+      }
+
       // Create or update task in database
       const task = await upsertJulesTask({
         githubRepoId: BigInt(repository.id),
