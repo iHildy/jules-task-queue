@@ -577,6 +577,12 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
 
     // Check if issue still has 'Human' label - if so, skip
     const issue = await githubClient.getIssue(repoOwner, repoName, issueNumber);
+    if (issue.state === "closed") {
+      console.log(
+        `Issue ${repoOwner}/${repoName}#${issueNumber} is closed, skipping retry`,
+      );
+      return false;
+    }
     const hasHumanLabel =
       issue.labels?.some(
         (label) =>
