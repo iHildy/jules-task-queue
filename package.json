@@ -19,6 +19,7 @@
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
     "cron:run": "node scripts/retry-tasks.js",
     "ngrok": "ngrok http 3000"
   },
