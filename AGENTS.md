@@ -1,6 +1,6 @@
 # AGENTS RULES OVERVIEW
 
-This document condenses the most critical rules for agents working on this repository. Note that YOU doesn't have access to enviormental variables and cannot run commands like `pnpm build` because of this, instead use `pnpm lint`
+This document condenses the most critical rules for agents working on this repository. Note that YOU don't have access to environmental variables and cannot run commands like `pnpm build` because of this, instead use `pnpm lint`
 
 ---
 
