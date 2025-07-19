@@ -26,6 +26,7 @@ model JulesTask {
   installation   GitHubInstallation? @relation(fields: [installationId], references: [id])
 
   // Processing status
+  status          String    @default("pending_check")
   flaggedForRetry Boolean   @default(false)
   retryCount      Int       @default(0)
   lastRetryAt     DateTime?
@@ -35,6 +36,7 @@ model JulesTask {
   updatedAt DateTime @updatedAt
 
   // Indexes for performance
+  @@index([status])
   @@index([flaggedForRetry])
   @@index([repoOwner, repoName])
   @@index([createdAt])

@@ -9,39 +9,6 @@ import { db } from "@/server/db";
 import type { GitHubLabelEvent, ProcessingResult } from "@/types";
 
 /**
- * Schedule a delayed comment check using Vercel Edge Config or simple timeout
- * In production, this would ideally use a proper queue system like Upstash QStash
- */
-async function scheduleCommentCheck(
-  owner: string,
-  repo: string,
-  issueNumber: number,
-  taskId: number,
-  delayMs: number = 60000, // 60 seconds
-): Promise<void> {
-  console.log(
-    `Scheduling comment check for ${owner}/${repo}#${issueNumber} in ${delayMs}ms`,
-  );
-
-  // For now, use a simple setTimeout. In production, you'd want to use:
-  // - Vercel Cron Jobs
-  // - Upstash QStash for reliable delayed execution
-  // - Redis with TTL
-  // - Database-based job queue
-
-  setTimeout(async () => {
-    try {
-      await executeCommentCheck(owner, repo, issueNumber, taskId);
-    } catch (error) {
-      console.error(
-        `Comment check failed for ${owner}/${repo}#${issueNumber}:`,
-        error,
-      );
-    }
-  }, delayMs);
-}
-
-/**
  * Execute the delayed comment check and handle the results
  */
 async function executeCommentCheck(
@@ -205,15 +172,13 @@ export async function processJulesLabelEvent(
         };
       }
 
-      // Schedule comment check after 60 seconds
-      const delayMs = 60000; // 60 seconds
-      await scheduleCommentCheck(owner, repo, issue.number, task.id, delayMs);
+      // Execute comment check immediately
+      await executeCommentCheck(owner, repo, issue.number, task.id);
 
       return {
-        action: "timer_scheduled",
+        action: "task_updated",
         taskId: task.id,
-        message: `Task created and comment check scheduled for ${delayMs}ms`,
-        delayMs,
+        message: "Comment check executed immediately",
       };
     }
 

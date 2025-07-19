@@ -14,7 +14,13 @@
  */
 
 import { env } from "@/lib/env";
-import { cleanupOldTasks, retryAllFlaggedTasks } from "@/lib/jules";
+import {
+  checkJulesComments,
+  cleanupOldTasks,
+  getPendingTasks,
+  processWorkflowDecision,
+  retryAllFlaggedTasks,
+} from "@/lib/jules";
 import { db } from "@/server/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -69,6 +75,64 @@ async function logCronExecution(
 }
 
 /**
+ * Process tasks with 'pending_check' status
+ */
+async function processPendingTasks() {
+  const pendingTasks = await getPendingTasks();
+  if (pendingTasks.length === 0) {
+    return {
+      processed: 0,
+      successful: 0,
+      failed: 0,
+    };
+  }
+
+  console.log(`Found ${pendingTasks.length} pending tasks to check`);
+  const stats = {
+    processed: pendingTasks.length,
+    successful: 0,
+    failed: 0,
+  };
+
+  for (const task of pendingTasks) {
+    try {
+      const { repoOwner, repoName, githubIssueNumber, id } = task;
+      const issueNumber = Number(githubIssueNumber);
+
+      const result = await checkJulesComments(repoOwner, repoName, issueNumber);
+      await processWorkflowDecision(
+        repoOwner,
+        repoName,
+        issueNumber,
+        id,
+        result,
+      );
+
+      // Update task status based on result
+      let newStatus = "processed";
+      if (result.action === "task_limit") {
+        newStatus = "queued_for_retry";
+      } else if (result.action === "unknown") {
+        newStatus = "needs_manual_review";
+      }
+
+      await db.julesTask.update({
+        where: { id },
+        data: { status: newStatus },
+      });
+
+      stats.successful++;
+    } catch (error) {
+      console.error(`Failed to process pending task ${task.id}:`, error);
+      stats.failed++;
+    }
+  }
+
+  console.log("Pending task processing complete:", stats);
+  return stats;
+}
+
+/**
  * Main cron job handler - processes queued Jules tasks
  * This should be called every 30 minutes via Vercel Cron Jobs
  */
@@ -80,9 +144,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  console.log("Starting cron job: retry flagged Jules tasks");
+  console.log("Starting cron job: process Jules tasks");
 
   try {
+    // Process pending tasks
+    const pendingStats = await processPendingTasks();
+
     // Retry all flagged tasks
     const retryStats = await retryAllFlaggedTasks();
 
@@ -91,7 +158,8 @@ export async function POST(req: NextRequest) {
 
     const executionTime = Date.now() - startTime;
     const stats = {
-      ...retryStats,
+      pendingChecks: pendingStats,
+      retries: retryStats,
       cleanupCount,
       executionTimeMs: executionTime,
     };
@@ -99,7 +167,7 @@ export async function POST(req: NextRequest) {
     console.log("Cron job completed successfully:", stats);
 
     // Log successful execution
-    await logCronExecution("retry_tasks", true, stats);
+    await logCronExecution("process_tasks", true, stats);
 
     return NextResponse.json({
       success: true,
@@ -119,7 +187,7 @@ export async function POST(req: NextRequest) {
 
     // Log failed execution
     await logCronExecution(
-      "retry_tasks",
+      "process_tasks",
       false,
       { executionTimeMs: executionTime },
       errorMessage,
@@ -146,14 +214,17 @@ export async function GET() {
     await db.$queryRaw`SELECT 1`;
 
     // Get current queue status
-    const queueStats = await db.julesTask.count({
+    const retryQueueSize = await db.julesTask.count({
       where: { flaggedForRetry: true },
+    });
+    const pendingQueueSize = await db.julesTask.count({
+      where: { status: "pending_check" },
     });
 
     // Get recent cron executions
     const recentCronLogs = await db.webhookLog.findMany({
       where: {
-        eventType: "cron_retry_tasks",
+        eventType: "cron_process_tasks",
         createdAt: {
           gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // last 24 hours
         },
@@ -171,7 +242,11 @@ export async function GET() {
 
     return NextResponse.json({
       status: "healthy",
-      service: "Jules task retry cron job",
+      service: "Jules task processing cron job",
+      database: "connected",
+      retryQueueSize,
+      pendingQueueSize,
+      service: "Jules task processing cron job",
       database: "connected",
       currentQueueSize: queueStats,
       cronSecretConfigured: !!env.CRON_SECRET,

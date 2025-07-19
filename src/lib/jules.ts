@@ -134,7 +134,7 @@ export async function upsertJulesTask(params: TaskCreationParams) {
   });
 
   if (existingTask) {
-    // Update existing task
+    // Update existing task, but preserve the status
     return await db.julesTask.update({
       where: { githubIssueId },
       data: {
@@ -150,12 +150,8 @@ export async function upsertJulesTask(params: TaskCreationParams) {
     // Create new task
     return await db.julesTask.create({
       data: {
-        githubRepoId,
-        githubIssueId,
-        githubIssueNumber,
-        repoOwner,
-        repoName,
-        installationId,
+        ...params,
+        status: "pending_check", // Explicitly set initial status
         flaggedForRetry: false,
         retryCount: 0,
       },
@@ -625,6 +621,16 @@ export async function getFlaggedTasks() {
   return await db.julesTask.findMany({
     where: { flaggedForRetry: true },
     orderBy: { createdAt: "asc" }, // Process oldest first
+  });
+}
+
+/**
+ * Get all tasks with pending_check status
+ */
+export async function getPendingTasks() {
+  return await db.julesTask.findMany({
+    where: { status: "pending_check" },
+    orderBy: { createdAt: "asc" },
   });
 }
 
