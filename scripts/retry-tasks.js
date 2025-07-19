@@ -46,7 +46,7 @@ async function executeCronJob() {
     );
 
     // Execute the retry process
-    const result = await retryAllFlaggedTasks();
+    const result = await retryAllFlaggedTasks(10);
 
     // Get post-execution stats
     const postStats = await getTaskStats();

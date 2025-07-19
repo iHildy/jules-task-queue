@@ -631,7 +631,10 @@ export async function getFlaggedTasks() {
 /**
  * Bulk retry all flagged tasks
  */
-export async function retryAllFlaggedTasks(): Promise<{
+export async function retryAllFlaggedTasks(
+  batchSize: number = 20,
+  delay: number = 1000,
+): Promise<{
   attempted: number;
   successful: number;
   failed: number;
@@ -645,17 +648,33 @@ export async function retryAllFlaggedTasks(): Promise<{
     skipped: 0,
   };
 
-  for (const task of flaggedTasks) {
-    try {
-      const success = await processTaskRetry(task.id);
-      if (success) {
-        stats.successful++;
-      } else {
-        stats.skipped++;
-      }
-    } catch (error) {
-      console.error(`Failed to retry task ${task.id}:`, error);
-      stats.failed++;
+  for (let i = 0; i < flaggedTasks.length; i += batchSize) {
+    const batch = flaggedTasks.slice(i, i + batchSize);
+    console.log(
+      `Processing batch ${i / batchSize + 1} of ${Math.ceil(
+        flaggedTasks.length / batchSize,
+      )}`,
+    );
+
+    await Promise.all(
+      batch.map(async (task) => {
+        try {
+          const success = await processTaskRetry(task.id);
+          if (success) {
+            stats.successful++;
+          } else {
+            stats.skipped++;
+          }
+        } catch (error) {
+          console.error(`Failed to retry task ${task.id}:`, error);
+          stats.failed++;
+        }
+      }),
+    );
+
+    if (i + batchSize < flaggedTasks.length) {
+      console.log(`Waiting for ${delay}ms before next batch...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
