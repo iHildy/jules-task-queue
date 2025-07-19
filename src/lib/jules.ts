@@ -16,12 +16,18 @@ const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
 /**
  * Comment patterns that indicate Jules has hit task limits
  */
-const TASK_LIMIT_PATTERNS = ["You are currently at your concurrent task limit"];
+const TASK_LIMIT_PATTERNS = [
+  "You are currently at your concurrent task limit",
+  "You are currently at your concurrent task limit in TEST_2_QUEUE_2",
+];
 
 /**
  * Comment patterns that indicate Jules has started working
  */
-const WORKING_PATTERNS = ["When finished, you will see another comment"];
+const WORKING_PATTERNS = [
+  "When finished, you will see another comment",
+  "When finished, you will see another comment in TEST_2_QUEUE_2",
+];
 
 /**
  * Enhanced comment analysis with confidence scoring
@@ -370,7 +376,9 @@ export async function handleTaskLimit(
       repo,
       issueNumber,
       "jules",
-      "jules-queue",
+      analysis?.comment?.body?.includes("TEST_2_QUEUE_2")
+        ? "jules-queue-2"
+        : "jules-queue",
     );
 
     // Add refresh emoji reaction to Jules' comment if analysis available
@@ -594,7 +602,13 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       repoOwner,
       repoName,
       issueNumber,
-      "jules-queue",
+      issue.labels?.some(
+        (label) =>
+          (typeof label === "string" ? label : label.name)?.toLowerCase() ===
+          "jules-queue-2",
+      )
+        ? "jules-queue-2"
+        : "jules-queue",
       "jules",
     );
 
