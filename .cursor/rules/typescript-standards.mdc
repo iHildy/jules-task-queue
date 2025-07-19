@@ -1,0 +1,358 @@
+---
+description: 
+globs: *.tsx,*.ts
+alwaysApply: false
+---
+# TypeScript Standards & Best Practices
+
+# Project Tech Stack:
+## ALWAYS USE THE FOLLOWING IN CONJUNCTION WITH EACHOTHER TO HAVE A SAFE CODEBASE WHERE WE CAN MOVE FAST AND BREAK NOTHING
+- Next.js
+- Typescript + ESlint
+- Zod + Prisma + tRPC + React Query
+- Prisma (supabase) + Redis
+- ShadCN + TailwindCSS v4
+- Vitest Unit Tests
+
+## Core Principles
+
+### 1. Single Source of Truth
+
+- **All types must be defined in `app/types/`** - Never define types inline or in component files
+- **Use centralized interfaces** - Import from `app/types/index.ts` (prefered) or specific type files (only if required)
+- **No duplicate type definitions** - If a type exists, reuse it; if it needs modification, extend it properly. Grep for the type name AND the fields of the type to help search for an existing type.
+- **Search before creating** - Use `grep` to find existing types with similar fields always before creating new ones
+
+### 2. Type Creation Hierarchy (in order of preference)
+1. **Reuse existing type** from `app/types/`
+2. **Extend existing type** with `Pick<>`, `Omit<>`, or interface extension
+3. **Compose existing types** using intersection (`&`) or union (`|`)
+4. **ONLY as last resort** - Create new interface in appropriate `app/types/` file
+
+### 3. Strict Type Safety
+
+- **Never use `any` type** - Use proper typing, `unknown` (with documentation), or create specific interfaces if ABSOLUTELY REQUIRED
+- **No type assertions without validation** - Use type guards instead of `as` casting
+- **Explicit return types** - All functions must have explicit return type annotations
+- **Strict null checks** - Handle `null` and `undefined` explicitly
+
+### 4. `unknown` Type Documentation Requirement
+When `unknown` is absolutely necessary, add a comment on the line before explaining why:
+```typescript
+// Zod error format returns complex nested structure, casting to simplified Record for display
+formattedErrors as unknown as Record<string, { _errors: string[] }>
+
+// External API doesn't provide TypeScript types, validated at runtime
+const apiResponse = data as unknown as ExternalAPIResponse;
+```
+
+## Type Organization
+
+### File Structure
+
+```
+app/types/
+├── index.ts          # Main exports, re-exports from other files
+├── api.ts            # API response/request types
+├── database.ts       # Database entity types (Prisma extensions)
+├── campaign.ts       # Campaign-related types
+├── donation.ts       # Donation-related types
+├── shared.ts         # Shared utility types
+└── guards.ts         # Type guard functions
+```
+
+### Naming Conventions
+*   **Consistent Case:**  Maintain a consistent casing convention (e.g., camelCase for variables, PascalCase for components). Use `kebab-case` for file names e.g. `user-profile.tsx` or `user.router.ts`
+- **Interfaces**: PascalCase (e.g., `DonationLogEntry`, `CampaignStats`)
+- **Types**: PascalCase (e.g., `PaymentProvider`, `DonationMethod`)
+- **Enums**: PascalCase with descriptive values (e.g., `PaymentProvider.STRIPE`)
+- **Fields**: snake_case for database fields, camelCase for API/UI fields
+
+### Type Definitions
+
+#### ✅ Good Examples
+
+```typescript
+// Proper interface definition
+interface DonationLogEntry {
+  id: string;
+  created_at: string;
+  donor_name: string;
+  organization: OrganizationReference;
+  purchased_items: PurchasedItem[];
+}
+
+// Proper type guard
+function isDonationLogEntry(obj: unknown): obj is DonationLogEntry {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "id" in obj &&
+    typeof obj.id === "string" &&
+    "created_at" in obj &&
+    typeof obj.created_at === "string"
+  );
+}
+
+// Proper transformation function
+function transformDonationForAPI(
+  dbDonation: DatabaseDonation
+): DonationLogEntry {
+  return {
+    id: dbDonation.id,
+    created_at: dbDonation.created_at.toISOString(),
+    donor_name: dbDonation.donor_name,
+    organization: {
+      id: dbDonation.organization_id,
+      display_name: dbDonation.organization_display_name,
+    },
+    purchased_items: dbDonation.purchased_items.map(transformPurchasedItem),
+  };
+}
+```
+
+#### ❌ Bad Examples
+
+```typescript
+// DON'T: Inline type definitions
+const donation: { id: string; amount: number } = {};
+
+// DON'T: Using any
+const data: any = response.data;
+
+// DON'T: Compatibility fields
+interface Campaign {
+  display_name: string;
+  displayName?: string; // Legacy compatibility - REMOVE
+}
+
+// DON'T: Type assertions without validation
+const campaign = data as Campaign;
+
+// DON'T: Dual field mapping
+const transformed = {
+  display_name: org.display_name,
+  displayName: org.display_name, // Compatibility - REMOVE
+};
+```
+
+## Database Integration
+
+### Prisma Type Extensions
+
+- **Extend Prisma types** in `database.ts` for additional fields needed by the application
+- **Use Prisma.validator()** for complex query result types
+- **Transform at the boundary** - Convert Prisma types to API types at the service layer
+
+```typescript
+// Good: Extend Prisma types properly
+export type DatabaseDonation = Prisma.DonationGetPayload<{
+  include: {
+    purchased_items: true;
+    organization: true;
+  };
+}>;
+
+// Good: Transform at boundary
+export function transformDonationForAPI(
+  dbDonation: DatabaseDonation
+): DonationLogEntry {
+  // Explicit transformation logic
+}
+```
+
+### Field Naming Standards
+
+- **Database fields**: Use snake_case (matches Prisma/SQL conventions)
+- **API fields**: Use snake_case for consistency with database
+- **UI props**: Use camelCase only when required by external libraries
+- **Never mix conventions** in the same interface
+
+## API & Validation
+
+### Request/Response Types
+
+- **Define explicit interfaces** for all API endpoints in `api.ts`
+- **Use Zod schemas** for runtime validation (Phase 3)
+- **Export generated types** from Zod schemas
+
+```typescript
+// API request/response types
+interface CreateDonationRequest {
+  campaign_id: string;
+  donor_name: string;
+  donor_email: string;
+  total_amount: number;
+  purchased_items: PurchasedItem[];
+}
+
+interface CreateDonationResponse {
+  donation: DonationLogEntry;
+  payment_url: string;
+}
+```
+
+### Type Guards
+
+- **Create type guards** for all external data in `guards.ts`
+- **Use at API boundaries** - Validate all incoming data
+- **Fail fast** - Throw descriptive errors for invalid data
+
+```typescript
+export function validateDonationRequest(data: unknown): CreateDonationRequest {
+  if (!isDonationRequest(data)) {
+    throw new Error("Invalid donation request format");
+  }
+  return data;
+}
+```
+
+## Component Integration
+
+### Props & State
+
+- **Explicit prop interfaces** - Never use inline prop types
+- **Import from centralized types** - Don't redefine types in components
+- **Use discriminated unions** for variant props
+
+```typescript
+// Good: Explicit interface
+interface DonateFormProps {
+  campaign: Campaign;
+  onSubmit: (donation: CreateDonationRequest) => Promise<void>;
+  isDemo?: boolean;
+}
+
+// Good: Discriminated union for variants
+type ButtonVariant =
+  | { variant: "primary"; size: "sm" | "md" | "lg" }
+  | { variant: "secondary"; outline?: boolean };
+```
+
+### Event Handlers
+
+- **Type event handlers explicitly**
+- **Use proper event types** from React
+- **Extract complex logic** to separate functions with proper typing
+
+```typescript
+const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
+  event.preventDefault();
+  // Handle submission
+};
+```
+
+## Enforcement Rules
+
+### Build-Time Checks
+
+- **TypeScript strict mode** must be enabled
+- **No `any` types** allowed
+- **Refrain from `unknown` types** add a comment in the file of your reason for using it over a specific type
+- **Explicit return types** required for exported functions
+- **Unused imports/variables** must be removed
+
+### Code Review Standards
+
+- **All new code** must follow these standards
+- **Legacy code** should be refactored when touched
+- **Type definitions** must be reviewed for reusability
+- **No inline types** in component files
+
+### Testing Requirements
+
+- **Type tests** for complex type transformations
+- **Runtime validation tests** for type guards
+- **API contract tests** for request/response types
+
+## Common Patterns
+
+### Data Fetching
+
+```typescript
+// Good: Proper typing for data fetching
+async function fetchCampaign(id: string): Promise<Campaign> {
+  const response = await fetch(`/api/campaigns/${id}`);
+  const data: unknown = await response.json();
+
+  if (!isCampaign(data)) {
+    throw new Error("Invalid campaign data received");
+  }
+
+  return data;
+}
+```
+
+### State Management
+
+```typescript
+// Good: Explicit state typing
+interface CampaignState {
+  campaign: Campaign | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const [state, setState] = useState<CampaignState>({
+  campaign: null,
+  isLoading: false,
+  error: null,
+});
+```
+
+### Error Handling
+
+```typescript
+// Good: Typed error handling
+class ValidationError extends Error {
+  constructor(
+    message: string,
+    public field: string,
+    public code: string
+  ) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+function validateDonation(data: unknown): DonationLogEntry {
+  if (!isDonationLogEntry(data)) {
+    throw new ValidationError(
+      "Invalid donation format",
+      "donation",
+      "INVALID_FORMAT"
+    );
+  }
+  return data;
+}
+```
+
+## Tools & Configuration
+
+### Required ESLint Rules
+
+```json
+{
+  "@typescript-eslint/no-explicit-any": "error",
+  "@typescript-eslint/explicit-function-return-type": "error",
+  "@typescript-eslint/no-unused-vars": "error",
+  "@typescript-eslint/prefer-nullish-coalescing": "error",
+  "@typescript-eslint/prefer-optional-chain": "error"
+}
+```
+
+### TypeScript Config
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  }
+}
+```
+
+This document should be followed by all developers and AI agents working on the codebase. Any deviations must be justified and documented.

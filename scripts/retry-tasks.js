@@ -22,6 +22,9 @@ const rootDir = join(__dirname, "..");
 // Add the root directory to the module path
 process.chdir(rootDir);
 
+// Set environment variable to skip validation for cron script
+process.env.SKIP_ENV_VALIDATION = "true";
+
 // Import the retry function
 const { retryAllFlaggedTasks, getTaskStats } = await import(
   "../src/lib/jules.js"

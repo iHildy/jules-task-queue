@@ -47,3 +47,6 @@ functions/node_modules
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# testing output
+output.txt
