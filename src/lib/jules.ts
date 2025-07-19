@@ -629,6 +629,15 @@ export async function getFlaggedTasks() {
 }
 
 /**
+ * Get a task by its ID
+ */
+export async function getTaskById(taskId: number) {
+  return await db.julesTask.findUnique({
+    where: { id: taskId },
+  });
+}
+
+/**
  * Bulk retry all flagged tasks
  */
 export async function retryAllFlaggedTasks(): Promise<{
