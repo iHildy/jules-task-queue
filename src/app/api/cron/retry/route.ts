@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     const retryStats = await retryAllFlaggedTasks();
 
     // Also perform housekeeping - cleanup old completed tasks
-    const cleanupCount = await cleanupOldTasks(7); // Keep tasks for 7 days
+    const cleanupCount = await cleanupOldTasks(1); // Keep tasks for 1 days
 
     const executionTime = Date.now() - startTime;
     const stats = {
