@@ -159,3 +159,12 @@ model LabelPreferenceRepository {
   @@index([owner, name])
   @@map("label_preference_repositories")
 }
+
+model JobQueue {
+  id          Int      @id @default(autoincrement())
+  owner       String
+  repo        String
+  issueNumber Int
+  taskId      Int
+  runAt       DateTime
+}
