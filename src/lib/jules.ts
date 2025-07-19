@@ -1,3 +1,8 @@
+import {
+  JULES_BOT_USERNAMES,
+  TASK_LIMIT_PATTERNS,
+  WORKING_PATTERNS,
+} from "@/lib/config/jules";
 import { githubClient } from "@/lib/github";
 import { db } from "@/server/db";
 import type {
@@ -7,21 +12,6 @@ import type {
   GitHubIssueData,
   TaskCreationParams,
 } from "@/types";
-
-/**
- * Jules username patterns to look for
- */
-const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
-
-/**
- * Comment patterns that indicate Jules has hit task limits
- */
-const TASK_LIMIT_PATTERNS = ["You are currently at your concurrent task limit"];
-
-/**
- * Comment patterns that indicate Jules has started working
- */
-const WORKING_PATTERNS = ["When finished, you will see another comment"];
 
 /**
  * Enhanced comment analysis with confidence scoring
@@ -41,7 +31,7 @@ export function analyzeComment(comment: GitHubComment): CommentAnalysis {
   );
   if (taskLimitMatches.length > 0) {
     classification = "task_limit";
-    confidence = Math.min(1.0, taskLimitMatches.length * 0.4 + 0.4);
+    confidence = 0.5 + taskLimitMatches.length * 0.1; // Base confidence of 0.5, plus 0.1 for each matched pattern
     patterns_matched = taskLimitMatches;
   }
 
@@ -49,15 +39,15 @@ export function analyzeComment(comment: GitHubComment): CommentAnalysis {
   const workingMatches = WORKING_PATTERNS.filter((pattern) =>
     body.includes(pattern.toLowerCase()),
   );
-  if (workingMatches.length > 0 && confidence < 0.8) {
+  if (workingMatches.length > 0) {
     classification = "working";
-    confidence = Math.min(1.0, workingMatches.length * 0.3 + 0.5);
+    confidence = Math.max(confidence, 0.6 + workingMatches.length * 0.1); // Base confidence of 0.6, plus 0.1 for each matched pattern
     patterns_matched = workingMatches;
   }
 
   return {
     classification,
-    confidence,
+    confidence: Math.min(1.0, confidence), // Cap confidence at 1.0
     comment,
     patterns_matched,
     timestamp,
@@ -318,52 +308,52 @@ export async function handleTaskLimit(
   taskId: number,
   analysis?: CommentAnalysis,
 ): Promise<void> {
-  try {
+  console.log(
+    `Handling task limit for ${owner}/${repo}#${issueNumber}, confidence: ${
+      analysis?.confidence || "unknown"
+    }`,
+  );
+
+  // Validate current state before making changes
+  const currentTask = await db.julesTask.findUnique({
+    where: { id: taskId },
+  });
+
+  if (!currentTask) {
+    throw new Error(`Task ${taskId} not found in database`);
+  }
+
+  if (currentTask.flaggedForRetry) {
+    console.log(`Task ${taskId} already flagged for retry, skipping`);
+    return;
+  }
+
+  // Check if issue still has the jules label
+  const issue = await githubClient.getIssue(owner, repo, issueNumber);
+  const hasJulesLabel =
+    issue.labels?.some(
+      (label) =>
+        (typeof label === "string" ? label : label.name)?.toLowerCase() ===
+        "jules",
+    ) ?? false;
+
+  if (!hasJulesLabel) {
     console.log(
-      `Handling task limit for ${owner}/${repo}#${issueNumber}, confidence: ${
-        analysis?.confidence || "unknown"
-      }`,
+      `Issue ${owner}/${repo}#${issueNumber} no longer has 'jules' label, aborting task limit handling`,
     );
+    return;
+  }
 
-    // Validate current state before making changes
-    const currentTask = await db.julesTask.findUnique({
-      where: { id: taskId },
-    });
+  // Update task in database to be flagged for retry
+  await db.julesTask.update({
+    where: { id: taskId },
+    data: {
+      flaggedForRetry: true,
+      updatedAt: new Date(),
+    },
+  });
 
-    if (!currentTask) {
-      throw new Error(`Task ${taskId} not found in database`);
-    }
-
-    if (currentTask.flaggedForRetry) {
-      console.log(`Task ${taskId} already flagged for retry, skipping`);
-      return;
-    }
-
-    // Check if issue still has the jules label
-    const issue = await githubClient.getIssue(owner, repo, issueNumber);
-    const hasJulesLabel =
-      issue.labels?.some(
-        (label) =>
-          (typeof label === "string" ? label : label.name)?.toLowerCase() ===
-          "jules",
-      ) ?? false;
-
-    if (!hasJulesLabel) {
-      console.log(
-        `Issue ${owner}/${repo}#${issueNumber} no longer has 'jules' label, aborting task limit handling`,
-      );
-      return;
-    }
-
-    // Update task in database to be flagged for retry
-    await db.julesTask.update({
-      where: { id: taskId },
-      data: {
-        flaggedForRetry: true,
-        updatedAt: new Date(),
-      },
-    });
-
+  try {
     // Swap labels: remove 'jules', add 'jules-queue'
     await githubClient.swapLabels(
       owner,
