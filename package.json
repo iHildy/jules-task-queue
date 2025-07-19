@@ -19,7 +19,7 @@
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "type-check": "tsc --noEmit",
-    "cron:run": "node scripts/retry-tasks.js",
+    "cron:run": "curl -X POST http://localhost:3000/api/cron/retry --header 'Authorization: Bearer $CRON_SECRET'",
     "ngrok": "ngrok http 3000"
   },
   "dependencies": {
@@ -75,6 +75,7 @@
     "prettier": "3.6.2",
     "prisma": "^6.10.1",
     "tailwindcss": "^4.1.11",
+    "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"

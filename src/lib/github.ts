@@ -41,8 +41,18 @@ class GitHubClient {
   /**
    * Get issue details
    */
-  public async getIssue(owner: string, repo: string, issue_number: number) {
-    const response = await githubAppClient.getIssue(owner, repo, issue_number);
+  public async getIssue(
+    owner: string,
+    repo: string,
+    issue_number: number,
+    installationId?: number,
+  ) {
+    const response = await githubAppClient.getIssue(
+      owner,
+      repo,
+      issue_number,
+      installationId,
+    );
     return response.data;
   }
 
@@ -53,11 +63,13 @@ class GitHubClient {
     owner: string,
     repo: string,
     issue_number: number,
+    installationId?: number,
   ) {
     const response = await githubAppClient.getIssueComments(
       owner,
       repo,
       issue_number,
+      installationId,
     );
     return response.data;
   }
@@ -87,12 +99,14 @@ class GitHubClient {
     repo: string,
     issue_number: number,
     body: string,
+    installationId?: number,
   ) {
     const response = await githubAppClient.createComment(
       owner,
       repo,
       issue_number,
       body,
+      installationId,
     );
     console.log(`Created comment on ${owner}/${repo}#${issue_number}`);
     return response.data;
@@ -114,12 +128,14 @@ class GitHubClient {
       | "hooray"
       | "rocket"
       | "eyes",
+    installationId?: number,
   ) {
     const response = await githubAppClient.addReactionToComment(
       owner,
       repo,
       comment_id,
       content,
+      installationId,
     );
     console.log(
       `Added ${content} reaction to comment ${comment_id} on ${owner}/${repo}`,
@@ -137,6 +153,7 @@ class GitHubClient {
     originalComment: string,
     replyText: string,
     originalAuthor?: string,
+    installationId?: number,
   ) {
     const quotedText = originalComment
       .split("\n")
@@ -146,7 +163,7 @@ class GitHubClient {
     const authorText = originalAuthor ? `@${originalAuthor} ` : "";
     const body = `${authorText}${quotedText}\n\n${replyText}`;
 
-    return this.createComment(owner, repo, issue_number, body);
+    return this.createComment(owner, repo, issue_number, body, installationId);
   }
 
   /**
@@ -157,8 +174,15 @@ class GitHubClient {
     repo: string,
     issue_number: number,
     label: string,
+    installationId?: number,
   ) {
-    await githubAppClient.addLabel(owner, repo, issue_number, label);
+    await githubAppClient.addLabel(
+      owner,
+      repo,
+      issue_number,
+      label,
+      installationId,
+    );
     console.log(`Added label '${label}' to ${owner}/${repo}#${issue_number}`);
   }
 
@@ -170,9 +194,16 @@ class GitHubClient {
     repo: string,
     issue_number: number,
     label: string,
+    installationId?: number,
   ) {
     try {
-      await githubAppClient.removeLabel(owner, repo, issue_number, label);
+      await githubAppClient.removeLabel(
+        owner,
+        repo,
+        issue_number,
+        label,
+        installationId,
+      );
       console.log(
         `Removed label '${label}' from ${owner}/${repo}#${issue_number}`,
       );
@@ -225,12 +256,19 @@ class GitHubClient {
     issue_number: number,
     removeLabel: string,
     addLabel: string,
+    installationId?: number,
   ) {
     try {
       // Remove the old label and add the new one
       await Promise.all([
-        this.removeLabel(owner, repo, issue_number, removeLabel),
-        this.addLabel(owner, repo, issue_number, addLabel),
+        this.removeLabel(
+          owner,
+          repo,
+          issue_number,
+          removeLabel,
+          installationId,
+        ),
+        this.addLabel(owner, repo, issue_number, addLabel, installationId),
       ]);
       console.log(
         `Swapped labels: '${removeLabel}' -> '${addLabel}' on ${owner}/${repo}#${issue_number}`,

@@ -16,7 +16,10 @@ const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
 /**
  * Comment patterns that indicate Jules has hit task limits
  */
-const TASK_LIMIT_PATTERNS = ["You are currently at your concurrent task limit"];
+const TASK_LIMIT_PATTERNS = [
+  "You are currently at your concurrent task limit",
+  "You are currently at your limit of 5 running tasks",
+];
 
 /**
  * Comment patterns that indicate Jules has started working
@@ -172,6 +175,7 @@ export async function checkJulesComments(
   issueNumber: number,
   maxRetries: number = 3,
   minConfidence: number = 0.6,
+  installationId?: number,
 ): Promise<{
   action: CommentClassification;
   comment?: GitHubComment;
@@ -193,6 +197,7 @@ export async function checkJulesComments(
         owner,
         repo,
         issueNumber,
+        installationId,
       );
 
       // Filter for Jules comments (most recent first)
@@ -317,6 +322,7 @@ export async function handleTaskLimit(
   issueNumber: number,
   taskId: number,
   analysis?: CommentAnalysis,
+  installationId?: number,
 ): Promise<void> {
   try {
     console.log(
@@ -340,7 +346,12 @@ export async function handleTaskLimit(
     }
 
     // Check if issue still has the jules label
-    const issue = await githubClient.getIssue(owner, repo, issueNumber);
+    const issue = await githubClient.getIssue(
+      owner,
+      repo,
+      issueNumber,
+      installationId,
+    );
     const hasJulesLabel =
       issue.labels?.some(
         (label) =>
@@ -371,6 +382,7 @@ export async function handleTaskLimit(
       issueNumber,
       "jules",
       "jules-queue",
+      installationId,
     );
 
     // Add refresh emoji reaction to Jules' comment if analysis available
@@ -429,6 +441,7 @@ export async function handleWorking(
   issueNumber: number,
   taskId: number,
   analysis?: CommentAnalysis,
+  installationId?: number,
 ): Promise<void> {
   try {
     console.log(
@@ -463,6 +476,7 @@ export async function handleWorking(
           repo,
           analysis.comment.id,
           "+1",
+          installationId,
         );
         console.log(
           `Added thumbs up emoji reaction to Jules comment for working status`,
@@ -496,6 +510,7 @@ export async function processWorkflowDecision(
     analysis?: CommentAnalysis;
     retryCount?: number;
   },
+  installationId?: number,
 ): Promise<void> {
   const { action, analysis } = result;
 
@@ -507,11 +522,25 @@ export async function processWorkflowDecision(
 
   switch (action) {
     case "task_limit":
-      await handleTaskLimit(owner, repo, issueNumber, taskId, analysis);
+      await handleTaskLimit(
+        owner,
+        repo,
+        issueNumber,
+        taskId,
+        analysis,
+        installationId,
+      );
       break;
 
     case "working":
-      await handleWorking(owner, repo, issueNumber, taskId, analysis);
+      await handleWorking(
+        owner,
+        repo,
+        issueNumber,
+        taskId,
+        analysis,
+        installationId,
+      );
       break;
 
     case "unknown":
@@ -535,6 +564,7 @@ export async function processWorkflowDecision(
             result.comment.body || "Unknown comment",
             errorMsg,
             result.comment.user?.login,
+            installationId,
           );
         } catch (reactionError) {
           console.warn(
@@ -576,7 +606,12 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
     );
 
     // Check if issue still has 'Human' label - if so, skip
-    const issue = await githubClient.getIssue(repoOwner, repoName, issueNumber);
+    const issue = await githubClient.getIssue(
+      repoOwner,
+      repoName,
+      issueNumber,
+      task.installationId || undefined,
+    );
     const hasHumanLabel =
       issue.labels?.some(
         (label) =>
@@ -596,6 +631,7 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       issueNumber,
       "jules-queue",
       "jules",
+      task.installationId || undefined,
     );
 
     // Update retry metrics

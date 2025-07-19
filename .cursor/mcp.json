@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "linear": {
+      "command": "pnpm dlx",
+      "args": ["-y", "mcp-remote", "https://mcp.linear.app/sse"]
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref",
+        "PROJECT_REF_GOES_HERE",
+        "--read-only",
+        "--access-token",
+        "SUPABASE_ACCESS_TOKEN"
+      ]
+    }
+  }
+}

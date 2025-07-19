@@ -120,12 +120,8 @@ class GitHubAppClient {
     }
 
     try {
-      const { data } = await this.app.octokit.request(
-        "GET /installation/repositories",
-        {
-          installation_id: installationId,
-        },
-      );
+      const octokit = await this.getInstallationOctokit(installationId);
+      const { data } = await octokit.request("GET /installation/repositories");
       return data.repositories;
     } catch (error) {
       console.error(
@@ -356,12 +352,8 @@ class GitHubAppClient {
     }
 
     try {
-      const { data } = await this.app.octokit.request(
-        "GET /app/installations/{installation_id}",
-        {
-          installation_id: installationId,
-        },
-      );
+      const octokit = await this.getInstallationOctokit(installationId);
+      const { data } = await octokit.request("GET /installation");
       return data;
     } catch (error) {
       console.error(

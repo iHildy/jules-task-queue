@@ -23,11 +23,9 @@ async function scheduleCommentCheck(
     `Scheduling comment check for ${owner}/${repo}#${issueNumber} in ${delayMs}ms`,
   );
 
-  // For now, use a simple setTimeout. In production, you'd want to use:
-  // - Vercel Cron Jobs
-  // - Upstash QStash for reliable delayed execution
-  // - Redis with TTL
-  // - Database-based job queue
+  // Use setTimeout with Vercel Functions Node.js runtime (supports up to 300s)
+  // This works because Vercel Functions with Node.js runtime can handle longer execution times
+  // compared to Edge Functions which have stricter limits
 
   setTimeout(async () => {
     try {
@@ -72,6 +70,7 @@ async function executeCommentCheck(
       issueNumber,
       3, // maxRetries
       0.6, // minConfidence
+      task.installationId || undefined,
     );
 
     console.log(
@@ -91,6 +90,7 @@ async function executeCommentCheck(
       issueNumber,
       taskId,
       commentResult,
+      task.installationId || undefined,
     );
 
     // Log successful comment check
@@ -225,7 +225,25 @@ export async function processJulesLabelEvent(
       });
 
       if (existingTask) {
-        // Update task to indicate jules label was removed
+        // Check if this is part of a queue operation (jules -> jules-queue swap)
+        // If the issue has jules-queue label, don't unflag the task
+        const hasJulesQueueLabel = issue.labels.some(
+          (l) => l.name.toLowerCase() === "jules-queue",
+        );
+
+        if (hasJulesQueueLabel) {
+          console.log(
+            `Jules label removed from ${owner}/${repo}#${issue.number} but jules-queue label present - keeping task flagged for retry`,
+          );
+          return {
+            action: "task_updated",
+            taskId: existingTask.id,
+            message:
+              "Jules label removed but jules-queue present - task remains flagged",
+          };
+        }
+
+        // Only unflag if this is a manual removal (not part of queue operation)
         await db.julesTask.update({
           where: { id: existingTask.id },
           data: {
@@ -235,13 +253,13 @@ export async function processJulesLabelEvent(
         });
 
         console.log(
-          `Jules label removed from ${owner}/${repo}#${issue.number}, updated task ${existingTask.id}`,
+          `Jules label manually removed from ${owner}/${repo}#${issue.number}, updated task ${existingTask.id}`,
         );
 
         return {
           action: "task_updated",
           taskId: existingTask.id,
-          message: "Jules label removed, task updated",
+          message: "Jules label manually removed, task unflagged",
         };
       }
 
