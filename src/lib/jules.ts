@@ -589,16 +589,27 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       return false;
     }
 
-    // Swap labels: remove 'jules-queue', add 'jules'
-    await githubClient.swapLabels(
-      repoOwner,
-      repoName,
-      issueNumber,
-      "jules-queue",
-      "jules",
-    );
+    // Check if the 'jules-queue' label is still present
+    const hasQueueLabel =
+      issue.labels?.some(
+        (label) =>
+          (typeof label === "string" ? label : label.name)?.toLowerCase() ===
+          "jules-queue",
+      ) ?? false;
 
-    // Update retry metrics
+    if (!hasQueueLabel) {
+      console.log(
+        `Task ${taskId} no longer has 'jules-queue' label, skipping retry as it might have been manually triggered or resolved`,
+      );
+      // Mark as not needing retry to prevent it from being picked up again
+      await db.julesTask.update({
+        where: { id: taskId },
+        data: { flaggedForRetry: false, updatedAt: new Date() },
+      });
+      return false;
+    }
+
+    // Update retry metrics first to avoid race conditions
     await db.julesTask.update({
       where: { id: taskId },
       data: {
@@ -608,12 +619,24 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       },
     });
 
+    // Swap labels: remove 'jules-queue', add 'jules'
+    await githubClient.swapLabels(
+      repoOwner,
+      repoName,
+      issueNumber,
+      "jules-queue",
+      "jules",
+    );
+
     console.log(
       `Successfully retried task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
     );
     return true;
   } catch (error) {
     console.error(`Failed to process retry for task ${taskId}:`, error);
+    // If the error is critical, consider re-flagging the task or logging for manual review
+    // For now, we assume the task is no longer flagged and will be handled by the next check if needed
+    // Re-flagging could cause loops, so we'll be conservative
     return false;
   }
 }
