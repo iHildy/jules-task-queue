@@ -6,6 +6,13 @@ import { cookies } from "next/headers";
 import * as crypto from "crypto";
 import logger from "@/lib/logger";
 
+// Global fallback rate limiting storage
+declare global {
+  var fallbackRateLimits:
+    | Map<string, { count: number; windowStart: number }>
+    | undefined;
+}
+
 // Type interface for rate limit operations
 interface RateLimitClient {
   deleteMany: (args: {
@@ -139,8 +146,60 @@ async function checkRateLimit(
     };
   } catch (error) {
     logger.error({ error, identifier, endpoint }, "Rate limit check failed");
-    // On error, allow the request to prevent blocking legitimate users
-    return { allowed: true };
+
+    // SECURITY FIX: Do NOT allow all requests on error
+    // Instead use a restrictive fallback rate limiter
+
+    // Simple in-memory fallback with strict limits
+    const fallbackKey = `${identifier}:fallback`;
+    const now = Date.now();
+    const fallbackWindowMs = 60 * 1000; // 1 minute
+    const fallbackMaxRequests = 2; // Very restrictive
+
+    // Get or create fallback entry
+    if (!global.fallbackRateLimits) {
+      global.fallbackRateLimits = new Map();
+    }
+
+    const existing = global.fallbackRateLimits.get(fallbackKey);
+
+    // Clean expired entries
+    if (existing && now - existing.windowStart > fallbackWindowMs) {
+      global.fallbackRateLimits.delete(fallbackKey);
+    }
+
+    const current = global.fallbackRateLimits.get(fallbackKey) || {
+      count: 0,
+      windowStart: now,
+    };
+
+    // Check if limit exceeded
+    if (current.count >= fallbackMaxRequests) {
+      logger.warn(
+        { identifier, count: current.count, maxRequests: fallbackMaxRequests },
+        "Fallback rate limit exceeded - denying request",
+      );
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime: new Date(current.windowStart + fallbackWindowMs),
+      };
+    }
+
+    // Increment counter
+    current.count++;
+    global.fallbackRateLimits.set(fallbackKey, current);
+
+    logger.warn(
+      { identifier, count: current.count, maxRequests: fallbackMaxRequests },
+      "Using fallback rate limiter due to database error",
+    );
+
+    return {
+      allowed: true,
+      remaining: fallbackMaxRequests - current.count,
+      resetTime: new Date(current.windowStart + fallbackWindowMs),
+    };
   }
 }
 
