@@ -28,7 +28,7 @@ graph TD
 
     I --> K["Mark JulesTask.flaggedForRetry = true"]
     K --> L["Remove 'jules' label from GitHub issue"]
-    K --> M["Add 'jules-queue' label to GitHub issue"]
+    L --> M["Add 'jules-queue' label to GitHub issue"]
     M --> N["Task queued for retry"]
 
     J --> O["Jules is actively actively working"]

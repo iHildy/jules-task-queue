@@ -1,10 +1,22 @@
 import { env } from "@/lib/env";
 import { db } from "@/server/db";
 import { NextRequest, NextResponse } from "next/server";
+import * as crypto from "crypto";
+import logger from "@/lib/logger";
+import { Prisma } from "@prisma/client";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<Response> {
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${env.CRON_SECRET}`) {
+  const expectedAuthHeader = `Bearer ${env.CRON_SECRET}`;
+
+  if (
+    !authHeader ||
+    !crypto.timingSafeEqual(
+      Buffer.from(authHeader),
+      Buffer.from(expectedAuthHeader),
+    )
+  ) {
+    logger.warn("Unauthorized access to cleanup cron job");
     return new Response("Unauthorized", {
       status: 401,
     });
@@ -13,31 +25,38 @@ export async function GET(request: NextRequest) {
   try {
     const now = new Date();
 
-    // 1. Clean up expired refresh tokens
-    const expiredTokensResult = await db.gitHubInstallation.updateMany({
-      where: {
-        refresh_token_expires_at: {
-          lt: now,
-        },
-      },
-      data: {
-        user_access_token: null,
-        refresh_token: null,
-        token_expires_at: null,
-        refresh_token_expires_at: null,
-      },
-    });
+    const [expiredTokensResult, oldInstallationsResult] = await db.$transaction(
+      async (prisma: Prisma.TransactionClient) => {
+        // 1. Clean up expired refresh tokens
+        const expiredTokens = await prisma.gitHubInstallation.updateMany({
+          where: {
+            refresh_token_expires_at: {
+              lt: now,
+            },
+          },
+          data: {
+            user_access_token: null,
+            refresh_token: null,
+            token_expires_at: null,
+            refresh_token_expires_at: null,
+          },
+        });
 
-    // 2. Clean up old, uninstalled installations (e.g., older than 30 days)
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const oldInstallationsResult = await db.gitHubInstallation.deleteMany({
-      where: {
-        suspendedAt: {
-          lt: thirtyDaysAgo,
-        },
-        suspendedBy: "uninstalled",
+        // 2. Clean up old, uninstalled installations (e.g., older than 30 days)
+        const thirtyDaysAgo = new Date(
+          now.getTime() - 30 * 24 * 60 * 60 * 1000,
+        );
+        const oldInstallations = await prisma.gitHubInstallation.deleteMany({
+          where: {
+            suspendedAt: {
+              lt: thirtyDaysAgo,
+            },
+            suspendedBy: "uninstalled",
+          },
+        });
+        return [expiredTokens, oldInstallations] as const;
       },
-    });
+    );
 
     const response = {
       message: "Cleanup cron job executed successfully.",
@@ -46,11 +65,14 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     };
 
-    console.log("[Cron Cleanup]", response);
+    logger.info(
+      { response },
+      "[Cron Cleanup] Cleanup cron job executed successfully.",
+    );
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("[Cron Cleanup] Error executing cleanup job:", error);
+    logger.error({ error }, "[Cron Cleanup] Error executing cleanup job:");
     return NextResponse.json(
       {
         error: "Internal Server Error",

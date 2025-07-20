@@ -21,11 +21,8 @@ class GitHubClient {
   /**
    * Get a GitHub App client authenticated as the user
    */
-  public async getUserOwnedGitHubAppClient(
-    installationId: number,
-    userAccessToken: string,
-  ) {
-    return userOwnedGithubAppClient(installationId, userAccessToken);
+  public async getUserOwnedGitHubAppClient(userAccessToken: string) {
+    return userOwnedGithubAppClient(userAccessToken);
   }
 
   /**
@@ -181,16 +178,29 @@ class GitHubClient {
     installationId?: number,
     userAccessToken?: string,
   ) {
-    const client = userAccessToken
-      ? await this.getUserOwnedGitHubAppClient(installationId!, userAccessToken)
-      : await githubAppClient.getInstallationOctokit(installationId!);
-
-    await client.rest.issues.addLabels({
-      owner,
-      repo,
-      issue_number,
-      labels: [label],
-    });
+    if (userAccessToken) {
+      const client = await this.getUserOwnedGitHubAppClient(userAccessToken);
+      await client.rest.issues.addLabels({
+        owner,
+        repo,
+        issue_number,
+        labels: [label],
+      });
+    } else {
+      if (!installationId) {
+        throw new Error(
+          "installationId is required when userAccessToken is not provided",
+        );
+      }
+      const client =
+        await githubAppClient.getInstallationOctokit(installationId);
+      await client.rest.issues.addLabels({
+        owner,
+        repo,
+        issue_number,
+        labels: [label],
+      });
+    }
     logger.info(`Added label '${label}' to ${owner}/${repo}#${issue_number}`);
   }
 
@@ -206,12 +216,17 @@ class GitHubClient {
     userAccessToken?: string,
   ) {
     try {
-      const client = userAccessToken
-        ? await this.getUserOwnedGitHubAppClient(
-            installationId!,
-            userAccessToken,
-          )
-        : await githubAppClient.getInstallationOctokit(installationId!);
+      let client;
+      if (userAccessToken) {
+        client = await this.getUserOwnedGitHubAppClient(userAccessToken);
+      } else {
+        if (!installationId) {
+          throw new Error(
+            "installationId is required when userAccessToken is not provided",
+          );
+        }
+        client = await githubAppClient.getInstallationOctokit(installationId);
+      }
       await client.rest.issues.removeLabel({
         owner,
         repo,

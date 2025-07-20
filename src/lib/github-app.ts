@@ -373,7 +373,6 @@ class GitHubAppClient {
 export const githubAppClient = GitHubAppClient.getInstance();
 
 export const userOwnedGithubAppClient = async (
-  installationId: number,
   userAccessToken: string,
 ): Promise<Octokit> => {
   return new Octokit({
