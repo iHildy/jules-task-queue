@@ -43,9 +43,8 @@ export async function GET(request: NextRequest): Promise<Response> {
         });
 
         // 2. Clean up old, uninstalled installations (e.g., older than 30 days)
-        const thirtyDaysAgo = new Date(
-          now.getTime() - 30 * 24 * 60 * 60 * 1000,
-        );
+        const THIRTY_DAYS_IN_MS = 30 * 24 * 60 * 60 * 1000;
+        const thirtyDaysAgo = new Date(now.getTime() - THIRTY_DAYS_IN_MS);
         const oldInstallations = await prisma.gitHubInstallation.deleteMany({
           where: {
             suspendedAt: {

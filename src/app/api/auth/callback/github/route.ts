@@ -6,25 +6,153 @@ import { cookies } from "next/headers";
 import * as crypto from "crypto";
 import logger from "@/lib/logger";
 
-// Simple in-memory rate limiter (for demonstration purposes)
-const rateLimit = new Map<string, number>();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 10; // Max 10 requests per minute
+// Type interface for rate limit operations
+interface RateLimitClient {
+  deleteMany: (args: {
+    where: { expiresAt: { lt: Date } };
+  }) => Promise<{ count: number }>;
+  findUnique: (args: {
+    where: {
+      identifier_endpoint: {
+        identifier: string;
+        endpoint: string;
+      };
+    };
+  }) => Promise<{
+    id: number;
+    identifier: string;
+    endpoint: string;
+    requests: number;
+    windowStart: Date;
+    expiresAt: Date;
+  } | null>;
+  create: (args: {
+    data: {
+      identifier: string;
+      endpoint: string;
+      requests: number;
+      windowStart: Date;
+      expiresAt: Date;
+    };
+  }) => Promise<unknown>;
+  update: (args: {
+    where: { id: number };
+    data: {
+      requests?: number;
+      windowStart?: Date;
+      expiresAt?: Date;
+    };
+  }) => Promise<unknown>;
+}
+
+// Database-based rate limiter for production use
+async function checkRateLimit(
+  identifier: string,
+  maxRequests: number = 10,
+  windowMs: number = 60 * 1000, // 1 minute default
+) {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - windowMs);
+  const endpoint = "/api/auth/callback/github";
+
+  try {
+    const rateLimitDb = db as unknown as { rateLimit: RateLimitClient };
+
+    // Clean up expired rate limit entries first
+    await rateLimitDb.rateLimit.deleteMany({
+      where: {
+        expiresAt: {
+          lt: now,
+        },
+      },
+    });
+
+    // Get existing rate limit record
+    const existingLimit = await rateLimitDb.rateLimit.findUnique({
+      where: {
+        identifier_endpoint: {
+          identifier,
+          endpoint,
+        },
+      },
+    });
+
+    if (!existingLimit) {
+      // First request in window - create new record
+      await rateLimitDb.rateLimit.create({
+        data: {
+          identifier,
+          endpoint,
+          requests: 1,
+          windowStart: now,
+          expiresAt: new Date(now.getTime() + windowMs),
+        },
+      });
+
+      return {
+        allowed: true,
+        remaining: maxRequests - 1,
+        resetTime: new Date(now.getTime() + windowMs),
+      };
+    }
+
+    // Check if window has expired
+    if (existingLimit.windowStart < windowStart) {
+      // Window expired - reset counter
+      await rateLimitDb.rateLimit.update({
+        where: { id: existingLimit.id },
+        data: {
+          requests: 1,
+          windowStart: now,
+          expiresAt: new Date(now.getTime() + windowMs),
+        },
+      });
+
+      return {
+        allowed: true,
+        remaining: maxRequests - 1,
+        resetTime: new Date(now.getTime() + windowMs),
+      };
+    }
+
+    // Window is still active
+    if (existingLimit.requests >= maxRequests) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime: existingLimit.expiresAt,
+      };
+    }
+
+    // Increment counter
+    await rateLimitDb.rateLimit.update({
+      where: { id: existingLimit.id },
+      data: {
+        requests: existingLimit.requests + 1,
+      },
+    });
+
+    return {
+      allowed: true,
+      remaining: maxRequests - existingLimit.requests - 1,
+      resetTime: existingLimit.expiresAt,
+    };
+  } catch (error) {
+    logger.error({ error, identifier, endpoint }, "Rate limit check failed");
+    // On error, allow the request to prevent blocking legitimate users
+    return { allowed: true };
+  }
+}
 
 export async function GET(request: NextRequest) {
-  // Apply rate limiting
+  // Apply database-based rate limiting
   const ip = request.headers.get("x-forwarded-for") || "unknown";
-  const lastRequestTime = rateLimit.get(ip) || 0;
-  const currentTime = Date.now();
+  const rateLimitResult = await checkRateLimit(ip);
 
-  if (
-    currentTime - lastRequestTime <
-    RATE_LIMIT_WINDOW_MS / MAX_REQUESTS_PER_WINDOW
-  ) {
+  if (!rateLimitResult.allowed) {
     logger.warn({ ip }, "Rate limit exceeded");
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
-  rateLimit.set(ip, currentTime);
 
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");
