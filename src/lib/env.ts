@@ -20,6 +20,9 @@ export const env = createEnv({
     GITHUB_APP_CLIENT_SECRET: z
       .string()
       .min(1, "GITHUB_APP_CLIENT_SECRET is required"),
+    GITHUB_APP_CALLBACK_URL: z
+      .string()
+      .url("GITHUB_APP_CALLBACK_URL must be a valid URL"),
 
     // Application
     NODE_ENV: z
@@ -28,6 +31,9 @@ export const env = createEnv({
 
     // Cron Job Security
     CRON_SECRET: z.string().optional(),
+
+    // Token Encryption
+    TOKEN_ENCRYPTION_KEY: z.string().min(1, "TOKEN_ENCRYPTION_KEY is required"),
 
     // Optional: Custom processing settings
     COMMENT_CHECK_DELAY_MS: z.coerce.number().default(60000),
@@ -70,6 +76,7 @@ export const env = createEnv({
     GITHUB_APP_WEBHOOK_SECRET: process.env.GITHUB_APP_WEBHOOK_SECRET,
     GITHUB_APP_CLIENT_ID: process.env.GITHUB_APP_CLIENT_ID,
     GITHUB_APP_CLIENT_SECRET: process.env.GITHUB_APP_CLIENT_SECRET,
+    GITHUB_APP_CALLBACK_URL: process.env.GITHUB_APP_CALLBACK_URL,
     NODE_ENV: process.env.NODE_ENV,
     CRON_SECRET: process.env.CRON_SECRET,
     COMMENT_CHECK_DELAY_MS: process.env.COMMENT_CHECK_DELAY_MS,
@@ -78,6 +85,7 @@ export const env = createEnv({
     STAR_REQUIREMENT: process.env.STAR_REQUIREMENT,
     REPO_OWNER: process.env.REPO_OWNER,
     REPO_NAME: process.env.REPO_NAME,
+    TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY,
 
     // Client
     NEXT_PUBLIC_GITHUB_APP_NAME: process.env.NEXT_PUBLIC_GITHUB_APP_NAME,

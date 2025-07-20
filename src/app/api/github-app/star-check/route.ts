@@ -52,9 +52,9 @@ export async function GET(req: NextRequest) {
         : installationInfo.account.name;
 
     // Get an installation-scoped Octokit client
-    const octokit = await githubClient.getUserOwnedGitHubAppClient(
-      parseInt(installationId),
-    );
+    const octokit = await githubClient
+      .getGitHubAppClient()
+      .getInstallationOctokit(parseInt(installationId));
 
     // Check if the user has starred the repository (passive check)
     const isStarred = await githubClient.checkIfUserStarredRepository(

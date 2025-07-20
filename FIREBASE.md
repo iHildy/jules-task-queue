@@ -37,8 +37,9 @@ You'll need these values during setup:
 - `NEXT_PUBLIC_GITHUB_APP_ID`: GitHub App ID from your app settings
 - `GITHUB_APP_PRIVATE_KEY`: GitHub App private key (base64 encoded)
 - `GITHUB_APP_WEBHOOK_SECRET`: Secret for GitHub App webhook verification
-- `GITHUB_APP_CLIENT_ID`: GitHub App client ID (optional)
-- `GITHUB_APP_CLIENT_SECRET`: GitHub App client secret (optional)
+- `GITHUB_APP_CLIENT_ID`: GitHub App client ID (for OAuth user access tokens)
+- `GITHUB_APP_CLIENT_SECRET`: GitHub App client secret (for OAuth user access tokens)
+- `GITHUB_APP_CALLBACK_URL`: Callback URL for GitHub App OAuth flow
 - `NEXT_PUBLIC_GITHUB_APP_NAME`: Your GitHub App name (optional)
 - `CRON_SECRET`: Random string for cron job authentication
 
@@ -122,6 +123,9 @@ firebase apphosting:secrets:set GITHUB_APP_CLIENT_ID
 
 firebase apphosting:secrets:set GITHUB_APP_CLIENT_SECRET
 # Enter your GitHub App client secret when prompted (optional)
+
+firebase apphosting:secrets:set GITHUB_APP_CALLBACK_URL
+# Enter your GitHub App callback URL when prompted
 
 firebase apphosting:secrets:set NEXT_PUBLIC_GITHUB_APP_NAME
 # Enter your GitHub App name when prompted (optional)

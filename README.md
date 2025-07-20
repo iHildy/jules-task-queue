@@ -30,10 +30,12 @@ This tool is the better way. It transforms Jules from a tool you have to manage 
 
 ## ✨ Features
 
+- **🔑 User Access Token Integration**: Seamlessly integrates with GitHub App user access tokens, ensuring Jules responds to automated label changes.
 - **🤖 Task Status Detection**: Automatically detects when Jules is at capacity and intelligently queues new tasks.
 - **🔄 Auto-Retry Logic**: 30-minute retry cycles with intelligent label swapping and failure recovery.
 - **🚀 Easy Self-Hosting**: Deploy with one click to Vercel, Firebase, or use the provided Docker Compose setup.
 - **🔐 GitHub Native**: Secure webhook integration with signature verification and comprehensive audit logging.
+- **📊 Enhanced Observability**: Integrated structured logging with Pino for better monitoring and debugging.
 - **🔒 Type Safe**: End-to-end TypeScript with tRPC and Zod validation for bulletproof deployments.
 - **⚙️ Zero Config (Hosted)**: Install the GitHub App and you're done. No complex setup required.
 

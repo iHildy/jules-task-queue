@@ -6,6 +6,7 @@ import { GitHubLabelEventSchema } from "@/types";
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import logger from "@/lib/logger";
 
 // GitHub webhook payload interfaces
 interface GitHubAccount {
@@ -86,7 +87,7 @@ interface GitHubWebhookEvent {
  */
 function verifyGitHubAppSignature(payload: string, signature: string): boolean {
   if (!env.GITHUB_APP_WEBHOOK_SECRET) {
-    console.warn(
+    logger.warn(
       "GITHUB_APP_WEBHOOK_SECRET not configured - webhook verification disabled",
     );
     return true; // Allow in development if not configured
@@ -131,7 +132,7 @@ async function logWebhookEvent(
     });
   } catch (logError) {
     // Log to console if database logging fails
-    console.error("Failed to log webhook event:", logError);
+    logger.error("Failed to log webhook event:", logError);
   }
 }
 
@@ -145,49 +146,169 @@ async function handleInstallationEvent(
   const installation = payload.installation;
 
   if (action === "created") {
-    // Install app
-    await db.gitHubInstallation.upsert({
+    await db.$transaction(async (prisma) => {
+      // Install app
+      await prisma.gitHubInstallation.upsert({
+        where: { id: installation.id },
+        update: {
+          accountId: BigInt(installation.account.id),
+          accountLogin: installation.account.login,
+          accountType: installation.account.type,
+          targetType: installation.target_type,
+          permissions: JSON.stringify(installation.permissions),
+          events: JSON.stringify(installation.events),
+          singleFileName: installation.single_file_name,
+          repositorySelection: installation.repository_selection,
+          suspendedAt: installation.suspended_at
+            ? new Date(installation.suspended_at)
+            : null,
+          suspendedBy: installation.suspended_by?.login || null,
+          updatedAt: new Date(),
+        },
+        create: {
+          id: installation.id,
+          accountId: BigInt(installation.account.id),
+          accountLogin: installation.account.login,
+          accountType: installation.account.type,
+          targetType: installation.target_type,
+          permissions: JSON.stringify(installation.permissions),
+          events: JSON.stringify(installation.events),
+          singleFileName: installation.single_file_name,
+          repositorySelection: installation.repository_selection,
+          suspendedAt: installation.suspended_at
+            ? new Date(installation.suspended_at)
+            : null,
+          suspendedBy: installation.suspended_by?.login || null,
+        },
+      });
+
+      // Add all repositories if "all" selection
+      if (installation.repository_selection === "all" && payload.repositories) {
+        await Promise.all(
+          payload.repositories.map((repo: GitHubRepository) => {
+            // Extract owner from full_name since installation webhooks don't include owner object
+            const owner = repo.full_name.split("/")[0] || "unknown";
+
+            return prisma.installationRepository.upsert({
+              where: {
+                installationId_repositoryId: {
+                  installationId: installation.id,
+                  repositoryId: BigInt(repo.id),
+                },
+              },
+              update: {
+                name: repo.name,
+                fullName: repo.full_name,
+                owner: owner,
+                private: repo.private,
+                htmlUrl:
+                  repo.html_url || `https://github.com/${repo.full_name}`,
+                description: repo.description,
+                removedAt: null, // Reset if previously removed
+              },
+              create: {
+                installationId: installation.id,
+                repositoryId: BigInt(repo.id),
+                name: repo.name,
+                fullName: repo.full_name,
+                owner: owner,
+                private: repo.private,
+                htmlUrl:
+                  repo.html_url || `https://github.com/${repo.full_name}`,
+                description: repo.description,
+              },
+            });
+          }),
+        );
+      }
+
+      // Note: Label creation is now handled through the user-driven setup process
+      // Users can choose during installation whether to create labels automatically
+      logger.info(
+        `Installation ${installation.id} completed. Labels will be created based on user preference.`,
+      );
+    });
+
+    logger.info(
+      `GitHub App installed for ${installation.account.login} (${installation.id})`,
+    );
+  } else if (action === "deleted") {
+    await db.$transaction(async (prisma) => {
+      // Uninstall app - mark installation as suspended
+      await prisma.gitHubInstallation.update({
+        where: { id: installation.id },
+        data: {
+          suspendedAt: new Date(),
+          suspendedBy: "uninstalled",
+          updatedAt: new Date(),
+          user_access_token: null,
+          refresh_token: null,
+          token_expires_at: null,
+          refresh_token_expires_at: null,
+        },
+      });
+
+      // Mark all repositories as removed
+      await prisma.installationRepository.updateMany({
+        where: { installationId: installation.id },
+        data: { removedAt: new Date() },
+      });
+    });
+
+    logger.info(
+      `GitHub App uninstalled for ${installation.account.login} (${installation.id})`,
+    );
+  } else if (action === "suspend") {
+    await db.gitHubInstallation.update({
       where: { id: installation.id },
-      update: {
-        accountId: BigInt(installation.account.id),
-        accountLogin: installation.account.login,
-        accountType: installation.account.type,
-        targetType: installation.target_type,
-        permissions: JSON.stringify(installation.permissions),
-        events: JSON.stringify(installation.events),
-        singleFileName: installation.single_file_name,
-        repositorySelection: installation.repository_selection,
+      data: {
         suspendedAt: installation.suspended_at
           ? new Date(installation.suspended_at)
           : null,
         suspendedBy: installation.suspended_by?.login || null,
         updatedAt: new Date(),
       },
-      create: {
-        id: installation.id,
-        accountId: BigInt(installation.account.id),
-        accountLogin: installation.account.login,
-        accountType: installation.account.type,
-        targetType: installation.target_type,
-        permissions: JSON.stringify(installation.permissions),
-        events: JSON.stringify(installation.events),
-        singleFileName: installation.single_file_name,
-        repositorySelection: installation.repository_selection,
-        suspendedAt: installation.suspended_at
-          ? new Date(installation.suspended_at)
-          : null,
-        suspendedBy: installation.suspended_by?.login || null,
+    });
+
+    logger.info(
+      `GitHub App suspended for ${installation.account.login} (${installation.id})`,
+    );
+  } else if (action === "unsuspend") {
+    await db.gitHubInstallation.update({
+      where: { id: installation.id },
+      data: {
+        suspendedAt: null,
+        suspendedBy: null,
+        updatedAt: new Date(),
       },
     });
 
-    // Add all repositories if "all" selection
-    if (installation.repository_selection === "all" && payload.repositories) {
-      await Promise.all(
-        payload.repositories.map((repo: GitHubRepository) => {
-          // Extract owner from full_name since installation webhooks don't include owner object
-          const owner = repo.full_name.split("/")[0] || "unknown";
+    logger.info(
+      `GitHub App unsuspended for ${installation.account.login} (${installation.id})`,
+    );
+  }
+}
 
-          return db.installationRepository.upsert({
+/**
+ * Handle installation repository events
+ */
+async function handleInstallationRepositoriesEvent(
+  payload: GitHubInstallationRepositoriesEvent,
+  action: string,
+) {
+  const installation = payload.installation;
+  const repositories =
+    payload.repositories_added || payload.repositories_removed || [];
+
+  if (action === "added") {
+    await db.$transaction(async (prisma) => {
+      await Promise.all(
+        repositories.map((repo: GitHubRepository) => {
+          // Extract owner from full_name since installation repository webhooks may not include owner object
+          const owner =
+            repo.owner?.login || repo.full_name.split("/")[0] || "unknown";
+
+          return prisma.installationRepository.upsert({
             where: {
               installationId_repositoryId: {
                 installationId: installation.id,
@@ -217,181 +338,71 @@ async function handleInstallationEvent(
         }),
       );
 
-      // Note: Label creation is now handled through the user-driven setup process
-      // Users can choose during installation whether to create labels automatically
-      console.log(
-        `Installation ${installation.id} completed. Labels will be created based on user preference.`,
+      // Note: Label creation for new repositories should be handled based on user preferences
+      // Check if user has "all" preference and create labels accordingly
+      logger.info(
+        `${repositories.length} repositories added to installation ${installation.id}`,
       );
-    }
 
-    console.log(
-      `GitHub App installed for ${installation.account.login} (${installation.id})`,
-    );
-  } else if (action === "deleted") {
-    // Uninstall app - mark installation as suspended
-    await db.gitHubInstallation.update({
-      where: { id: installation.id },
-      data: {
-        suspendedAt: new Date(),
-        suspendedBy: "uninstalled",
-        updatedAt: new Date(),
-      },
+      // Check user's label preference for this installation
+      const labelPreference = await prisma.labelPreference.findUnique({
+        where: { installationId: installation.id },
+      });
+
+      if (labelPreference?.setupType === "all") {
+        // User chose to create labels in all repositories, so create them for new repos
+        logger.info(
+          `Creating Jules labels in ${repositories.length} newly added repositories`,
+        );
+
+        await Promise.allSettled(
+          repositories.map(async (repo) => {
+            const owner =
+              repo.owner?.login || repo.full_name.split("/")[0] || "unknown";
+
+            // Save repository to label preferences
+            await prisma.labelPreferenceRepository.create({
+              data: {
+                labelPreferenceId: labelPreference.id,
+                repositoryId: BigInt(repo.id),
+                name: repo.name,
+                fullName: repo.full_name,
+                owner: owner,
+              },
+            });
+
+            // Create labels in the repository
+            return createJulesLabelsForRepository(
+              owner,
+              repo.name,
+              installation.id,
+            );
+          }),
+        );
+      }
+
+      logger.info(
+        `Added ${repositories.length} repositories to installation ${installation.id}`,
+      );
     });
-
-    // Mark all repositories as removed
-    await db.installationRepository.updateMany({
-      where: { installationId: installation.id },
-      data: { removedAt: new Date() },
-    });
-
-    console.log(
-      `GitHub App uninstalled for ${installation.account.login} (${installation.id})`,
-    );
-  } else if (action === "suspend") {
-    await db.gitHubInstallation.update({
-      where: { id: installation.id },
-      data: {
-        suspendedAt: installation.suspended_at
-          ? new Date(installation.suspended_at)
-          : null,
-        suspendedBy: installation.suspended_by?.login || null,
-        updatedAt: new Date(),
-      },
-    });
-
-    console.log(
-      `GitHub App suspended for ${installation.account.login} (${installation.id})`,
-    );
-  } else if (action === "unsuspend") {
-    await db.gitHubInstallation.update({
-      where: { id: installation.id },
-      data: {
-        suspendedAt: null,
-        suspendedBy: null,
-        updatedAt: new Date(),
-      },
-    });
-
-    console.log(
-      `GitHub App unsuspended for ${installation.account.login} (${installation.id})`,
-    );
-  }
-}
-
-/**
- * Handle installation repository events
- */
-async function handleInstallationRepositoriesEvent(
-  payload: GitHubInstallationRepositoriesEvent,
-  action: string,
-) {
-  const installation = payload.installation;
-  const repositories =
-    payload.repositories_added || payload.repositories_removed || [];
-
-  if (action === "added") {
-    await Promise.all(
-      repositories.map((repo: GitHubRepository) => {
-        // Extract owner from full_name since installation repository webhooks may not include owner object
-        const owner =
-          repo.owner?.login || repo.full_name.split("/")[0] || "unknown";
-
-        return db.installationRepository.upsert({
-          where: {
-            installationId_repositoryId: {
+  } else if (action === "removed") {
+    await db.$transaction(async (prisma) => {
+      await Promise.all(
+        repositories.map((repo: GitHubRepository) =>
+          prisma.installationRepository.updateMany({
+            where: {
               installationId: installation.id,
               repositoryId: BigInt(repo.id),
             },
-          },
-          update: {
-            name: repo.name,
-            fullName: repo.full_name,
-            owner: owner,
-            private: repo.private,
-            htmlUrl: repo.html_url || `https://github.com/${repo.full_name}`,
-            description: repo.description,
-            removedAt: null, // Reset if previously removed
-          },
-          create: {
-            installationId: installation.id,
-            repositoryId: BigInt(repo.id),
-            name: repo.name,
-            fullName: repo.full_name,
-            owner: owner,
-            private: repo.private,
-            htmlUrl: repo.html_url || `https://github.com/${repo.full_name}`,
-            description: repo.description,
-          },
-        });
-      }),
-    );
+            data: { removedAt: new Date() },
+          }),
+        ),
+      );
 
-    // Note: Label creation for new repositories should be handled based on user preferences
-    // Check if user has "all" preference and create labels accordingly
-    console.log(
-      `${repositories.length} repositories added to installation ${installation.id}`,
-    );
-
-    // Check user's label preference for this installation
-    const labelPreference = await db.labelPreference.findUnique({
-      where: { installationId: installation.id },
+      logger.info(
+        `Removed ${repositories.length} repositories from installation ${installation.id}`,
+      );
     });
-
-    if (labelPreference?.setupType === "all") {
-      // User chose to create labels in all repositories, so create them for new repos
-      console.log(
-        `Creating Jules labels in ${repositories.length} newly added repositories`,
-      );
-
-      await Promise.allSettled(
-        repositories.map(async (repo) => {
-          const owner =
-            repo.owner?.login || repo.full_name.split("/")[0] || "unknown";
-
-          // Save repository to label preferences
-          await db.labelPreferenceRepository.create({
-            data: {
-              labelPreferenceId: labelPreference.id,
-              repositoryId: BigInt(repo.id),
-              name: repo.name,
-              fullName: repo.full_name,
-              owner: owner,
-            },
-          });
-
-          // Create labels in the repository
-          return createJulesLabelsForRepository(
-            owner,
-            repo.name,
-            installation.id,
-          );
-        }),
-      );
-    } else {
-      console.log(
-        `Label preference is "${labelPreference?.setupType || "not set"}" - skipping automatic label creation for new repositories`,
-      );
-    }
-
-    console.log(
-      `Added ${repositories.length} repositories to installation ${installation.id}`,
-    );
-  } else if (action === "removed") {
-    await Promise.all(
-      repositories.map((repo: GitHubRepository) =>
-        db.installationRepository.updateMany({
-          where: {
-            installationId: installation.id,
-            repositoryId: BigInt(repo.id),
-          },
-          data: { removedAt: new Date() },
-        }),
-      ),
-    );
-
-    console.log(
-      `Removed ${repositories.length} repositories from installation ${installation.id}`,
-    );
   }
 }
 
@@ -522,7 +533,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Log comment for monitoring Jules interactions
-      console.log(
+      logger.info(
         `New comment on Jules-labeled issue ${commentEvent.repository.full_name}#${commentEvent.issue.number} by ${commentEvent.comment.user.login}`,
       );
 
@@ -593,7 +604,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Process the Jules label event with installation context
-      console.log(
+      logger.info(
         `Processing ${labelEvent.action} event for label '${labelName}' on ${labelEvent.repository.full_name}#${labelEvent.issue.number} (installation: ${webhookEvent.installation?.id})`,
       );
 
@@ -628,7 +639,7 @@ export async function POST(req: NextRequest) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
 
-    console.error("GitHub App webhook processing error:", {
+    logger.error("GitHub App webhook processing error:", {
       eventType,
       error: errorMessage,
       payload: payload ? JSON.stringify(payload).slice(0, 500) : null,

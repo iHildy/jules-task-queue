@@ -1,6 +1,7 @@
 import { env, hasGitHubApp } from "@/lib/env";
 import { App } from "@octokit/app";
 import { Octokit } from "@octokit/rest";
+import logger from "@/lib/logger";
 
 /**
  * GitHub App client for installation-based authentication
@@ -73,9 +74,9 @@ class GitHubAppClient {
 
       return response.data.token;
     } catch (error) {
-      console.error(
+      logger.error(
+        { error },
         `Failed to get installation token for ${installationId}:`,
-        error,
       );
       throw error;
     }
@@ -106,7 +107,7 @@ class GitHubAppClient {
       const { data } = await this.app.octokit.request("GET /app/installations");
       return data;
     } catch (error) {
-      console.error("Failed to get installations:", error);
+      logger.error({ error }, "Failed to get installations:");
       throw error;
     }
   }
@@ -124,9 +125,9 @@ class GitHubAppClient {
       const { data } = await octokit.request("GET /installation/repositories");
       return data.repositories;
     } catch (error) {
-      console.error(
+      logger.error(
+        { error },
         `Failed to get repositories for installation ${installationId}:`,
-        error,
       );
       throw error;
     }
@@ -157,7 +158,10 @@ class GitHubAppClient {
 
       return null;
     } catch (error) {
-      console.error(`Failed to find installation for ${owner}/${repo}:`, error);
+      logger.error(
+        { error },
+        `Failed to find installation for ${owner}/${repo}:`,
+      );
       return null;
     }
   }
@@ -338,7 +342,7 @@ class GitHubAppClient {
       const { data } = await this.app.octokit.request("GET /app");
       return data;
     } catch (error) {
-      console.error("Failed to get app info:", error);
+      logger.error({ error }, "Failed to get app info:");
       throw error;
     }
   }
@@ -356,9 +360,9 @@ class GitHubAppClient {
       const { data } = await octokit.request("GET /installation");
       return data;
     } catch (error) {
-      console.error(
+      logger.error(
+        { error },
         `Failed to get installation info for ${installationId}:`,
-        error,
       );
       throw error;
     }
@@ -370,11 +374,10 @@ export const githubAppClient = GitHubAppClient.getInstance();
 
 export const userOwnedGithubAppClient = async (
   installationId: number,
+  userAccessToken: string,
 ): Promise<Octokit> => {
-  const githubApp = GitHubAppClient.getInstance();
-  const token = await githubApp.getInstallationToken(installationId);
   return new Octokit({
-    auth: token,
+    auth: userAccessToken,
     userAgent: "jules-task-queue/1.0.0",
   });
 };

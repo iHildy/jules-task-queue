@@ -65,7 +65,7 @@ Replace `your-domain.com` with your actual deployment URL:
 **User Authorization Options:**
 
 - ✅ **Expire user authorization tokens** - Provides a `refresh_token` for updated access tokens when they expire
-- ⬜ **Request user authorization (OAuth) during installation** - Leave unchecked unless you need user-level permissions
+- ✅ **Request user authorization (OAuth) during installation** - **CHECK THIS BOX**. This enables the app to request user-level permissions during installation, allowing Jules to respond to automated label changes.
 - ⬜ **Enable Device Flow** - Leave unchecked unless you need device-based authentication
 
 ### 1.3 Configure Post-installation Setup
@@ -176,8 +176,9 @@ GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
 ...your private key content...
 -----END RSA PRIVATE KEY-----"            # Content of your .pem file
 GITHUB_APP_WEBHOOK_SECRET="your-webhook-secret"
-GITHUB_APP_CLIENT_ID="Iv1.your-client-id"
-GITHUB_APP_CLIENT_SECRET="your-client-secret"
+GITHUB_APP_CLIENT_ID="Iv1.your-client-id"            # For OAuth flow to get user access tokens
+GITHUB_APP_CLIENT_SECRET="your-client-secret"        # For OAuth flow to get user access tokens
+GITHUB_APP_CALLBACK_URL="https://your-domain.com/api/auth/callback/github" # Callback URL for OAuth
 ```
 
 ### 4.2 Private Key Formatting

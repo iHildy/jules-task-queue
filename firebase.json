@@ -40,6 +40,10 @@
         {
           "variable": "NODE_ENV",
           "value": "production"
+        },
+        {
+          "variable": "GITHUB_APP_CALLBACK_URL",
+          "secret": "GITHUB_APP_CALLBACK_URL"
         }
       ]
     }

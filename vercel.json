@@ -7,10 +7,16 @@
   ],
   "functions": {
     "src/app/api/cron/retry/route.ts": {
-      "maxDuration": 300
+      "maxDuration": 300,
+      "environment": {
+        "GITHUB_APP_CALLBACK_URL": "@github_app_callback_url"
+      }
     },
     "src/app/api/webhooks/github/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "environment": {
+        "GITHUB_APP_CALLBACK_URL": "@github_app_callback_url"
+      }
     }
   },
   "headers": [

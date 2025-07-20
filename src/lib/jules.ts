@@ -1,5 +1,7 @@
 import { githubClient } from "@/lib/github";
+import { getUserAccessToken } from "@/lib/token-manager";
 import { db } from "@/server/db";
+import logger from "@/lib/logger";
 import type {
   CommentAnalysis,
   CommentClassification,
@@ -186,7 +188,7 @@ export async function checkJulesComments(
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      console.log(
+      logger.info(
         `Checking Jules comments for ${owner}/${repo}#${issueNumber} (attempt ${
           attempt + 1
         }/${maxRetries})`,
@@ -209,7 +211,7 @@ export async function checkJulesComments(
         );
 
       if (julesComments.length === 0) {
-        console.log(
+        logger.info(
           `No Jules comments found for ${owner}/${repo}#${issueNumber}`,
         );
         return { action: "no_action", retryCount: attempt };
@@ -219,7 +221,7 @@ export async function checkJulesComments(
       const latestComment = julesComments[0] as GitHubComment;
       const analysis = analyzeComment(latestComment);
 
-      console.log(`Comment analysis for ${owner}/${repo}#${issueNumber}:`, {
+      logger.info(`Comment analysis for ${owner}/${repo}#${issueNumber}:`, {
         classification: analysis.classification,
         confidence: analysis.confidence,
         patterns: analysis.patterns_matched,
@@ -228,7 +230,7 @@ export async function checkJulesComments(
 
       // Check if comment is too old (older than 2 hours might be stale)
       if (analysis.age_minutes > 120) {
-        console.log(
+        logger.info(
           `Latest Jules comment is ${analysis.age_minutes} minutes old, treating as stale`,
         );
         return {
@@ -241,7 +243,7 @@ export async function checkJulesComments(
 
       // Apply confidence threshold
       if (analysis.confidence < minConfidence) {
-        console.log(
+        logger.info(
           `Comment confidence ${analysis.confidence} below threshold ${minConfidence}, treating as uncertain`,
         );
 
@@ -259,7 +261,7 @@ export async function checkJulesComments(
             recentComments[1] as GitHubComment,
           );
           if (secondAnalysis.confidence >= minConfidence) {
-            console.log(
+            logger.info(
               `Using second comment with higher confidence: ${secondAnalysis.confidence}`,
             );
             return {
@@ -288,9 +290,9 @@ export async function checkJulesComments(
       };
     } catch (error) {
       lastError = error as Error;
-      console.error(
+      logger.error(
+        { error },
         `Attempt ${attempt + 1} failed for ${owner}/${repo}#${issueNumber}:`,
-        error,
       );
 
       // Wait before retry (exponential backoff)
@@ -302,7 +304,7 @@ export async function checkJulesComments(
   }
 
   // All retries failed
-  console.error(
+  logger.error(
     `All ${maxRetries} attempts failed for ${owner}/${repo}#${issueNumber}:`,
     lastError,
   );
@@ -325,7 +327,7 @@ export async function handleTaskLimit(
   installationId?: number,
 ): Promise<void> {
   try {
-    console.log(
+    logger.info(
       `Handling task limit for ${owner}/${repo}#${issueNumber}, confidence: ${
         analysis?.confidence || "unknown"
       }`,
@@ -341,7 +343,7 @@ export async function handleTaskLimit(
     }
 
     if (currentTask.flaggedForRetry) {
-      console.log(`Task ${taskId} already flagged for retry, skipping`);
+      logger.info(`Task ${taskId} already flagged for retry, skipping`);
       return;
     }
 
@@ -360,7 +362,7 @@ export async function handleTaskLimit(
       ) ?? false;
 
     if (!hasJulesLabel) {
-      console.log(
+      logger.info(
         `Issue ${owner}/${repo}#${issueNumber} no longer has 'jules' label, aborting task limit handling`,
       );
       return;
@@ -394,7 +396,7 @@ export async function handleTaskLimit(
           analysis.comment.id,
           "eyes",
         );
-        console.log(
+        logger.info(
           `Added refresh emoji reaction to Jules comment for task limit`,
         );
       } catch (reactionError) {
@@ -402,13 +404,13 @@ export async function handleTaskLimit(
       }
     }
 
-    console.log(
+    logger.info(
       `Successfully queued task for retry: ${owner}/${repo}#${issueNumber}`,
     );
   } catch (error) {
-    console.error(
+    logger.error(
+      { error },
       `Failed to handle task limit for ${owner}/${repo}#${issueNumber}:`,
-      error,
     );
 
     // Attempt to revert database changes if label swap failed
@@ -420,11 +422,11 @@ export async function handleTaskLimit(
           updatedAt: new Date(),
         },
       });
-      console.log(`Reverted database changes for task ${taskId} after failure`);
+      logger.info(`Reverted database changes for task ${taskId} after failure`);
     } catch (revertError) {
-      console.error(
+      logger.error(
+        { error: revertError },
         `Failed to revert database changes for task ${taskId}:`,
-        revertError,
       );
     }
 
@@ -444,7 +446,7 @@ export async function handleWorking(
   installationId?: number,
 ): Promise<void> {
   try {
-    console.log(
+    logger.info(
       `Handling working status for ${owner}/${repo}#${issueNumber}, confidence: ${
         analysis?.confidence || "unknown"
       }`,
@@ -478,7 +480,7 @@ export async function handleWorking(
           "+1",
           installationId,
         );
-        console.log(
+        logger.info(
           `Added thumbs up emoji reaction to Jules comment for working status`,
         );
       } catch (reactionError) {
@@ -486,11 +488,11 @@ export async function handleWorking(
       }
     }
 
-    console.log(`Jules is working on: ${owner}/${repo}#${issueNumber}`);
+    logger.info(`Jules is working on: ${owner}/${repo}#${issueNumber}`);
   } catch (error) {
-    console.error(
+    logger.error(
+      { error },
       `Failed to handle working status for ${owner}/${repo}#${issueNumber}:`,
-      error,
     );
     throw error;
   }
@@ -514,7 +516,7 @@ export async function processWorkflowDecision(
 ): Promise<void> {
   const { action, analysis } = result;
 
-  console.log(
+  logger.info(
     `Processing workflow decision for ${owner}/${repo}#${issueNumber}: ${action} (confidence: ${
       analysis?.confidence || "unknown"
     })`,
@@ -544,7 +546,7 @@ export async function processWorkflowDecision(
       break;
 
     case "unknown":
-      console.log(
+      logger.info(
         `Uncertain comment classification for ${owner}/${repo}#${issueNumber}, no action taken`,
       );
       // For unknown patterns, add warning reaction and quote reply
@@ -567,7 +569,7 @@ export async function processWorkflowDecision(
             installationId,
           );
         } catch (reactionError) {
-          console.warn(
+          logger.warn(
             `Failed to add warning reaction/comment for ${owner}/${repo}#${issueNumber}:`,
             reactionError,
           );
@@ -577,7 +579,7 @@ export async function processWorkflowDecision(
 
     case "no_action":
     default:
-      console.log(
+      logger.info(
         `No action needed for ${owner}/${repo}#${issueNumber}: ${action}`,
       );
       break;
@@ -594,14 +596,14 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
     });
 
     if (!task || !task.flaggedForRetry) {
-      console.log(`Task ${taskId} not found or not flagged for retry`);
+      logger.info(`Task ${taskId} not found or not flagged for retry`);
       return false;
     }
 
-    const { repoOwner, repoName, githubIssueNumber } = task;
+    const { repoOwner, repoName, githubIssueNumber, installationId } = task;
     const issueNumber = Number(githubIssueNumber);
 
-    console.log(
+    logger.info(
       `Processing retry for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
     );
 
@@ -620,8 +622,18 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       ) ?? false;
 
     if (hasHumanLabel) {
-      console.log(`Task ${taskId} has 'Human' label, skipping retry`);
+      logger.info(`Task ${taskId} has 'Human' label, skipping retry`);
       return false;
+    }
+
+    const userAccessToken = installationId
+      ? await getUserAccessToken(installationId)
+      : null;
+
+    if (!userAccessToken) {
+      logger.warn(
+        `User access token not found for installation ${installationId}. Falling back to installation token. Jules may not respond.`,
+      );
     }
 
     // Swap labels: remove 'jules-queue', add 'jules'
@@ -632,6 +644,7 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       "jules-queue",
       "jules",
       task.installationId || undefined,
+      userAccessToken ?? undefined,
     );
 
     // Update retry metrics
@@ -644,12 +657,12 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
       },
     });
 
-    console.log(
+    logger.info(
       `Successfully retried task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
     );
     return true;
   } catch (error) {
-    console.error(`Failed to process retry for task ${taskId}:`, error);
+    logger.error({ error }, `Failed to process retry for task ${taskId}:`);
     return false;
   }
 }
@@ -690,12 +703,12 @@ export async function retryAllFlaggedTasks(): Promise<{
         stats.skipped++;
       }
     } catch (error) {
-      console.error(`Failed to retry task ${task.id}:`, error);
+      logger.error(`Failed to retry task ${task.id}:`, error);
       stats.failed++;
     }
   }
 
-  console.log(`Retry batch complete:`, stats);
+  logger.info(`Retry batch complete:`, stats);
   return stats;
 }
 
@@ -717,7 +730,7 @@ export async function cleanupOldTasks(
     },
   });
 
-  console.log(
+  logger.info(
     `Cleaned up ${result.count} old tasks older than ${olderThanDays} days`,
   );
   return result.count;
