@@ -67,7 +67,11 @@ export function decrypt(text: string): string | null {
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
   } catch (error) {
-    logger.error({ error }, "Decryption failed:");
+    const errorMessage =
+      error instanceof Error
+        ? `${error.name}: ${error.message}`
+        : "Unknown error";
+    logger.error(`Decryption failed: ${errorMessage}`);
     return null;
   }
 }

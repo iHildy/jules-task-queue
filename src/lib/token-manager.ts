@@ -25,7 +25,6 @@ async function refreshUserToken(refreshToken: string): Promise<{
           client_secret: env.GITHUB_APP_CLIENT_SECRET,
           grant_type: "refresh_token",
           refresh_token: refreshToken,
-          redirect_uri: env.GITHUB_APP_CALLBACK_URL,
         }),
       },
     );
@@ -35,6 +34,8 @@ async function refreshUserToken(refreshToken: string): Promise<{
     }
 
     const data = await response.json();
+
+    // Always return the data - let the caller handle GitHub API errors
     return data;
   } catch (error) {
     logger.error({ error }, "Failed to refresh user token");

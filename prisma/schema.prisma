@@ -165,3 +165,24 @@ model LabelPreferenceRepository {
   @@index([owner, name])
   @@map("label_preference_repositories")
 }
+
+model RateLimit {
+  id          Int      @id @default(autoincrement())
+  identifier  String   // IP address or user identifier
+  endpoint    String   // API endpoint being rate limited
+  requests    Int      @default(1)
+  windowStart DateTime
+  expiresAt   DateTime
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Unique constraint for identifier + endpoint
+  @@unique([identifier, endpoint])
+  // Indexes for performance
+  @@index([identifier])
+  @@index([endpoint])
+  @@index([expiresAt])
+  @@map("rate_limits")
+}
