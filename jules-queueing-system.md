@@ -31,7 +31,7 @@ graph TD
     L --> M["Add 'jules-queue' label to GitHub issue"]
     M --> N["Task queued for retry"]
 
-    J --> O["Jules is actively actively working"]
+    J --> O["Jules is actively working"]
     O --> P["End - Success path"]
 
     Q["Cron job runs every 30 minutes"] --> R["Find all JulesTask where flaggedForRetry = true"]
