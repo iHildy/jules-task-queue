@@ -13,45 +13,6 @@ declare global {
     | undefined;
 }
 
-// Type interface for rate limit operations
-interface RateLimitClient {
-  deleteMany: (args: {
-    where: { expiresAt: { lt: Date } };
-  }) => Promise<{ count: number }>;
-  findUnique: (args: {
-    where: {
-      identifier_endpoint: {
-        identifier: string;
-        endpoint: string;
-      };
-    };
-  }) => Promise<{
-    id: number;
-    identifier: string;
-    endpoint: string;
-    requests: number;
-    windowStart: Date;
-    expiresAt: Date;
-  } | null>;
-  create: (args: {
-    data: {
-      identifier: string;
-      endpoint: string;
-      requests: number;
-      windowStart: Date;
-      expiresAt: Date;
-    };
-  }) => Promise<unknown>;
-  update: (args: {
-    where: { id: number };
-    data: {
-      requests?: number;
-      windowStart?: Date;
-      expiresAt?: Date;
-    };
-  }) => Promise<unknown>;
-}
-
 // Database-based rate limiter for production use
 async function checkRateLimit(
   identifier: string,
@@ -63,10 +24,8 @@ async function checkRateLimit(
   const endpoint = "/api/auth/callback/github";
 
   try {
-    const rateLimitDb = db as unknown as { rateLimit: RateLimitClient };
-
     // Clean up expired rate limit entries first
-    await rateLimitDb.rateLimit.deleteMany({
+    await db.rateLimit.deleteMany({
       where: {
         expiresAt: {
           lt: now,
@@ -75,7 +34,7 @@ async function checkRateLimit(
     });
 
     // Get existing rate limit record
-    const existingLimit = await rateLimitDb.rateLimit.findUnique({
+    const existingLimit = await db.rateLimit.findUnique({
       where: {
         identifier_endpoint: {
           identifier,
@@ -86,7 +45,7 @@ async function checkRateLimit(
 
     if (!existingLimit) {
       // First request in window - create new record
-      await rateLimitDb.rateLimit.create({
+      await db.rateLimit.create({
         data: {
           identifier,
           endpoint,
@@ -106,7 +65,7 @@ async function checkRateLimit(
     // Check if window has expired
     if (existingLimit.windowStart < windowStart) {
       // Window expired - reset counter
-      await rateLimitDb.rateLimit.update({
+      await db.rateLimit.update({
         where: { id: existingLimit.id },
         data: {
           requests: 1,
@@ -132,7 +91,7 @@ async function checkRateLimit(
     }
 
     // Increment counter
-    await rateLimitDb.rateLimit.update({
+    await db.rateLimit.update({
       where: { id: existingLimit.id },
       data: {
         requests: existingLimit.requests + 1,
