@@ -1,6 +1,10 @@
 # AGENTS RULES OVERVIEW
 
-This document condenses the most critical rules for agents working on this repository. Note that YOU don't have access to environmental variables and cannot run commands like `pnpm build` because of this, instead use `pnpm lint`
+## You are an expert.
+
+You are an EXPERT software engineer and system designer - all of your code will be reviewed by an expert reviewer of your work - optimize for them to not have to change your code or leave comments on your code.
+
+This document condenses the most critical rules for agents working on this repository. Note that Jules (you) doesn't have access to enviormental variables and cannot run commands like `pnpm build` because of this, instead use `pnpm lint` - The best option is to use `pnpm lint && pnpm build` to run both linting and building at the same time.
 
 ---
 

@@ -19,9 +19,45 @@ export function encrypt(text: string): string {
 
 export function decrypt(text: string): string | null {
   try {
+    if (!env.TOKEN_ENCRYPTION_KEY) {
+      logger.error("TOKEN_ENCRYPTION_KEY is not configured");
+      return null;
+    }
+
+    if (!text || typeof text !== "string") {
+      logger.error("Invalid input: text must be a non-empty string");
+      return null;
+    }
+
+    if (!text.includes(":")) {
+      logger.error("Invalid input format: missing ':' delimiter");
+      return null;
+    }
+
     const textParts = text.split(":");
-    const iv = Buffer.from(textParts.shift()!, "hex");
-    const encryptedText = Buffer.from(textParts.join(":"), "hex");
+    if (textParts.length < 2) {
+      logger.error("Invalid input format: insufficient parts after split");
+      return null;
+    }
+
+    const ivHex = textParts[0];
+    const encryptedHex = textParts.slice(1).join(":");
+
+    if (!ivHex || !encryptedHex) {
+      logger.error("Invalid input format: missing IV or encrypted text");
+      return null;
+    }
+
+    const iv = Buffer.from(ivHex, "hex");
+    const encryptedText = Buffer.from(encryptedHex, "hex");
+
+    if (iv.length !== IV_LENGTH) {
+      logger.error(
+        `Invalid IV length: expected ${IV_LENGTH}, got ${iv.length}`,
+      );
+      return null;
+    }
+
     const decipher = crypto.createDecipheriv(
       ALGORITHM,
       Buffer.from(env.TOKEN_ENCRYPTION_KEY, "hex"),

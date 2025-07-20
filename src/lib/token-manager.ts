@@ -11,18 +11,35 @@ async function refreshUserToken(refreshToken: string): Promise<{
   error?: string;
   error_description?: string;
 }> {
-  const response = await fetch("https://github.com/login/oauth/access_token", {
-    method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: env.NEXT_PUBLIC_GITHUB_APP_ID,
-      client_secret: env.GITHUB_APP_CLIENT_SECRET,
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-      redirect_uri: env.GITHUB_APP_CALLBACK_URL,
-    }),
-  });
-  return response.json();
+  try {
+    const response = await fetch(
+      "https://github.com/login/oauth/access_token",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: env.NEXT_PUBLIC_GITHUB_APP_ID,
+          client_secret: env.GITHUB_APP_CLIENT_SECRET,
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+          redirect_uri: env.GITHUB_APP_CALLBACK_URL,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    logger.error({ error }, "Failed to refresh user token");
+    throw error;
+  }
 }
 
 export async function getUserAccessToken(
@@ -120,13 +137,13 @@ export async function getUserAccessToken(
 
   const decryptedAccessToken = decrypt(installation.user_access_token);
   if (!decryptedAccessToken) {
-    console.error(
+    logger.error(
       `[TokenManager] Failed to decrypt access token for installation: ${installationId}.`,
     );
     return null;
   }
 
-  console.log(
+  logger.info(
     `[TokenManager] Successfully retrieved access token for installation: ${installationId}`,
   );
   return decryptedAccessToken;

@@ -32,8 +32,17 @@ export const env = createEnv({
     // Cron Job Security
     CRON_SECRET: z.string().optional(),
 
-    // Token Encryption
-    TOKEN_ENCRYPTION_KEY: z.string().min(1, "TOKEN_ENCRYPTION_KEY is required"),
+    // Token Encryption (AES-256-CBC requires 32-byte key, 64 hex characters)
+    TOKEN_ENCRYPTION_KEY: z
+      .string()
+      .min(
+        64,
+        "TOKEN_ENCRYPTION_KEY must be at least 64 hex characters (32 bytes) for AES-256-CBC",
+      )
+      .regex(
+        /^[0-9a-fA-F]+$/,
+        "TOKEN_ENCRYPTION_KEY must be a valid hexadecimal string",
+      ),
 
     // Optional: Custom processing settings
     COMMENT_CHECK_DELAY_MS: z.coerce.number().default(60000),
