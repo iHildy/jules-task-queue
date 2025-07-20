@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["pino"],
   // Allow for build and dev to be in different directories
   distDir: process.env.NODE_ENV === "development" ? ".next/dev" : ".next/build",
 

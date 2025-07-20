@@ -1,6 +1,7 @@
 import { githubAppClient, userOwnedGithubAppClient } from "@/lib/github-app";
 import { installationService } from "@/lib/installation-service";
 import type { Octokit } from "@octokit/rest";
+import logger from "@/lib/logger";
 
 /**
  * GitHub API client (now using GitHub App only)
@@ -20,8 +21,11 @@ class GitHubClient {
   /**
    * Get a GitHub App client authenticated as the user
    */
-  public async getUserOwnedGitHubAppClient(installationId: number) {
-    return userOwnedGithubAppClient(installationId);
+  public async getUserOwnedGitHubAppClient(
+    installationId: number,
+    userAccessToken: string,
+  ) {
+    return userOwnedGithubAppClient(installationId, userAccessToken);
   }
 
   /**
@@ -108,7 +112,7 @@ class GitHubClient {
       body,
       installationId,
     );
-    console.log(`Created comment on ${owner}/${repo}#${issue_number}`);
+    logger.info(`Created comment on ${owner}/${repo}#${issue_number}`);
     return response.data;
   }
 
@@ -137,7 +141,7 @@ class GitHubClient {
       content,
       installationId,
     );
-    console.log(
+    logger.info(
       `Added ${content} reaction to comment ${comment_id} on ${owner}/${repo}`,
     );
     return response.data;
@@ -175,15 +179,19 @@ class GitHubClient {
     issue_number: number,
     label: string,
     installationId?: number,
+    userAccessToken?: string,
   ) {
-    await githubAppClient.addLabel(
+    const client = userAccessToken
+      ? await this.getUserOwnedGitHubAppClient(installationId!, userAccessToken)
+      : await githubAppClient.getInstallationOctokit(installationId!);
+
+    await client.rest.issues.addLabels({
       owner,
       repo,
       issue_number,
-      label,
-      installationId,
-    );
-    console.log(`Added label '${label}' to ${owner}/${repo}#${issue_number}`);
+      labels: [label],
+    });
+    logger.info(`Added label '${label}' to ${owner}/${repo}#${issue_number}`);
   }
 
   /**
@@ -195,16 +203,22 @@ class GitHubClient {
     issue_number: number,
     label: string,
     installationId?: number,
+    userAccessToken?: string,
   ) {
     try {
-      await githubAppClient.removeLabel(
+      const client = userAccessToken
+        ? await this.getUserOwnedGitHubAppClient(
+            installationId!,
+            userAccessToken,
+          )
+        : await githubAppClient.getInstallationOctokit(installationId!);
+      await client.rest.issues.removeLabel({
         owner,
         repo,
         issue_number,
-        label,
-        installationId,
-      );
-      console.log(
+        name: label,
+      });
+      logger.info(
         `Removed label '${label}' from ${owner}/${repo}#${issue_number}`,
       );
     } catch (error: unknown) {
@@ -213,7 +227,7 @@ class GitHubClient {
         error instanceof Error &&
         error.message.includes("Label does not exist")
       ) {
-        console.log(
+        logger.info(
           `Label '${label}' doesn't exist on ${owner}/${repo}#${issue_number}`,
         );
         return;
@@ -239,9 +253,9 @@ class GitHubClient {
         ) ?? false
       );
     } catch (error) {
-      console.error(
+      logger.error(
+        { error },
         `Failed to check label '${label}' on ${owner}/${repo}#${issue_number}:`,
-        error,
       );
       return false;
     }
@@ -257,6 +271,7 @@ class GitHubClient {
     removeLabel: string,
     addLabel: string,
     installationId?: number,
+    userAccessToken?: string,
   ) {
     try {
       // Remove the old label and add the new one
@@ -267,16 +282,24 @@ class GitHubClient {
           issue_number,
           removeLabel,
           installationId,
+          userAccessToken,
         ),
-        this.addLabel(owner, repo, issue_number, addLabel, installationId),
+        this.addLabel(
+          owner,
+          repo,
+          issue_number,
+          addLabel,
+          installationId,
+          userAccessToken,
+        ),
       ]);
-      console.log(
+      logger.info(
         `Swapped labels: '${removeLabel}' -> '${addLabel}' on ${owner}/${repo}#${issue_number}`,
       );
     } catch (error) {
-      console.error(
+      logger.error(
+        { error },
         `Failed to swap labels on ${owner}/${repo}#${issue_number}:`,
-        error,
       );
       throw error;
     }
@@ -408,7 +431,7 @@ class GitHubClient {
 
       return false;
     } catch (error) {
-      console.error("Failed to check user starred repositories:", error);
+      logger.error("Failed to check user starred repositories:", error);
       throw error;
     }
   }

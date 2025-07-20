@@ -8,6 +8,13 @@ The Jules Task Queueing System is a GitHub-integrated service that manages task 
 
 ```mermaid
 graph TD
+    subgraph GitHub App Installation & OAuth
+        GAI["User Installs GitHub App"] --> GAC["GitHub Redirects to Callback URL (with code)"]
+        GAC --> OAE["OAuth Callback Endpoint (Exchange code for tokens)"]
+        OAE --> STD["Store Tokens in Database (encrypted)"]
+        STD --> SUCC["Redirect to Success Page"]
+    end
+
     A["User adds 'jules' label to GitHub issue"] --> B["GitHub webhook triggers"]
     B --> C["Create/Update JulesTask in database"]
     C --> D["Start 60-second timer"]
@@ -21,10 +28,10 @@ graph TD
 
     I --> K["Mark JulesTask.flaggedForRetry = true"]
     K --> L["Remove 'jules' label from GitHub issue"]
-    L --> M["Add 'jules-queue' label to GitHub issue"]
+    K --> M["Add 'jules-queue' label to GitHub issue"]
     M --> N["Task queued for retry"]
 
-    J --> O["Jules is actively working"]
+    J --> O["Jules is actively actively working"]
     O --> P["End - Success path"]
 
     Q["Cron job runs every 30 minutes"] --> R["Find all JulesTask where flaggedForRetry = true"]
@@ -34,7 +41,7 @@ graph TD
     U --> V{"Issue has 'Human' label?"}
     V -->|Yes| W["Skip this task"]
     V -->|No| X["Remove 'jules-queue' label"]
-    X --> Y["Add 'jules' label back"]
+    X --> Y["Add 'jules' label back (using user token if available)"]
     Y --> Z["Set flaggedForRetry = false"]
     Z --> AA["Increment retryCount"]
     AA --> BB["Update lastRetryAt timestamp"]
@@ -51,6 +58,12 @@ graph TD
     style J fill:#e8f5e8
     style Q fill:#fff3e0
     style CC fill:#e1f5fe
+    style GAI fill:#c8e6c9
+    style GAC fill:#c8e6c9
+    style OAE fill:#c8e6c9
+    style STD fill:#c8e6c9
+    style SUCC fill:#c8e6c9
+    style Y fill:#e1f5fe
 ```
 
 ## Key Components

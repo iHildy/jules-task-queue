@@ -15,7 +15,9 @@ When self-hosted: `http://localhost:3000/api/trpc` (or your configured domain)
 
 ## Authentication
 
-Currently, the API endpoints are open for development. In production, you should implement authentication middleware in the tRPC context (`src/server/api/trpc.ts`).
+This API leverages GitHub App authentication, including user access tokens obtained via OAuth during installation. This ensures that actions performed by the system (e.g., label changes) are attributed to the user who authorized the app, allowing Jules to respond correctly.
+
+For development, endpoints are open. In production, implement authentication middleware in the tRPC context (`src/server/api/trpc.ts`) to secure your API.
 
 ---
 

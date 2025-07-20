@@ -79,6 +79,12 @@ model GitHubInstallation {
   tasks           JulesTask[]
   LabelPreference LabelPreference?
 
+  // User OAuth tokens
+  user_access_token      String?
+  refresh_token          String?
+  token_expires_at       DateTime?
+  refresh_token_expires_at DateTime?
+
   // Indexes for performance
   @@index([accountId])
   @@index([accountLogin])

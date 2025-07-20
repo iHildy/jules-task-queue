@@ -148,17 +148,18 @@ In your platform's scheduled tasks:
 
 ### Environment Variables
 
-| Variable                      | Build Variable | Description                                         |
-| ----------------------------- | -------------- | --------------------------------------------------- |
-| `DATABASE_URL`                | No             | PostgreSQL connection string                        |
-| `NEXT_PUBLIC_GITHUB_APP_ID`   | Yes            | GitHub App ID from your app settings                |
-| `NEXT_PUBLIC_GITHUB_APP_NAME` | Yes            | GitHub App name (for client-side display)           |
-| `GITHUB_APP_PRIVATE_KEY`      | No             | GitHub App private key (base64 encoded or with \n)  |
-| `GITHUB_APP_WEBHOOK_SECRET`   | No             | Secret used to verify GitHub App webhook signatures |
-| `GITHUB_APP_CLIENT_ID`        | No             | GitHub App client ID (for OAuth, if needed)         |
-| `GITHUB_APP_CLIENT_SECRET`    | No             | GitHub App client secret (for OAuth, if needed)     |
-| `CRON_SECRET`                 | No             | Secret for authenticating cron job requests         |
-| `NODE_ENV`                    | No             | Set to `production` for production deployments      |
+| Variable                      | Build Variable | Description                                             |
+| ----------------------------- | -------------- | ------------------------------------------------------- |
+| `DATABASE_URL`                | No             | PostgreSQL connection string                            |
+| `NEXT_PUBLIC_GITHUB_APP_ID`   | Yes            | GitHub App ID from your app settings                    |
+| `NEXT_PUBLIC_GITHUB_APP_NAME` | Yes            | GitHub App name (for client-side display)               |
+| `GITHUB_APP_PRIVATE_KEY`      | No             | GitHub App private key (base64 encoded or with \n)      |
+| `GITHUB_APP_WEBHOOK_SECRET`   | No             | Secret used to verify GitHub App webhook signatures     |
+| `GITHUB_APP_CLIENT_ID`        | No             | GitHub App client ID (for OAuth user access tokens)     |
+| `GITHUB_APP_CLIENT_SECRET`    | No             | GitHub App client secret (for OAuth user access tokens) |
+| `GITHUB_APP_CALLBACK_URL`     | No             | Callback URL for GitHub App OAuth flow                  |
+| `CRON_SECRET`                 | No             | Secret for authenticating cron job requests             |
+| `NODE_ENV`                    | No             | Set to `production` for production deployments          |
 
 ### GitHub App Setup
 
