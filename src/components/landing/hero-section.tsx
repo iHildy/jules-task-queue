@@ -63,7 +63,7 @@ export function HeroSection() {
         </Badge>
 
         <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 leading-tight text-white">
-          <span className="sm:block">Break free from the</span>{" "}
+          <span className="sm:block">Queue tasks and avoid the</span>{" "}
           <span className="text-jules-secondary">5-task bottleneck</span>
         </h1>
 
