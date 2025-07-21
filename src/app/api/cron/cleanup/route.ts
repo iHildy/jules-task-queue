@@ -1,9 +1,9 @@
 import { env } from "@/lib/env";
-import { db } from "@/server/db";
-import { NextRequest, NextResponse } from "next/server";
-import * as crypto from "crypto";
 import logger from "@/lib/logger";
+import { db } from "@/server/db";
 import { Prisma } from "@prisma/client";
+import * as crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest): Promise<Response> {
   const authHeader = request.headers.get("authorization");
@@ -30,15 +30,15 @@ export async function GET(request: NextRequest): Promise<Response> {
         // 1. Clean up expired refresh tokens
         const expiredTokens = await prisma.gitHubInstallation.updateMany({
           where: {
-            refresh_token_expires_at: {
+            refreshTokenExpiresAt: {
               lt: now,
             },
           },
           data: {
-            user_access_token: null,
-            refresh_token: null,
-            token_expires_at: null,
-            refresh_token_expires_at: null,
+            userAccessToken: null,
+            refreshToken: null,
+            tokenExpiresAt: null,
+            refreshTokenExpiresAt: null,
           },
         });
 
@@ -75,7 +75,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     return NextResponse.json(
       {
         error: "Internal Server Error",
-        details: error instanceof Error ? error.message : "Unknown error",
+        message:
+          "An error occurred while executing the cleanup job. Please check the server logs for details.",
       },
       { status: 500 },
     );

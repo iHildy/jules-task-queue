@@ -8,6 +8,45 @@ import { LoadingState } from "./loading-state";
 import { SuccessState } from "./success-state";
 import { UnknownStatus } from "./unknown-status";
 
+// URL validation function to prevent malicious redirects
+function isValidOAuthUrl(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+
+    // Only allow HTTPS URLs
+    if (parsedUrl.protocol !== "https:") {
+      return false;
+    }
+
+    // Only allow same origin or trusted GitHub domains
+    const allowedDomains = [
+      "github.com",
+      "githubusercontent.com",
+      window.location.hostname, // Same origin
+    ];
+
+    if (
+      !allowedDomains.some(
+        (domain) =>
+          parsedUrl.hostname === domain ||
+          parsedUrl.hostname.endsWith(`.${domain}`),
+      )
+    ) {
+      return false;
+    }
+
+    // Ensure the path is for OAuth authorization
+    if (!parsedUrl.pathname.includes("/api/auth/authorize/github")) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    // Invalid URL format
+    return false;
+  }
+}
+
 export function InstallationStatusHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -41,6 +80,24 @@ export function InstallationStatusHandler() {
 
         if (!response.ok) {
           // Handle API errors gracefully
+          if (response.status === 401 && data.error === "oauth_required") {
+            console.log("OAuth flow required, redirecting user");
+
+            // Validate OAuth URL before redirecting
+            if (data.oauth_url && isValidOAuthUrl(data.oauth_url)) {
+              window.location.href = data.oauth_url;
+            } else {
+              console.error("Invalid OAuth URL received:", data.oauth_url);
+              setInstallationStatus({
+                success: false,
+                error: "invalid_oauth_url",
+                errorDescription: "Invalid OAuth URL received from server",
+              });
+              setIsLoading(false);
+            }
+            return;
+          }
+
           if (response.status === 403) {
             console.error(
               "GitHub App missing 'Starring' permission:",

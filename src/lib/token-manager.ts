@@ -1,16 +1,32 @@
 import { decrypt, encrypt } from "@/lib/crypto";
 import { env } from "@/lib/env";
-import { db } from "@/server/db";
 import logger from "@/lib/logger";
+import { db } from "@/server/db";
 
-async function refreshUserToken(refreshToken: string): Promise<{
+// Discriminated union type for GitHub token responses
+type GitHubTokenSuccessResponse = {
   access_token: string;
   refresh_token: string;
   expires_in: number;
   refresh_token_expires_in: number;
-  error?: string;
+};
+
+type GitHubTokenErrorResponse = {
+  error: string;
   error_description?: string;
-}> {
+  error_uri?: string;
+};
+
+type GitHubTokenResponse =
+  | GitHubTokenSuccessResponse
+  | GitHubTokenErrorResponse;
+
+async function refreshUserToken(
+  refreshToken: string,
+): Promise<GitHubTokenResponse> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
   try {
     const response = await fetch(
       "https://github.com/login/oauth/access_token",
@@ -26,8 +42,11 @@ async function refreshUserToken(refreshToken: string): Promise<{
           grant_type: "refresh_token",
           refresh_token: refreshToken,
         }),
+        signal: controller.signal,
       },
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -35,9 +54,41 @@ async function refreshUserToken(refreshToken: string): Promise<{
 
     const data = await response.json();
 
-    // Always return the data - let the caller handle GitHub API errors
-    return data;
+    // Validate the response structure
+    if (data.error) {
+      // This is an error response
+      return {
+        error: data.error,
+        error_description: data.error_description,
+        error_uri: data.error_uri,
+      };
+    }
+
+    // Validate success response has required fields
+    if (
+      !data.access_token ||
+      !data.refresh_token ||
+      typeof data.expires_in !== "number" ||
+      typeof data.refresh_token_expires_in !== "number"
+    ) {
+      throw new Error("Invalid token response: missing required fields");
+    }
+
+    // This is a success response
+    return {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_in: data.expires_in,
+      refresh_token_expires_in: data.refresh_token_expires_in,
+    };
   } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error && error.name === "AbortError") {
+      logger.error({ error }, "Token refresh request timed out");
+      throw new Error("Token refresh request timed out");
+    }
+
     logger.error({ error }, "Failed to refresh user token");
     throw error;
   }
@@ -55,8 +106,8 @@ export async function getUserAccessToken(
 
   if (
     !installation ||
-    !installation.user_access_token ||
-    !installation.refresh_token
+    !installation.userAccessToken ||
+    !installation.refreshToken
   ) {
     logger.warn(
       `[TokenManager] No token found for installation: ${installationId}`,
@@ -64,7 +115,7 @@ export async function getUserAccessToken(
     return null;
   }
 
-  const decryptedRefreshToken = decrypt(installation.refresh_token);
+  const decryptedRefreshToken = decrypt(installation.refreshToken);
   if (!decryptedRefreshToken) {
     logger.error(
       `[TokenManager] Failed to decrypt refresh token for installation: ${installationId}.`,
@@ -72,18 +123,17 @@ export async function getUserAccessToken(
     return null;
   }
 
-  if (
-    installation.token_expires_at &&
-    installation.token_expires_at < new Date()
-  ) {
+  if (installation.tokenExpiresAt && installation.tokenExpiresAt < new Date()) {
     logger.info(
       `[TokenManager] Token expired for installation: ${installationId}. Refreshing...`,
     );
     try {
       const refreshed = await refreshUserToken(decryptedRefreshToken);
-      if (refreshed.error) {
+
+      // Check if this is an error response
+      if ("error" in refreshed) {
         logger.error(
-          `[TokenManager] Error refreshing token for installation ${installationId}: ${refreshed.error_description}`,
+          `[TokenManager] Error refreshing token for installation ${installationId}: ${refreshed.error_description || refreshed.error}`,
         );
         if (refreshed.error === "bad_refresh_token") {
           logger.info(
@@ -92,13 +142,26 @@ export async function getUserAccessToken(
           await db.gitHubInstallation.update({
             where: { id: installationId },
             data: {
-              user_access_token: null,
-              refresh_token: null,
-              token_expires_at: null,
-              refresh_token_expires_at: null,
+              userAccessToken: null,
+              refreshToken: null,
+              tokenExpiresAt: null,
+              refreshTokenExpiresAt: null,
             },
           });
         }
+        return null;
+      }
+
+      // This is a success response - validate before destructuring
+      if (
+        !refreshed.access_token ||
+        !refreshed.refresh_token ||
+        typeof refreshed.expires_in !== "number" ||
+        typeof refreshed.refresh_token_expires_in !== "number"
+      ) {
+        logger.error(
+          `[TokenManager] Invalid token response structure for installation ${installationId}`,
+        );
         return null;
       }
 
@@ -117,10 +180,10 @@ export async function getUserAccessToken(
       await db.gitHubInstallation.update({
         where: { id: installationId },
         data: {
-          user_access_token: encrypt(access_token),
-          refresh_token: encrypt(refresh_token),
-          token_expires_at: tokenExpiresAt,
-          refresh_token_expires_at: refreshTokenExpiresAt,
+          userAccessToken: encrypt(access_token),
+          refreshToken: encrypt(refresh_token),
+          tokenExpiresAt: tokenExpiresAt,
+          refreshTokenExpiresAt: refreshTokenExpiresAt,
         },
       });
       logger.info(
@@ -136,7 +199,7 @@ export async function getUserAccessToken(
     }
   }
 
-  const decryptedAccessToken = decrypt(installation.user_access_token);
+  const decryptedAccessToken = decrypt(installation.userAccessToken);
   if (!decryptedAccessToken) {
     logger.error(
       `[TokenManager] Failed to decrypt access token for installation: ${installationId}.`,

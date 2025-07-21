@@ -1,12 +1,12 @@
 import { env } from "@/lib/env";
 import { createJulesLabelsForRepository } from "@/lib/github-labels";
+import logger from "@/lib/logger";
 import { processJulesLabelEvent } from "@/lib/webhook-processor";
 import { db } from "@/server/db";
 import { GitHubLabelEventSchema } from "@/types";
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import logger from "@/lib/logger";
 
 // GitHub webhook payload interfaces
 interface GitHubAccount {
@@ -241,10 +241,10 @@ async function handleInstallationEvent(
           suspendedAt: new Date(),
           suspendedBy: "uninstalled",
           updatedAt: new Date(),
-          user_access_token: null,
-          refresh_token: null,
-          token_expires_at: null,
-          refresh_token_expires_at: null,
+          userAccessToken: null,
+          refreshToken: null,
+          tokenExpiresAt: null,
+          refreshTokenExpiresAt: null,
         },
       });
 
