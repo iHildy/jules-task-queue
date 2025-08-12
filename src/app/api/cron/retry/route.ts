@@ -15,6 +15,7 @@
 
 import { env } from "@/lib/env";
 import { cleanupOldTasks, retryAllFlaggedTasks } from "@/lib/jules";
+import logger from "@/lib/logger";
 import { db } from "@/server/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -30,14 +31,14 @@ function verifyCronAuth(req: NextRequest): boolean {
 
   // In development, allow without auth
   if (env.NODE_ENV === "development") {
-    console.warn(
+    logger.warn(
       "Cron endpoint accessed without authentication in development mode",
     );
     return true;
   }
 
   // In production without CRON_SECRET, deny access
-  console.error("Cron endpoint accessed without proper authentication");
+  logger.error("Cron endpoint accessed without proper authentication");
   return false;
 }
 
@@ -64,7 +65,7 @@ async function logCronExecution(
       },
     });
   } catch (logError) {
-    console.error("Failed to log cron execution:", logError);
+    logger.error({ error: logError }, "Failed to log cron execution");
   }
 }
 
@@ -80,14 +81,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  console.log("Starting cron job: retry flagged Jules tasks");
+  logger.info("Starting cron job: retry flagged Jules tasks");
 
   try {
     // Retry all flagged tasks
     const retryStats = await retryAllFlaggedTasks();
 
     // Also perform housekeeping - cleanup old completed tasks
-    const cleanupCount = await cleanupOldTasks(7); // Keep tasks for 7 days
+    const configuredDays = Number(env.TASK_CLEANUP_DAYS);
+    const cleanupDays =
+      Number.isFinite(configuredDays) && configuredDays > 0
+        ? configuredDays
+        : 7;
+    const cleanupCount = await cleanupOldTasks(cleanupDays);
 
     const executionTime = Date.now() - startTime;
     const stats = {
@@ -96,7 +102,7 @@ export async function POST(req: NextRequest) {
       executionTimeMs: executionTime,
     };
 
-    console.log("Cron job completed successfully:", stats);
+    logger.info({ stats }, "Cron job completed successfully");
 
     // Log successful execution
     await logCronExecution("retry_tasks", true, stats);
@@ -112,10 +118,10 @@ export async function POST(req: NextRequest) {
       error instanceof Error ? error.message : "Unknown error";
     const executionTime = Date.now() - startTime;
 
-    console.error("Cron job failed:", {
-      error: errorMessage,
-      executionTimeMs: executionTime,
-    });
+    logger.error(
+      { error: errorMessage, executionTimeMs: executionTime },
+      "Cron job failed",
+    );
 
     // Log failed execution
     await logCronExecution(
@@ -141,6 +147,14 @@ export async function POST(req: NextRequest) {
  * Health check for cron job endpoint
  */
 export async function GET() {
+  // Explicitly disallow GET to enforce POST-only access as per checklist
+  return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+/**
+ * Health and stats via HEAD (minimal)
+ */
+export async function HEAD() {
   try {
     // Check database connectivity
     await db.$queryRaw`SELECT 1`;
@@ -151,7 +165,7 @@ export async function GET() {
     });
 
     // Get recent cron executions
-    const recentCronLogs = await db.webhookLog.findMany({
+    await db.webhookLog.findMany({
       where: {
         eventType: "cron_retry_tasks",
         createdAt: {
@@ -162,35 +176,12 @@ export async function GET() {
       take: 5,
     });
 
-    const lastSuccessfulRun = recentCronLogs.find(
-      (log: { success: boolean }) => log.success,
-    );
-    const lastFailedRun = recentCronLogs.find(
-      (log: { success: boolean }) => !log.success,
-    );
-
-    return NextResponse.json({
-      status: "healthy",
-      service: "Jules task retry cron job",
-      database: "connected",
-      currentQueueSize: queueStats,
-      cronSecretConfigured: !!env.CRON_SECRET,
-      lastSuccessfulRun: lastSuccessfulRun?.createdAt || null,
-      lastFailedRun: lastFailedRun?.createdAt || null,
-      recentExecutions: recentCronLogs.length,
-      timestamp: new Date().toISOString(),
+    return new NextResponse(null, {
+      status: 200,
+      headers: { "X-Queue-Size": String(queueStats) },
     });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        status: "unhealthy",
-        service: "Jules task retry cron job",
-        database: "disconnected",
-        error: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 },
-    );
+  } catch {
+    return new NextResponse(null, { status: 503 });
   }
 }
 
@@ -204,7 +195,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  console.log("Manual cron job trigger requested");
+  logger.info("Manual cron job trigger requested");
 
   try {
     const body = await req.json().catch(() => ({}));

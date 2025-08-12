@@ -1,9 +1,10 @@
+import { installationService } from "@/lib/installation-service";
 import {
   getFlaggedTasks,
   getTaskStats,
   retryAllFlaggedTasks,
 } from "@/lib/jules";
-import { installationService } from "@/lib/installation-service";
+import logger from "@/lib/logger";
 import { getProcessingStats } from "@/lib/webhook-processor";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
 import { z } from "zod";
@@ -58,7 +59,7 @@ export const adminRouter = createTRPCRouter({
         stats,
       };
     } catch (error) {
-      console.error("Failed to retry all tasks:", error);
+      logger.error({ error }, "Failed to retry all tasks");
       throw new Error(
         `Retry failed: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -83,7 +84,7 @@ export const adminRouter = createTRPCRouter({
             : `Task ${input.taskId} retry skipped or failed`,
         };
       } catch (error) {
-        console.error(`Failed to retry task ${input.taskId}:`, error);
+        logger.error({ error }, `Failed to retry task ${input.taskId}`);
         throw new Error(
           `Retry failed: ${
             error instanceof Error ? error.message : "Unknown error"
@@ -193,7 +194,7 @@ export const adminRouter = createTRPCRouter({
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error("Failed to get admin health stats:", error);
+      logger.error({ error }, "Failed to get admin health stats");
       throw new Error(
         `Health check failed: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -220,7 +221,7 @@ export const adminRouter = createTRPCRouter({
           message: `Cleaned up ${deletedCount} tasks older than ${input.olderThanDays} days`,
         };
       } catch (error) {
-        console.error("Failed to cleanup old tasks:", error);
+        logger.error({ error }, "Failed to cleanup old tasks");
         throw new Error(
           `Cleanup failed: ${
             error instanceof Error ? error.message : "Unknown error"
@@ -297,7 +298,7 @@ export const adminRouter = createTRPCRouter({
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error("Failed to get admin metrics:", error);
+      logger.error({ error }, "Failed to get admin metrics");
       throw new Error(
         `Metrics failed: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -399,9 +400,9 @@ export const adminRouter = createTRPCRouter({
             data: result,
           };
         } catch (error) {
-          console.error(
-            `Failed to sync installation ${input.installationId}:`,
-            error,
+          logger.error(
+            { error },
+            `Failed to sync installation ${input.installationId}`,
           );
           throw new Error(
             `Sync failed: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -423,7 +424,7 @@ export const adminRouter = createTRPCRouter({
           stats: { successful, failed, total: results.length },
         };
       } catch (error) {
-        console.error("Failed to sync all installations:", error);
+        logger.error({ error }, "Failed to sync all installations");
         throw new Error(
           `Sync all failed: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
@@ -460,7 +461,7 @@ export const adminRouter = createTRPCRouter({
             message: `Cleaned up ${deletedCount} suspended installations older than ${input.olderThanDays} days`,
           };
         } catch (error) {
-          console.error("Failed to cleanup suspended installations:", error);
+          logger.error({ error }, "Failed to cleanup suspended installations");
           throw new Error(
             `Cleanup failed: ${error instanceof Error ? error.message : "Unknown error"}`,
           );

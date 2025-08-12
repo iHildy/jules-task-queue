@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import { githubAppClient } from "@/lib/github-app";
+import logger from "@/lib/logger";
 import { db } from "@/server/db";
 import { NextResponse } from "next/server";
 
@@ -12,7 +13,7 @@ async function checkDatabase(): Promise<Status> {
     await db.$queryRaw`SELECT 1`;
     return "ok";
   } catch (error) {
-    console.error("Database health check failed:", error);
+    logger.error(error, "Database health check failed");
     return "error";
   }
 }
@@ -25,7 +26,7 @@ async function checkGitHubApp(): Promise<Status> {
     await githubAppClient.getAppInfo();
     return "ok";
   } catch (error) {
-    console.error("GitHub App health check failed:", error);
+    logger.error(error, "GitHub App health check failed");
     return "error";
   }
 }
@@ -35,6 +36,18 @@ function checkWebhook(): Status {
 }
 
 export async function GET() {
+  // Minimal mode for public environments: only status code and generic body
+  if (env.NODE_ENV === "production") {
+    const dbStatus = await checkDatabase();
+    const appStatus = await checkGitHubApp();
+    const hasError = [dbStatus, appStatus].some((s) => s === "error");
+    const httpStatus = hasError ? 503 : 200;
+    return NextResponse.json(
+      { status: httpStatus === 200 ? "ok" : "error" },
+      { status: httpStatus },
+    );
+  }
+
   const checks = {
     database: await checkDatabase(),
     githubApp: await checkGitHubApp(),

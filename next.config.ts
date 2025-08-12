@@ -13,32 +13,12 @@ const nextConfig: NextConfig = {
 
   // Configure images
   images: {
-    dangerouslyAllowSVG: true,
     remotePatterns: [new URL("https://vercel.com/*")],
   },
 
   // Configure headers for security and CORS
   async headers() {
-    return [
-      {
-        source: "/api/webhooks/:path*",
-        headers: [
-          {
-            key: "Access-Control-Allow-Origin",
-            value: "*",
-          },
-          {
-            key: "Access-Control-Allow-Methods",
-            value: "POST, OPTIONS",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value:
-              "Content-Type, X-GitHub-Delivery, X-GitHub-Event, X-GitHub-Signature-256",
-          },
-        ],
-      },
-    ];
+    return [];
   },
 };
 

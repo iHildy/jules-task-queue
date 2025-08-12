@@ -1,7 +1,7 @@
 import { githubClient } from "@/lib/github";
+import logger from "@/lib/logger";
 import { getUserAccessToken } from "@/lib/token-manager";
 import { db } from "@/server/db";
-import logger from "@/lib/logger";
 import type {
   CommentAnalysis,
   CommentClassification,
@@ -400,7 +400,7 @@ export async function handleTaskLimit(
           `Added refresh emoji reaction to Jules comment for task limit`,
         );
       } catch (reactionError) {
-        console.warn(`Failed to add refresh reaction: ${reactionError}`);
+        logger.warn(`Failed to add refresh reaction: ${reactionError}`);
       }
     }
 
@@ -484,7 +484,7 @@ export async function handleWorking(
           `Added thumbs up emoji reaction to Jules comment for working status`,
         );
       } catch (reactionError) {
-        console.warn(`Failed to add thumbs up reaction: ${reactionError}`);
+        logger.warn(`Failed to add thumbs up reaction: ${reactionError}`);
       }
     }
 

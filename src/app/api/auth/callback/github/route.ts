@@ -176,12 +176,12 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
 
-  // Log the incoming request details for debugging
+  // Log minimal details. Do NOT log raw state value.
   logger.info("OAuth callback received", {
-    url: request.url,
-    state,
-    code: code ? "present" : "missing",
-    installationId: searchParams.get("installation_id"),
+    url: new URL(request.url).origin,
+    statePresent: Boolean(state),
+    codePresent: Boolean(code),
+    installationId: searchParams.get("installation_id") ? "present" : "missing",
     setupAction: searchParams.get("setup_action"),
   });
 
@@ -265,8 +265,6 @@ export async function GET(request: NextRequest) {
           // We'll accept this state and try to get installation_id from URL params
           stateValidationPassed = true;
           logger.info("GitHub-initiated OAuth flow detected, accepting state", {
-            originalState: state,
-            decodedState,
             hasCookie: !!oauthStateCookie,
           });
         }
@@ -281,7 +279,7 @@ export async function GET(request: NextRequest) {
 
   if (!stateValidationPassed) {
     logger.error(
-      { state, oauthStateCookie: oauthStateCookie?.value },
+      { statePresent: Boolean(state) },
       "CSRF state validation failed",
     );
     return NextResponse.json(
@@ -317,7 +315,7 @@ export async function GET(request: NextRequest) {
       );
       redirectTo = "/github-app/success";
     } else {
-      logger.error({ state }, "Invalid state format");
+      logger.error({ statePresent: Boolean(state) }, "Invalid state format");
       return NextResponse.json(
         { error: "Invalid state format" },
         { status: 400 },

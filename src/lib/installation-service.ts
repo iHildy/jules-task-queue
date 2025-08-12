@@ -1,5 +1,6 @@
-import { db } from "@/server/db";
 import { githubAppClient } from "@/lib/github-app";
+import logger from "@/lib/logger";
+import { db } from "@/server/db";
 
 /**
  * Service for managing GitHub App installations
@@ -113,7 +114,7 @@ export class InstallationService {
    */
   async syncInstallation(installationId: number) {
     try {
-      console.log(`Syncing installation ${installationId} with GitHub`);
+      logger.info(`Syncing installation ${installationId} with GitHub`);
 
       // Check if installation exists in GitHub
       const installations = await githubAppClient.getInstallations();
@@ -138,7 +139,7 @@ export class InstallationService {
           data: { removedAt: new Date() },
         });
 
-        console.log(
+        logger.info(
           `Installation ${installationId} marked as suspended (not found in GitHub or missing account)`,
         );
         return null;
@@ -220,12 +221,12 @@ export class InstallationService {
         });
       }
 
-      console.log(
+      logger.info(
         `Synced installation ${installationId}: ${githubRepositories.length} repositories`,
       );
       return await this.getInstallation(installationId);
     } catch (error) {
-      console.error(`Failed to sync installation ${installationId}:`, error);
+      logger.error({ error }, `Failed to sync installation ${installationId}`);
       throw error;
     }
   }
@@ -246,7 +247,10 @@ export class InstallationService {
           data: synced,
         });
       } catch (error) {
-        console.error(`Failed to sync installation ${installation.id}:`, error);
+        logger.error(
+          { error },
+          `Failed to sync installation ${installation.id}`,
+        );
         results.push({
           installationId: installation.id,
           success: false,
@@ -369,7 +373,7 @@ export class InstallationService {
       },
     });
 
-    console.log(
+    logger.info(
       `Cleaned up ${deletedCount.count} suspended installations older than ${olderThanDays} days`,
     );
     return deletedCount.count;

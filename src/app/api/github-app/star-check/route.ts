@@ -1,6 +1,7 @@
 import { decrypt } from "@/lib/crypto";
 import { env } from "@/lib/env";
 import { githubClient } from "@/lib/github";
+import logger from "@/lib/logger";
 import { db } from "@/server/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
   const repo = env.REPO_NAME;
 
   if (!owner || !repo) {
-    console.error("REPO_OWNER or REPO_NAME environment variables not set.");
+    logger.error("REPO_OWNER or REPO_NAME environment variables not set.");
     return NextResponse.json(
       {
         error: "Star requirement configuration incomplete",
@@ -88,7 +89,10 @@ export async function GET(req: NextRequest) {
     try {
       decryptedToken = decrypt(installation.userAccessToken);
     } catch (decryptError) {
-      console.error("Failed to decrypt user access token:", decryptError);
+      logger.error(
+        { error: decryptError },
+        "Failed to decrypt user access token",
+      );
       return NextResponse.json(
         {
           error: "token_decryption_failed",
@@ -100,7 +104,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!decryptedToken) {
-      console.error("Failed to decrypt user access token");
+      logger.error("Failed to decrypt user access token");
       return NextResponse.json(
         {
           error: "token_decryption_failed",
@@ -134,9 +138,9 @@ export async function GET(req: NextRequest) {
         errorMessage.includes("installation") ||
         errorMessage.includes("Installation")
       ) {
-        console.error(
-          "Installation not found (app may have been uninstalled/reinstalled):",
-          error,
+        logger.error(
+          { error },
+          "Installation not found (may be uninstalled/reinstalled)",
         );
         return NextResponse.json(
           {
@@ -156,7 +160,7 @@ export async function GET(req: NextRequest) {
 
     // Handle permission errors specifically
     if ((error as { status?: number })?.status === 403) {
-      console.error("GitHub App lacks required permissions:", error);
+      logger.error({ error }, "GitHub App lacks required permissions");
       return NextResponse.json(
         {
           error: "Permission denied",
@@ -167,7 +171,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.error("Failed to check star status:", error);
+    logger.error({ error }, "Failed to check star status");
     return NextResponse.json(
       { error: "Failed to check star status" },
       { status: 500 },
