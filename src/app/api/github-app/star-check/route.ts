@@ -1,5 +1,8 @@
+import { decrypt } from "@/lib/crypto";
 import { env } from "@/lib/env";
 import { githubClient } from "@/lib/github";
+import logger from "@/lib/logger";
+import { db } from "@/server/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -14,7 +17,7 @@ export async function GET(req: NextRequest) {
   const repo = env.REPO_NAME;
 
   if (!owner || !repo) {
-    console.error("REPO_OWNER or REPO_NAME environment variables not set.");
+    logger.error("REPO_OWNER or REPO_NAME environment variables not set.");
     return NextResponse.json(
       {
         error: "Star requirement configuration incomplete",
@@ -32,29 +35,89 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  try {
-    // Get the installation info to get the username
-    const installationInfo = await githubClient
-      .getGitHubAppClient()
-      .getInstallationInfo(parseInt(installationId));
+  // Validate installationId is a valid numeric string
+  const parsedInstallationId = parseInt(installationId, 10);
+  if (isNaN(parsedInstallationId) || parsedInstallationId <= 0) {
+    return NextResponse.json(
+      { error: "Invalid installation ID format" },
+      { status: 400 },
+    );
+  }
 
-    if (!installationInfo.account) {
+  try {
+    // Get the installation info from our database instead of GitHub API
+    const installation = await db.gitHubInstallation.findUnique({
+      where: { id: parsedInstallationId },
+      select: {
+        accountLogin: true,
+        accountType: true,
+        userAccessToken: true,
+      },
+    });
+
+    if (!installation) {
       return NextResponse.json(
-        { error: "Unable to determine user account from installation" },
-        { status: 400 },
+        { error: "Installation not found" },
+        { status: 404 },
       );
     }
 
-    // Handle both User and Organization accounts
-    const username =
-      "login" in installationInfo.account
-        ? installationInfo.account.login
-        : installationInfo.account.name;
+    if (!installation.userAccessToken) {
+      // User access token is missing, redirect to OAuth flow
+      // Check if we're already in an OAuth flow (GitHub might have initiated it)
+      const baseUrl = new URL(env.GITHUB_APP_CALLBACK_URL).origin;
+      const oauthUrl = new URL("/api/auth/authorize/github", baseUrl);
+      oauthUrl.searchParams.set("installation_id", installationId);
+      oauthUrl.searchParams.set("redirect_to", "/github-app/success");
 
-    // Get an installation-scoped Octokit client
-    const octokit = await githubClient
-      .getGitHubAppClient()
-      .getInstallationOctokit(parseInt(installationId));
+      return NextResponse.json(
+        {
+          error: "oauth_required",
+          message:
+            "User authorization required. Please complete the OAuth flow.",
+          oauth_url: oauthUrl.toString(),
+        },
+        { status: 401 },
+      );
+    }
+
+    // Use the account login from our database
+    const username = installation.accountLogin;
+
+    // Decrypt the user access token with proper error handling
+    let decryptedToken: string | null = null;
+    try {
+      decryptedToken = decrypt(installation.userAccessToken);
+    } catch (decryptError) {
+      logger.error(
+        { error: decryptError },
+        "Failed to decrypt user access token",
+      );
+      return NextResponse.json(
+        {
+          error: "token_decryption_failed",
+          message:
+            "Failed to decrypt user access token. Please reinstall the app.",
+        },
+        { status: 500 },
+      );
+    }
+
+    if (!decryptedToken) {
+      logger.error("Failed to decrypt user access token");
+      return NextResponse.json(
+        {
+          error: "token_decryption_failed",
+          message:
+            "Failed to decrypt user access token. Please reinstall the app.",
+        },
+        { status: 500 },
+      );
+    }
+
+    // Create an Octokit client using the user access token
+    const octokit =
+      await githubClient.getUserOwnedGitHubAppClient(decryptedToken);
 
     // Check if the user has starred the repository (passive check)
     const isStarred = await githubClient.checkIfUserStarredRepository(
@@ -75,9 +138,9 @@ export async function GET(req: NextRequest) {
         errorMessage.includes("installation") ||
         errorMessage.includes("Installation")
       ) {
-        console.error(
-          "Installation not found (app may have been uninstalled/reinstalled):",
-          error,
+        logger.error(
+          { error },
+          "Installation not found (may be uninstalled/reinstalled)",
         );
         return NextResponse.json(
           {
@@ -97,7 +160,7 @@ export async function GET(req: NextRequest) {
 
     // Handle permission errors specifically
     if ((error as { status?: number })?.status === 403) {
-      console.error("GitHub App lacks required permissions:", error);
+      logger.error({ error }, "GitHub App lacks required permissions");
       return NextResponse.json(
         {
           error: "Permission denied",
@@ -108,7 +171,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.error("Failed to check star status:", error);
+    logger.error({ error }, "Failed to check star status");
     return NextResponse.json(
       { error: "Failed to check star status" },
       { status: 500 },

@@ -1,4 +1,5 @@
 import { createJulesLabelsForRepository } from "@/lib/github-labels";
+import logger from "@/lib/logger";
 import { db } from "@/server/db";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Create labels in selected repositories
-      console.log(
+      logger.info(
         `Creating Jules labels in ${repositoriesToProcess.length} repositories for installation ${installationId}`,
       );
 
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
         (result) => result.status === "rejected",
       ).length;
 
-      console.log(
+      logger.info(
         `Label creation completed: ${successful} successful, ${failed} failed`,
       );
 
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Failed to setup labels:", error);
+    logger.error({ error }, "Failed to setup labels");
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -80,10 +80,10 @@ model GitHubInstallation {
   LabelPreference LabelPreference?
 
   // User OAuth tokens
-  user_access_token      String?
-  refresh_token          String?
-  token_expires_at       DateTime?
-  refresh_token_expires_at DateTime?
+  userAccessToken       String?
+  refreshToken          String?
+  tokenExpiresAt        DateTime?
+  refreshTokenExpiresAt DateTime?
 
   // Indexes for performance
   @@index([accountId])
@@ -168,8 +168,8 @@ model LabelPreferenceRepository {
 
 model RateLimit {
   id          Int      @id @default(autoincrement())
-  identifier  String   // IP address or user identifier
-  endpoint    String   // API endpoint being rate limited
+  identifier  String // IP address or user identifier
+  endpoint    String // API endpoint being rate limited
   requests    Int      @default(1)
   windowStart DateTime
   expiresAt   DateTime

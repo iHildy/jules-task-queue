@@ -3,6 +3,7 @@ import {
   getInstallationError,
   validateGitHubAppConfig,
 } from "@/lib/github-app-utils";
+import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -13,9 +14,9 @@ export async function GET(req: NextRequest) {
     // Validate GitHub App configuration
     const configValidation = validateGitHubAppConfig();
     if (!configValidation.valid) {
-      console.error(
-        "GitHub App configuration invalid:",
-        configValidation.errors,
+      logger.error(
+        { errors: configValidation.errors },
+        "GitHub App configuration invalid",
       );
 
       return NextResponse.json(
@@ -40,11 +41,10 @@ export async function GET(req: NextRequest) {
     if (!result.success) {
       const errorInfo = getInstallationError(result.errorCode || "UNKNOWN");
 
-      console.error("Failed to build installation URL:", {
-        error: result.error,
-        errorCode: result.errorCode,
-        url: req.url,
-      });
+      logger.error(
+        { error: result.error, errorCode: result.errorCode, url: req.url },
+        "Failed to build installation URL",
+      );
 
       return NextResponse.json(
         {
@@ -58,22 +58,25 @@ export async function GET(req: NextRequest) {
     }
 
     // Log successful redirect for monitoring
-    console.log("Redirecting to GitHub App installation:", {
-      url: result.url,
-      timestamp: new Date().toISOString(),
-    });
+    logger.info(
+      { url: result.url, timestamp: new Date().toISOString() },
+      "Redirecting to GitHub App installation",
+    );
 
     // Redirect to GitHub App installation - result.url is guaranteed to exist when success is true
     return NextResponse.redirect(result.url!);
   } catch (error) {
     const errorInfo = getInstallationError("UNKNOWN");
 
-    console.error("Unexpected error in GitHub App installation:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
-      url: req.url,
-      timestamp: new Date().toISOString(),
-    });
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        url: req.url,
+        timestamp: new Date().toISOString(),
+      },
+      "Unexpected error in GitHub App installation",
+    );
 
     return NextResponse.json(
       {

@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import logger from "@/lib/logger";
 
 /**
  * GitHub App installation utilities
@@ -106,7 +107,7 @@ export function buildInstallationUrl(baseUrl: string): InstallationResult {
       url: installUrl.toString(),
     };
   } catch (error) {
-    console.error("Error building installation URL:", error);
+    logger.error({ error }, "Error building installation URL");
 
     return {
       success: false,

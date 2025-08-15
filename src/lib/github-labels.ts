@@ -1,4 +1,5 @@
 import { githubAppClient } from "@/lib/github-app";
+import logger from "@/lib/logger";
 
 interface Repository {
   id: number;
@@ -54,7 +55,7 @@ async function createJulesLabelsInRepository(
           color: label.color,
           description: label.description,
         });
-        console.log(`Created label '${label.name}' in ${owner}/${repo}`);
+        logger.info(`Created label '${label.name}' in ${owner}/${repo}`);
       } catch (error: unknown) {
         // If label already exists, that's fine
         if (
@@ -72,16 +73,21 @@ async function createJulesLabelsInRepository(
           Array.isArray(error.response.data.errors) &&
           error.response.data.errors[0]?.code === "already_exists"
         ) {
-          console.log(
+          logger.info(
             `Label '${label.name}' already exists in ${owner}/${repo}`,
           );
         } else {
           // Log other errors but don't fail the installation
           const errorMessage =
             error instanceof Error ? error.message : String(error);
-          console.warn(
-            `Failed to create label '${label.name}' in ${owner}/${repo}:`,
-            errorMessage,
+          logger.warn(
+            {
+              error: errorMessage,
+              owner,
+              repo,
+              label: label.name,
+            },
+            `Failed to create label in repository`,
           );
         }
       }
@@ -89,8 +95,13 @@ async function createJulesLabelsInRepository(
   } catch (error: unknown) {
     // Log descriptive error as requested, but don't fail the installation
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(
-      `Failed to create Jules labels in ${owner}/${repo}: ${errorMessage}. This might be due to insufficient permissions - the app needs 'Issues: Write' permission to create labels.`,
+    logger.error(
+      {
+        owner,
+        repo,
+        error: errorMessage,
+      },
+      "Failed to create Jules labels - ensure 'Issues: Write' permission",
     );
   }
 }
@@ -113,7 +124,7 @@ async function processRepositoriesInChunks(
   chunkSize: number = 10,
   delayMs: number = 1000,
 ): Promise<void> {
-  console.log(
+  logger.info(
     `Processing ${repositories.length} repositories in chunks of ${chunkSize} with ${delayMs}ms delay`,
   );
 
@@ -132,14 +143,14 @@ async function processRepositoriesInChunks(
 
     // Add delay between chunks to respect rate limits (except for the last chunk)
     if (i + chunkSize < repositories.length) {
-      console.log(
+      logger.info(
         `Processed chunk ${Math.floor(i / chunkSize) + 1}/${Math.ceil(repositories.length / chunkSize)}, waiting ${delayMs}ms...`,
       );
       await sleep(delayMs);
     }
   }
 
-  console.log(`Completed processing all ${repositories.length} repositories`);
+  logger.info(`Completed processing all ${repositories.length} repositories`);
 }
 
 /**
@@ -150,7 +161,7 @@ export async function createJulesLabelsForRepositories(
   installationId: number,
 ): Promise<void> {
   if (repositories.length === 0) {
-    console.log("No repositories to process for label creation");
+    logger.info("No repositories to process for label creation");
     return;
   }
 

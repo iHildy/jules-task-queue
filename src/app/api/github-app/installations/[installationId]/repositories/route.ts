@@ -1,3 +1,4 @@
+import logger from "@/lib/logger";
 import { db } from "@/server/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       count: formattedRepositories.length,
     });
   } catch (error) {
-    console.error("Failed to fetch installation repositories:", error);
+    logger.error({ error }, "Failed to fetch installation repositories");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

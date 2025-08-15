@@ -1,3 +1,4 @@
+import logger from "@/lib/logger";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { type NextRequest } from "next/server";
 
@@ -14,8 +15,9 @@ const handler = (req: NextRequest) =>
     onError:
       env.NODE_ENV === "development"
         ? ({ path, error }) => {
-            console.error(
-              `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`,
+            logger.error(
+              error,
+              `tRPC request failed on path ${path ?? "<no-path>"}`,
             );
           }
         : undefined,

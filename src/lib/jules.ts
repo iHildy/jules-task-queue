@@ -1,4 +1,5 @@
 import { githubClient } from "@/lib/github";
+import logger from "@/lib/logger";
 import { getUserAccessToken } from "@/lib/token-manager";
 import { db } from "@/server/db";
 import logger from "@/lib/logger";
@@ -20,7 +21,8 @@ const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
  */
 const TASK_LIMIT_PATTERNS = [
   "You are currently at your concurrent task limit",
-  "You are currently at your limit of 5 running tasks",
+  "You are currently at your limit",
+  "Jules has failed to create a task",
 ];
 
 /**
@@ -395,12 +397,13 @@ export async function handleTaskLimit(
           repo,
           analysis.comment.id,
           "eyes",
+          installationId,
         );
         logger.info(
           `Added refresh emoji reaction to Jules comment for task limit`,
         );
       } catch (reactionError) {
-        console.warn(`Failed to add refresh reaction: ${reactionError}`);
+        logger.warn(`Failed to add refresh reaction: ${reactionError}`);
       }
     }
 
@@ -484,7 +487,7 @@ export async function handleWorking(
           `Added thumbs up emoji reaction to Jules comment for working status`,
         );
       } catch (reactionError) {
-        console.warn(`Failed to add thumbs up reaction: ${reactionError}`);
+        logger.warn(`Failed to add thumbs up reaction: ${reactionError}`);
       }
     }
 

@@ -1,9 +1,6 @@
 ---
-description: 
-globs: 
-alwaysApply: true
+alwaysApply: false
 ---
-
 ## MANDATORY CHECKPOINT (Must be included in every response):
 Before ending any response, I MUST:
 1. State: "CHECKPOINT: Transitioning to Review Gate V2"

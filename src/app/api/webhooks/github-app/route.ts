@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import { createJulesLabelsForRepository } from "@/lib/github-labels";
+import logger from "@/lib/logger";
 import { processJulesLabelEvent } from "@/lib/webhook-processor";
 import { db } from "@/server/db";
 import { GitHubLabelEventSchema } from "@/types";
@@ -87,10 +88,16 @@ interface GitHubWebhookEvent {
  */
 function verifyGitHubAppSignature(payload: string, signature: string): boolean {
   if (!env.GITHUB_APP_WEBHOOK_SECRET) {
-    logger.warn(
-      "GITHUB_APP_WEBHOOK_SECRET not configured - webhook verification disabled",
+    if (env.NODE_ENV === "development") {
+      logger.warn(
+        "GITHUB_APP_WEBHOOK_SECRET not configured - allowing unsigned webhooks in development only",
+      );
+      return true;
+    }
+    logger.error(
+      "GITHUB_APP_WEBHOOK_SECRET not configured in production - denying webhook",
     );
-    return true; // Allow in development if not configured
+    return false;
   }
 
   if (!signature.startsWith("sha256=")) {
@@ -109,6 +116,159 @@ function verifyGitHubAppSignature(payload: string, signature: string): boolean {
     );
   } catch {
     return false;
+  }
+}
+
+/**
+ * Minimal rate limiting for webhook endpoint to prevent DB flooding
+ */
+async function checkRateLimit(
+  identifierRaw: string,
+  maxRequests: number = 30,
+  windowMs: number = 60 * 1000,
+) {
+  // Normalize/shorten identifier to avoid oversized keys
+  const identifier = identifierRaw.slice(0, 64);
+  const now = new Date();
+  const endpoint = "/api/webhooks/github-app";
+
+  try {
+    // Throttle cleanup (only 1% of requests trigger it) to reduce contention
+    if (Math.random() < 0.01) {
+      void db.rateLimit.deleteMany({ where: { expiresAt: { lt: now } } });
+    }
+
+    // Atomic upsert with conditional increment to avoid race conditions
+    // 1. Try to increment if window active and under limit
+    const updated = await db.$executeRawUnsafe<number>(
+      `UPDATE rate_limits
+       SET requests = requests + 1
+       WHERE identifier = $1 AND endpoint = $2 AND "expiresAt" > $3 AND requests < $4`,
+      identifier,
+      endpoint,
+      now,
+      maxRequests,
+    );
+
+    if (updated && updated > 0) {
+      // Fetch remaining in a lightweight way
+      const row = await db.rateLimit.findUnique({
+        where: { identifier_endpoint: { identifier, endpoint } },
+        select: { requests: true },
+      });
+      const remaining = Math.max(
+        0,
+        maxRequests - (row?.requests ?? maxRequests),
+      );
+      return { allowed: true, remaining } as const;
+    }
+
+    // 2. Either new window or first request: try insert
+    try {
+      // Use upsert to avoid unique constraint races
+      const record = await db.rateLimit.upsert({
+        where: { identifier_endpoint: { identifier, endpoint } },
+        update: {},
+        create: {
+          identifier,
+          endpoint,
+          requests: 1,
+          windowStart: now,
+          expiresAt: new Date(now.getTime() + windowMs),
+        },
+      });
+      // If upsert hit existing row (update no-op), decide based on expiry/requests
+      if (record.expiresAt <= now) {
+        const reset = await db.rateLimit.update({
+          where: { id: record.id },
+          data: {
+            requests: 1,
+            windowStart: now,
+            expiresAt: new Date(now.getTime() + windowMs),
+          },
+        });
+        return {
+          allowed: true,
+          remaining: maxRequests - reset.requests,
+        } as const;
+      }
+      if (record.requests >= maxRequests) {
+        return { allowed: false, remaining: 0 } as const;
+      }
+      const updatedRecord = await db.rateLimit.update({
+        where: { id: record.id },
+        data: { requests: { increment: 1 } },
+        select: { requests: true },
+      });
+      return {
+        allowed: true,
+        remaining: Math.max(0, maxRequests - updatedRecord.requests),
+      } as const;
+    } catch {
+      // 3. If upsert failed (rare), reset window if expired, else check limit
+      const record = await db.rateLimit.findUnique({
+        where: { identifier_endpoint: { identifier, endpoint } },
+      });
+      if (!record) {
+        return { allowed: true, remaining: maxRequests - 1 } as const;
+      }
+      if (record.expiresAt <= now) {
+        await db.rateLimit.update({
+          where: { id: record.id },
+          data: {
+            requests: 1,
+            windowStart: now,
+            expiresAt: new Date(now.getTime() + windowMs),
+          },
+        });
+        return { allowed: true, remaining: maxRequests - 1 } as const;
+      }
+      if (record.requests >= maxRequests) {
+        return { allowed: false, remaining: 0 } as const;
+      }
+      const newCount = record.requests + 1;
+      await db.rateLimit.update({
+        where: { id: record.id },
+        data: { requests: newCount },
+      });
+      return {
+        allowed: true,
+        remaining: Math.max(0, maxRequests - newCount),
+      } as const;
+    }
+  } catch {
+    // Fallback to a very restrictive in-memory limiter
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const g: any = global as unknown as {
+      __webhookFallbackLimits?: Map<
+        string,
+        { count: number; windowStart: number }
+      >;
+    };
+    if (!g.__webhookFallbackLimits) g.__webhookFallbackLimits = new Map();
+    const key = `${identifier}:webhook`;
+    const nowMs = Date.now();
+    const fallbackWindowMs = 60 * 1000;
+    const fallbackMax = 10; // extra strict fallback
+    const current = g.__webhookFallbackLimits.get(key) || {
+      count: 0,
+      windowStart: nowMs,
+    };
+    if (nowMs - current.windowStart > fallbackWindowMs) {
+      current.count = 0;
+      current.windowStart = nowMs;
+    }
+    if (current.count >= fallbackMax) {
+      logger.warn({ identifier }, "Webhook fallback rate limit exceeded");
+      return { allowed: false, remaining: 0 } as const;
+    }
+    current.count++;
+    g.__webhookFallbackLimits.set(key, current);
+    logger.warn(
+      { identifier, count: current.count },
+      "Using webhook fallback rate limiter",
+    );
+    return { allowed: true, remaining: fallbackMax - current.count } as const;
   }
 }
 
@@ -241,10 +401,10 @@ async function handleInstallationEvent(
           suspendedAt: new Date(),
           suspendedBy: "uninstalled",
           updatedAt: new Date(),
-          user_access_token: null,
-          refresh_token: null,
-          token_expires_at: null,
-          refresh_token_expires_at: null,
+          userAccessToken: null,
+          refreshToken: null,
+          tokenExpiresAt: null,
+          refreshTokenExpiresAt: null,
         },
       });
 
@@ -415,6 +575,29 @@ export async function POST(req: NextRequest) {
   let payload: unknown = null;
 
   try {
+    // Basic rate limiting per source IP
+    const realIpHeader = req.headers.get("x-real-ip");
+    let ipSource =
+      realIpHeader || req.headers.get("x-forwarded-for") || "unknown";
+    // Parse X-Forwarded-For first entry if multiple
+    if (!realIpHeader && ipSource.includes(",")) {
+      ipSource = ipSource.split(",")[0]?.trim() || ipSource;
+    }
+    // Normalize and bound the identifier length
+    const normalizedIp = ipSource.toLowerCase().slice(0, 64);
+    // Optionally append user agent (truncated) to reduce spoofing
+    const userAgent = (req.headers.get("user-agent") || "")
+      .toLowerCase()
+      .slice(0, 32);
+    const identifier = userAgent
+      ? `${normalizedIp}|${userAgent}`
+      : normalizedIp;
+    const rate = await checkRateLimit(identifier);
+    if (!rate.allowed) {
+      await logWebhookEvent(eventType, payload, false, "Rate limit exceeded");
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     // Verify content type
     const contentType = req.headers.get("content-type");
     if (contentType !== "application/json") {
@@ -435,19 +618,22 @@ export async function POST(req: NextRequest) {
     // Verify signature
     const signature = req.headers.get("x-hub-signature-256");
     if (!signature) {
-      await logWebhookEvent(
-        eventType,
-        payload,
-        false,
-        "Missing signature header",
-      );
-      return NextResponse.json(
-        { error: "Missing X-Hub-Signature-256 header" },
-        { status: 401 },
-      );
+      // Allow unsigned webhooks only in development when secret is not configured
+      if (!(env.NODE_ENV === "development" && !env.GITHUB_APP_WEBHOOK_SECRET)) {
+        await logWebhookEvent(
+          eventType,
+          payload,
+          false,
+          "Missing signature header",
+        );
+        return NextResponse.json(
+          { error: "Missing X-Hub-Signature-256 header" },
+          { status: 401 },
+        );
+      }
     }
 
-    if (!verifyGitHubAppSignature(payloadText, signature)) {
+    if (signature && !verifyGitHubAppSignature(payloadText, signature)) {
       await logWebhookEvent(eventType, payload, false, "Invalid signature");
       return NextResponse.json(
         { error: "Invalid webhook signature" },
@@ -682,8 +868,11 @@ export async function GET() {
       service: "GitHub App webhook handler",
       database: "connected",
       timestamp: new Date().toISOString(),
-      environment: env.NODE_ENV,
-      webhookSecretConfigured: !!env.GITHUB_APP_WEBHOOK_SECRET,
+      environment: env.NODE_ENV === "production" ? undefined : env.NODE_ENV,
+      webhookSecretConfigured:
+        env.NODE_ENV === "production"
+          ? undefined
+          : !!env.GITHUB_APP_WEBHOOK_SECRET,
     });
   } catch (error) {
     return NextResponse.json(

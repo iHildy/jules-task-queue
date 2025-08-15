@@ -5,6 +5,7 @@ import {
   processWorkflowDecision,
   upsertJulesTask,
 } from "@/lib/jules";
+import logger from "@/lib/logger";
 import { db } from "@/server/db";
 import type { GitHubLabelEvent, ProcessingResult } from "@/types";
 
@@ -19,7 +20,7 @@ async function scheduleCommentCheck(
   taskId: number,
   delayMs: number = 60000, // 60 seconds
 ): Promise<void> {
-  console.log(
+  logger.info(
     `Scheduling comment check for ${owner}/${repo}#${issueNumber} in ${delayMs}ms`,
   );
 
@@ -31,9 +32,9 @@ async function scheduleCommentCheck(
     try {
       await executeCommentCheck(owner, repo, issueNumber, taskId);
     } catch (error) {
-      console.error(
-        `Comment check failed for ${owner}/${repo}#${issueNumber}:`,
-        error,
+      logger.error(
+        { error },
+        `Comment check failed for ${owner}/${repo}#${issueNumber}`,
       );
     }
   }, delayMs);
@@ -48,7 +49,7 @@ async function executeCommentCheck(
   issueNumber: number,
   taskId: number,
 ): Promise<void> {
-  console.log(
+  logger.info(
     `Executing enhanced comment check for ${owner}/${repo}#${issueNumber}`,
   );
 
@@ -59,7 +60,7 @@ async function executeCommentCheck(
     });
 
     if (!task) {
-      console.log(`Task ${taskId} no longer exists, skipping comment check`);
+      logger.info(`Task ${taskId} no longer exists, skipping comment check`);
       return;
     }
 
@@ -73,7 +74,7 @@ async function executeCommentCheck(
       task.installationId || undefined,
     );
 
-    console.log(
+    logger.info(
       `Comment analysis result for ${owner}/${repo}#${issueNumber}:`,
       {
         action: commentResult.action,
@@ -110,9 +111,9 @@ async function executeCommentCheck(
       },
     });
   } catch (error) {
-    console.error(
-      `Error during comment check for ${owner}/${repo}#${issueNumber}:`,
-      error,
+    logger.error(
+      { error },
+      `Error during comment check for ${owner}/${repo}#${issueNumber}`,
     );
 
     // Log the error to the database
@@ -132,7 +133,7 @@ async function executeCommentCheck(
         },
       });
     } catch (logError) {
-      console.error("Failed to log comment check error:", logError);
+      logger.error({ error: logError }, "Failed to log comment check error");
     }
   }
 }
@@ -186,7 +187,7 @@ export async function processJulesLabelEvent(
         installationId,
       });
 
-      console.log(
+      logger.info(
         `Created/updated task ${task.id} for ${owner}/${repo}#${issue.number}`,
       );
 
@@ -195,7 +196,7 @@ export async function processJulesLabelEvent(
         (l) => l.name.toLowerCase() === "human",
       );
       if (hasHumanLabel) {
-        console.log(
+        logger.info(
           `Issue ${owner}/${repo}#${issue.number} has 'Human' label, skipping automatic processing`,
         );
         return {
@@ -232,7 +233,7 @@ export async function processJulesLabelEvent(
         );
 
         if (hasJulesQueueLabel) {
-          console.log(
+          logger.info(
             `Jules label removed from ${owner}/${repo}#${issue.number} but jules-queue label present - keeping task flagged for retry`,
           );
           return {
@@ -252,7 +253,7 @@ export async function processJulesLabelEvent(
           },
         });
 
-        console.log(
+        logger.info(
           `Jules label manually removed from ${owner}/${repo}#${issue.number}, updated task ${existingTask.id}`,
         );
 
@@ -271,7 +272,7 @@ export async function processJulesLabelEvent(
 
     // Handle 'jules-queue' label events (mostly for logging/monitoring)
     if (labelName === "jules-queue") {
-      console.log(
+      logger.info(
         `Jules-queue label ${action} on ${owner}/${repo}#${issue.number}`,
       );
 
@@ -288,15 +289,18 @@ export async function processJulesLabelEvent(
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    console.error("Error processing Jules label event:", {
-      error: errorMessage,
-      event: {
-        action,
-        label: label.name,
-        issue: issue.number,
-        repository: repository.full_name,
+    logger.error(
+      {
+        error: errorMessage,
+        event: {
+          action,
+          label: label.name,
+          issue: issue.number,
+          repository: repository.full_name,
+        },
       },
-    });
+      "Error processing Jules label event",
+    );
 
     return {
       action: "error",
@@ -327,7 +331,7 @@ export async function triggerCommentCheck(
     const { repoOwner, repoName, githubIssueNumber } = task;
     const issueNumber = Number(githubIssueNumber);
 
-    console.log(
+    logger.info(
       `Manually triggering comment check for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
     );
 
@@ -398,7 +402,7 @@ export async function getProcessingStats() {
           : 100,
     };
   } catch (error) {
-    console.error("Failed to get processing stats:", error);
+    logger.error({ error }, "Failed to get processing stats");
     throw error;
   }
 }
