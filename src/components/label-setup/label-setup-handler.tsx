@@ -312,7 +312,7 @@ export function LabelSetupHandler() {
                         jules-queue
                       </Badge>
                       <span className="text-blue-200 text-xs">
-                        Used for queue management
+                        Used for queue management (automatically handled)
                       </span>
                     </div>
                   </div>

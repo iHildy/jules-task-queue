@@ -142,7 +142,7 @@ async function checkRateLimit(
     const updated = await db.$executeRawUnsafe<number>(
       `UPDATE rate_limits
        SET requests = requests + 1
-       WHERE identifier = $1 AND endpoint = $2 AND expiresAt > $3 AND requests < $4`,
+       WHERE identifier = $1 AND endpoint = $2 AND "expiresAt" > $3 AND requests < $4`,
       identifier,
       endpoint,
       now,
@@ -164,8 +164,11 @@ async function checkRateLimit(
 
     // 2. Either new window or first request: try insert
     try {
-      await db.rateLimit.create({
-        data: {
+      // Use upsert to avoid unique constraint races
+      const record = await db.rateLimit.upsert({
+        where: { identifier_endpoint: { identifier, endpoint } },
+        update: {},
+        create: {
           identifier,
           endpoint,
           requests: 1,
@@ -173,9 +176,35 @@ async function checkRateLimit(
           expiresAt: new Date(now.getTime() + windowMs),
         },
       });
-      return { allowed: true, remaining: maxRequests - 1 } as const;
+      // If upsert hit existing row (update no-op), decide based on expiry/requests
+      if (record.expiresAt <= now) {
+        const reset = await db.rateLimit.update({
+          where: { id: record.id },
+          data: {
+            requests: 1,
+            windowStart: now,
+            expiresAt: new Date(now.getTime() + windowMs),
+          },
+        });
+        return {
+          allowed: true,
+          remaining: maxRequests - reset.requests,
+        } as const;
+      }
+      if (record.requests >= maxRequests) {
+        return { allowed: false, remaining: 0 } as const;
+      }
+      const updatedRecord = await db.rateLimit.update({
+        where: { id: record.id },
+        data: { requests: { increment: 1 } },
+        select: { requests: true },
+      });
+      return {
+        allowed: true,
+        remaining: Math.max(0, maxRequests - updatedRecord.requests),
+      } as const;
     } catch {
-      // 3. If insert failed (conflict), reset window if expired, else check limit
+      // 3. If upsert failed (rare), reset window if expired, else check limit
       const record = await db.rateLimit.findUnique({
         where: { identifier_endpoint: { identifier, endpoint } },
       });
@@ -196,7 +225,6 @@ async function checkRateLimit(
       if (record.requests >= maxRequests) {
         return { allowed: false, remaining: 0 } as const;
       }
-      // Final increment if under limit
       const newCount = record.requests + 1;
       await db.rateLimit.update({
         where: { id: record.id },

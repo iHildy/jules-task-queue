@@ -440,8 +440,9 @@ export async function GET(request: NextRequest) {
       );
 
       // Create a minimal installation record - the webhook will update it with full details later
-      existingInstallation = await db.gitHubInstallation.create({
-        data: {
+      existingInstallation = await db.gitHubInstallation.upsert({
+        where: { id: installationId },
+        create: {
           id: installationId,
           accountId: 0, // Will be updated by webhook
           accountLogin: "unknown", // Will be updated by webhook
@@ -451,6 +452,7 @@ export async function GET(request: NextRequest) {
           events: "[]", // Will be updated by webhook
           repositorySelection: "all", // Will be updated by webhook
         },
+        update: {}, // No update needed if it already exists
       });
     }
 

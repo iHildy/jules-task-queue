@@ -20,7 +20,8 @@ const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
  */
 const TASK_LIMIT_PATTERNS = [
   "You are currently at your concurrent task limit",
-  "You are currently at your limit of 5 running tasks",
+  "You are currently at your limit",
+  "Jules has failed to create a task",
 ];
 
 /**
@@ -395,6 +396,7 @@ export async function handleTaskLimit(
           repo,
           analysis.comment.id,
           "eyes",
+          installationId,
         );
         logger.info(
           `Added refresh emoji reaction to Jules comment for task limit`,
