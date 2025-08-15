@@ -37,7 +37,7 @@ export const env = createEnv({
       .string()
       .min(
         64,
-        "TOKEN_ENCRYPTION_KEY must be at least 64 hex characters for AES-256-CBC",
+        "TOKEN_ENCRYPTION_KEY must be at least 64 hex characters (32 bytes) for AES-256-CBC",
       )
       .regex(
         /^[0-9a-fA-F]+$/,

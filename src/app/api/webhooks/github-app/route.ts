@@ -7,6 +7,7 @@ import { GitHubLabelEventSchema } from "@/types";
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import logger from "@/lib/logger";
 
 // GitHub webhook payload interfaces
 interface GitHubAccount {

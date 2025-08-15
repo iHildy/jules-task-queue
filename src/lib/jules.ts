@@ -2,6 +2,7 @@ import { githubClient } from "@/lib/github";
 import logger from "@/lib/logger";
 import { getUserAccessToken } from "@/lib/token-manager";
 import { db } from "@/server/db";
+import logger from "@/lib/logger";
 import type {
   CommentAnalysis,
   CommentClassification,
