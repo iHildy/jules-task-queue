@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Retry all flagged tasks
-    const retryStats = await retryAllFlaggedTasks();
+    const retryStats = await retryAllFlaggedTasks(5);
 
     // Also perform housekeeping - cleanup old completed tasks
     const configuredDays = Number(env.TASK_CLEANUP_DAYS);

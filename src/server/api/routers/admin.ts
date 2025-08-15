@@ -8,6 +8,7 @@ import logger from "@/lib/logger";
 import { getProcessingStats } from "@/lib/webhook-processor";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
 import { z } from "zod";
+import { toSafeNumber } from "@/lib/number";
 
 // Type definitions for installation data
 interface InstallationWithCounts {
@@ -110,7 +111,7 @@ export const adminRouter = createTRPCRouter({
           updatedAt: Date;
         }) => ({
           id: task.id,
-          githubIssueNumber: Number(task.githubIssueNumber),
+          githubIssueNumber: toSafeNumber(task.githubIssueNumber),
           repoOwner: task.repoOwner,
           repoName: task.repoName,
           retryCount: task.retryCount,
@@ -371,7 +372,7 @@ export const adminRouter = createTRPCRouter({
           ),
           tasks: installation.tasks.map((task: InstallationTask) => ({
             id: task.id,
-            githubIssueNumber: Number(task.githubIssueNumber),
+            githubIssueNumber: toSafeNumber(task.githubIssueNumber),
             repoOwner: task.repoOwner,
             repoName: task.repoName,
             flaggedForRetry: task.flaggedForRetry,

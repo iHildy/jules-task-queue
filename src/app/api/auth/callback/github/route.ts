@@ -163,6 +163,13 @@ async function checkRateLimit(
 }
 
 export async function GET(request: NextRequest) {
+  if (!env.GITHUB_APP_CALLBACK_URL) {
+    logger.error("Missing GITHUB_APP_CALLBACK_URL env variable");
+    return NextResponse.json(
+      { error: "Server misconfiguration: missing callback URL" },
+      { status: 500 },
+    );
+  }
   // Apply database-based rate limiting
   const ip = request.headers.get("x-forwarded-for") || "unknown";
   const rateLimitResult = await checkRateLimit(ip);

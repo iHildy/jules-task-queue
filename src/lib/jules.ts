@@ -2,6 +2,7 @@ import { githubClient } from "@/lib/github";
 import logger from "@/lib/logger";
 import { getUserAccessToken } from "@/lib/token-manager";
 import { db } from "@/server/db";
+import { toSafeNumber } from "@/lib/number";
 import type {
   CommentAnalysis,
   CommentClassification,
@@ -604,7 +605,7 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
 
     const { repoOwner, repoName, githubIssueNumber, installationId } = task;
     // githubIssueNumber is stored as BigInt; convert safely for GitHub API which expects number
-    const issueNumber = Number(githubIssueNumber);
+    const issueNumber = toSafeNumber(githubIssueNumber);
 
     logger.info(
       `Processing retry for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
@@ -683,7 +684,12 @@ export async function getFlaggedTasks() {
 /**
  * Bulk retry all flagged tasks
  */
-export async function retryAllFlaggedTasks(): Promise<{
+// Limit concurrency to avoid rate limits
+const DEFAULT_RETRY_CONCURRENCY = 5;
+
+export async function retryAllFlaggedTasks(
+  concurrency: number = DEFAULT_RETRY_CONCURRENCY,
+): Promise<{
   attempted: number;
   successful: number;
   failed: number;
@@ -697,19 +703,33 @@ export async function retryAllFlaggedTasks(): Promise<{
     skipped: 0,
   };
 
-  for (const task of flaggedTasks) {
-    try {
-      const success = await processTaskRetry(task.id);
-      if (success) {
-        stats.successful++;
-      } else {
-        stats.skipped++;
+  // Concurrency-limited processing
+  const queue = [...flaggedTasks];
+  const workers: Promise<void>[] = [];
+
+  const runWorker = async () => {
+    while (queue.length > 0) {
+      const task = queue.shift();
+      if (!task) break;
+      try {
+        const success = await processTaskRetry(task.id);
+        if (success) {
+          stats.successful++;
+        } else {
+          stats.skipped++;
+        }
+      } catch (error) {
+        logger.error(`Failed to retry task ${task.id}:`, error);
+        stats.failed++;
       }
-    } catch (error) {
-      logger.error(`Failed to retry task ${task.id}:`, error);
-      stats.failed++;
     }
+  };
+
+  const workerCount = Math.max(1, concurrency);
+  for (let i = 0; i < workerCount; i++) {
+    workers.push(runWorker());
   }
+  await Promise.all(workers);
 
   logger.info(`Retry batch complete:`, stats);
   return stats;

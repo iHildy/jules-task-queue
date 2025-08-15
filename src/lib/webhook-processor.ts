@@ -7,6 +7,7 @@ import {
 } from "@/lib/jules";
 import logger from "@/lib/logger";
 import { db } from "@/server/db";
+import { toSafeNumber } from "@/lib/number";
 import type { GitHubLabelEvent, ProcessingResult } from "@/types";
 
 /**
@@ -330,7 +331,7 @@ export async function triggerCommentCheck(
     // With enhanced schema, we now have stored repo information
     const { repoOwner, repoName, githubIssueNumber } = task;
     // githubIssueNumber stored as BigInt; safe to convert to number for API
-    const issueNumber = Number(githubIssueNumber);
+    const issueNumber = toSafeNumber(githubIssueNumber);
 
     logger.info(
       `Manually triggering comment check for task ${taskId}: ${repoOwner}/${repoName}#${issueNumber}`,
