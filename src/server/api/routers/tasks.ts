@@ -1,4 +1,5 @@
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 export const tasksRouter = createTRPCRouter({
@@ -88,7 +89,7 @@ export const tasksRouter = createTRPCRouter({
       });
 
       if (!task) {
-        throw new Error("Task not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
       }
 
       // Update task to be retried

@@ -49,6 +49,9 @@ export const env = createEnv({
       .enum(["development", "test", "production"])
       .default("development"),
 
+    // Admin Security
+    ADMIN_SECRET: z.string().optional(),
+
     // Cron Job Security
     CRON_SECRET: z.string().optional(),
 
@@ -93,6 +96,7 @@ export const env = createEnv({
    */
   runtimeEnv: {
     // Server
+    ADMIN_SECRET: process.env.ADMIN_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY,
     GITHUB_APP_WEBHOOK_SECRET: process.env.GITHUB_APP_WEBHOOK_SECRET,

@@ -26,26 +26,78 @@ export interface GitHubLabelEvent {
   };
 }
 
+// GitHub webhook payload interfaces
+export interface GitHubAccount {
+  id: number;
+  login: string;
+  type: string;
+}
+
+export interface GitHubInstallation {
+  id: number;
+  account: GitHubAccount;
+  target_type: string;
+  permissions: Record<string, string>;
+  events: string[];
+  single_file_name?: string;
+  repository_selection: string;
+  suspended_at?: string;
+  suspended_by?: { login: string };
+}
+
+export interface GitHubWebhookRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  owner?: GitHubAccount; // Optional for installation webhooks
+  private: boolean;
+  html_url?: string; // Optional for installation webhooks
+  description?: string;
+}
+
+export interface GitHubInstallationEvent {
+  action: string;
+  installation: GitHubInstallation;
+  repositories?: GitHubWebhookRepository[];
+}
+
+export interface GitHubInstallationRepositoriesEvent {
+  action: string;
+  installation: GitHubInstallation;
+  repositories_added?: GitHubWebhookRepository[];
+  repositories_removed?: GitHubWebhookRepository[];
+}
+
+export interface GitHubLabel {
+  name: string;
+}
+
+export interface GitHubUser {
+  login: string;
+}
+
+export interface GitHubIssue {
+  number: number;
+  state: string;
+  labels: GitHubLabel[];
+}
+
+export interface GitHubWebhookComment {
+  user: GitHubUser;
+}
+
+export interface GitHubIssueCommentEvent {
+  action: string;
+  issue: GitHubIssue;
+  comment: GitHubWebhookComment;
+  repository: GitHubWebhookRepository;
+  installation?: { id: number };
+}
+
 export interface GitHubWebhookEvent {
   action: string;
-  issue?: {
-    id: number;
-    number: number;
-    state: string;
-    labels?: Array<{ name: string }>;
-  };
-  repository: {
-    id: number;
-    name: string;
-    full_name: string;
-    owner: {
-      login: string;
-    };
-  };
-  sender: {
-    login: string;
-    type: string;
-  };
+  installation?: { id: number };
+  [key: string]: unknown;
 }
 
 // GitHub API response types
