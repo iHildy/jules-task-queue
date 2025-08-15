@@ -1,7 +1,7 @@
 "use client";
 
 import { LabelSetupHandler } from "@/components/label-setup";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { PageLoading } from "@/components/ui/page-loading";
 import { Suspense } from "react";
 
 function LabelSetupContent() {
@@ -10,13 +10,7 @@ function LabelSetupContent() {
 
 export default function GitHubAppLabelSetupPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-jules-dark flex items-center justify-center">
-          <LoadingSpinner size="lg" text="Loading repositories..." />
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoading text="Loading repositories..." />}>
       <LabelSetupContent />
     </Suspense>
   );

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PageLoading } from "@/components/ui/page-loading";
 import { ExternalLink, Home, RefreshCw, Star } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useState } from "react";
@@ -171,13 +172,7 @@ function LimboPageContent() {
 
 export default function LimboPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-jules-dark flex items-center justify-center">
-          <div className="text-white">Loading...</div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoading text="Loading..." />}>
       <LimboPageContent />
     </Suspense>
   );

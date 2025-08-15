@@ -6,9 +6,24 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-type Status = "ok" | "error" | "not_configured";
+type HealthStatus = "ok" | "error" | "not_configured";
 
-async function checkDatabase(): Promise<Status> {
+interface HealthCheck {
+  database: HealthStatus;
+  githubApp: HealthStatus;
+  webhook: HealthStatus;
+}
+
+interface HealthResponse {
+  status: "healthy" | "unhealthy" | "ok" | "error";
+  timestamp?: string;
+  version?: string;
+  uptime?: number;
+  environment?: string;
+  checks?: HealthCheck;
+}
+
+async function checkDatabase(): Promise<HealthStatus> {
   try {
     await db.$queryRaw`SELECT 1`;
     return "ok";
@@ -18,7 +33,7 @@ async function checkDatabase(): Promise<Status> {
   }
 }
 
-async function checkGitHubApp(): Promise<Status> {
+async function checkGitHubApp(): Promise<HealthStatus> {
   if (!githubAppClient.isConfigured()) {
     return "not_configured";
   }
@@ -31,11 +46,11 @@ async function checkGitHubApp(): Promise<Status> {
   }
 }
 
-function checkWebhook(): Status {
+function checkWebhook(): HealthStatus {
   return env.GITHUB_APP_WEBHOOK_SECRET ? "ok" : "not_configured";
 }
 
-export async function GET() {
+export async function GET(): Promise<NextResponse<HealthResponse>> {
   // Minimal mode for public environments: only status code and generic body
   if (env.NODE_ENV === "production") {
     const dbStatus = await checkDatabase();
@@ -48,7 +63,7 @@ export async function GET() {
     );
   }
 
-  const checks = {
+  const checks: HealthCheck = {
     database: await checkDatabase(),
     githubApp: await checkGitHubApp(),
     webhook: checkWebhook(),
@@ -58,7 +73,7 @@ export async function GET() {
   const overallStatus = hasError ? "unhealthy" : "healthy";
   const httpStatus = hasError ? 503 : 200;
 
-  const responsePayload = {
+  const responsePayload: HealthResponse = {
     status: overallStatus,
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version || "0.1.0",
