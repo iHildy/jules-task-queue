@@ -329,6 +329,7 @@ export async function triggerCommentCheck(
 
     // With enhanced schema, we now have stored repo information
     const { repoOwner, repoName, githubIssueNumber } = task;
+    // githubIssueNumber stored as BigInt; safe to convert to number for API
     const issueNumber = Number(githubIssueNumber);
 
     logger.info(

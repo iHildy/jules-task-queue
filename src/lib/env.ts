@@ -12,7 +12,27 @@ export const env = createEnv({
     // GitHub App Integration
     GITHUB_APP_PRIVATE_KEY: z
       .string()
-      .min(1, "GITHUB_APP_PRIVATE_KEY is required"),
+      .min(1, "GITHUB_APP_PRIVATE_KEY is required")
+      .transform((val) => {
+        if (
+          val.startsWith("-----BEGIN RSA PRIVATE KEY-----") ||
+          val.includes("\\n")
+        ) {
+          return val.replace(/\\n/g, "\n");
+        }
+        // It's not a raw PEM, assume it's base64 encoded
+        try {
+          const decoded = Buffer.from(val, "base64").toString("utf-8");
+          if (!decoded.startsWith("-----BEGIN RSA PRIVATE KEY-----")) {
+            throw new Error("Invalid Base64-decoded private key format");
+          }
+          return decoded;
+        } catch {
+          throw new Error(
+            "Failed to decode GITHUB_APP_PRIVATE_KEY. Ensure it is a valid PEM or Base64-encoded string.",
+          );
+        }
+      }),
     GITHUB_APP_WEBHOOK_SECRET: z
       .string()
       .min(1, "GITHUB_APP_WEBHOOK_SECRET is required"),
@@ -74,14 +94,7 @@ export const env = createEnv({
   runtimeEnv: {
     // Server
     DATABASE_URL: process.env.DATABASE_URL,
-    GITHUB_APP_PRIVATE_KEY:
-      typeof window === "undefined"
-        ? process.env.GITHUB_APP_PRIVATE_KEY
-          ? Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY, "base64").toString(
-              "utf-8",
-            )
-          : undefined
-        : process.env.GITHUB_APP_PRIVATE_KEY,
+    GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY,
     GITHUB_APP_WEBHOOK_SECRET: process.env.GITHUB_APP_WEBHOOK_SECRET,
     GITHUB_APP_CLIENT_ID: process.env.GITHUB_APP_CLIENT_ID,
     GITHUB_APP_CLIENT_SECRET: process.env.GITHUB_APP_CLIENT_SECRET,

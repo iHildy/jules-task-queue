@@ -2,7 +2,6 @@ import { githubClient } from "@/lib/github";
 import logger from "@/lib/logger";
 import { getUserAccessToken } from "@/lib/token-manager";
 import { db } from "@/server/db";
-import logger from "@/lib/logger";
 import type {
   CommentAnalysis,
   CommentClassification,
@@ -604,6 +603,7 @@ export async function processTaskRetry(taskId: number): Promise<boolean> {
     }
 
     const { repoOwner, repoName, githubIssueNumber, installationId } = task;
+    // githubIssueNumber is stored as BigInt; convert safely for GitHub API which expects number
     const issueNumber = Number(githubIssueNumber);
 
     logger.info(
