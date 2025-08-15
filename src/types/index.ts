@@ -10,6 +10,9 @@ export * from "./api";
 // Environment types
 export * from "./environment";
 
+// Component types
+export * from "./components";
+
 // Validation schemas
 export * from "./schemas";
 

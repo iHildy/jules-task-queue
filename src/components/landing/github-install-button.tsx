@@ -9,20 +9,14 @@ import {
   buildInstallationUrl,
   getInstallationError,
 } from "@/lib/github-app-utils";
-
-interface GitHubInstallButtonProps {
-  onInstallStart?: () => void;
-  onInstallError?: (error: string) => void;
-  className?: string;
-  children?: React.ReactNode;
-}
+import type { GitHubInstallButtonProps } from "@/types/components";
 
 export function GitHubInstallButton({
   onInstallStart,
   onInstallError,
   className,
   children = "Link GitHub Repository",
-}: GitHubInstallButtonProps) {
+}: GitHubInstallButtonProps): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<{ code: string; message: string } | null>(
     null,
@@ -74,7 +68,7 @@ export function GitHubInstallButton({
   };
 
   const handleContactSupport = () => {
-    window.open("https://github.com/iHildy/jules-task-queue/issues", "_blank");
+    window.open("https://github.com/ihildy/jules-task-queue/issues", "_blank");
   };
 
   if (error) {

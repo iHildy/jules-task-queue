@@ -45,6 +45,8 @@ export function HeroSection() {
       <button
         onClick={() => copyToClipboard(children, copyId)}
         className="absolute top-2 right-2 p-2 rounded bg-gray-700 hover:bg-gray-600 text-white"
+        aria-label="Copy code to clipboard"
+        title="Copy to clipboard"
       >
         {copied === copyId ? "✓" : <Copy className="w-4 h-4" />}
       </button>
@@ -94,7 +96,7 @@ export function HeroSection() {
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
             <a
               className="w-full sm:w-auto"
-              href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue&env=DATABASE_URL,NEXT_PUBLIC_GITHUB_APP_ID,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,CRON_SECRET&envDescription=See%20the%20github%20repo%20.env.example%20file%20for%20the%20variables%20to%20add.&envLink=https%3A%2F%2Fgithub.com%2FiHildy%2Fjules-task-queue%2Fblob%2Fmain%2F.env.example&project-name=jules-task-queue&repository-name=jules-task-queue"
+              href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fihildy%2Fjules-task-queue&env=DATABASE_URL,NEXT_PUBLIC_GITHUB_APP_ID,GITHUB_APP_PRIVATE_KEY,GITHUB_APP_WEBHOOK_SECRET,CRON_SECRET&envDescription=See%20the%20github%20repo%20.env.example%20file%20for%20the%20variables%20to%20add.&envLink=https%3A%2F%2Fgithub.com%2Fihildy%2Fjules-task-queue%2Fblob%2Fmain%2F.env.example&project-name=jules-task-queue&repository-name=jules-task-queue"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -316,7 +318,7 @@ firebase deploy --only functions`}</CodeBlock>
                           including database configuration and GitHub webhooks
                           are available in the{" "}
                           <a
-                            href="https://github.com/iHildy/jules-task-queue/blob/main/FIREBASE.md"
+                            href="https://github.com/ihildy/jules-task-queue/blob/main/FIREBASE.md"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="underline"
@@ -342,7 +344,7 @@ firebase deploy --only functions`}</CodeBlock>
                     </Button>
                     <Button variant="outline" asChild className="flex-1">
                       <a
-                        href="https://github.com/iHildy/jules-task-queue/blob/main/FIREBASE.md"
+                        href="https://github.com/ihildy/jules-task-queue/blob/main/FIREBASE.md"
                         target="_blank"
                         rel="noopener noreferrer"
                       >

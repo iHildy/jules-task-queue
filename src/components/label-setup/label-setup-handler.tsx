@@ -18,24 +18,13 @@ import {
   Zap,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useMemo, useState } from "react";
 import { RepositorySelectionModal } from "./repository-selection-modal";
-
-interface Repository {
-  id: number;
-  name: string;
-  fullName: string;
-  private: boolean;
-  description?: string;
-}
-
-interface SetupOption {
-  id: "all" | "selected" | "manual";
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  recommended?: boolean;
-}
+import type {
+  SetupOption,
+  LabelSetupState,
+  LabelSetupAction,
+} from "@/types/components";
 
 const SETUP_OPTIONS: SetupOption[] = [
   {
@@ -62,32 +51,58 @@ const SETUP_OPTIONS: SetupOption[] = [
   },
 ];
 
-export function LabelSetupHandler() {
+function labelSetupReducer(
+  state: LabelSetupState,
+  action: LabelSetupAction,
+): LabelSetupState {
+  switch (action.type) {
+    case "SET_LOADING":
+      return { ...state, isLoading: action.payload };
+    case "SET_ERROR":
+      return { ...state, error: action.payload };
+    case "SET_REPOSITORIES":
+      return { ...state, repositories: action.payload };
+    case "SET_SELECTED_OPTION":
+      return { ...state, selectedOption: action.payload };
+    case "SET_SELECTED_REPOS":
+      return { ...state, selectedRepos: action.payload };
+    case "SET_MODAL_OPEN":
+      return { ...state, isModalOpen: action.payload };
+    case "SET_PROCESSING":
+      return { ...state, isProcessing: action.payload };
+    default:
+      return state;
+  }
+}
+
+const initialState: LabelSetupState = {
+  isLoading: true,
+  isProcessing: false,
+  error: null,
+  repositories: [],
+  selectedOption: null,
+  selectedRepos: new Set(),
+  isModalOpen: false,
+};
+
+export function LabelSetupHandler(): React.JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [state, dispatch] = useReducer(labelSetupReducer, initialState);
   const [installationId, setInstallationId] = useState<string | null>(null);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [selectedOption, setSelectedOption] = useState<
-    "all" | "selected" | "manual" | null
-  >(null);
-  const [selectedRepos, setSelectedRepos] = useState<Set<number>>(new Set());
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const id = searchParams.get("installation_id");
     if (!id) {
-      setError("Missing installation ID");
-      setIsLoading(false);
+      dispatch({ type: "SET_ERROR", payload: "Missing installation ID" });
+      dispatch({ type: "SET_LOADING", payload: false });
       return;
     }
     setInstallationId(id);
     fetchRepositories(id);
   }, [searchParams]);
 
-  const fetchRepositories = async (installationId: string) => {
+  const fetchRepositories = async (installationId: string): Promise<void> => {
     try {
       const response = await fetch(
         `/api/github-app/installations/${installationId}/repositories`,
@@ -98,27 +113,32 @@ export function LabelSetupHandler() {
       }
 
       const data = await response.json();
-      setRepositories(data.repositories || []);
+      dispatch({ type: "SET_REPOSITORIES", payload: data.repositories || [] });
     } catch (error) {
       console.error("Failed to fetch repositories:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to load repositories",
-      );
+      dispatch({
+        type: "SET_ERROR",
+        payload:
+          error instanceof Error
+            ? error.message
+            : "Failed to load repositories",
+      });
     } finally {
-      setIsLoading(false);
+      dispatch({ type: "SET_LOADING", payload: false });
     }
   };
 
-  const handleOptionSelect = (option: "all" | "selected" | "manual") => {
-    setSelectedOption(option);
+  const handleOptionSelect = (option: "all" | "selected" | "manual"): void => {
+    dispatch({ type: "SET_SELECTED_OPTION", payload: option });
     if (option === "all") {
-      setSelectedRepos(new Set(repositories.map((repo) => repo.id)));
+      const allRepoIds = new Set(state.repositories.map((repo) => repo.id));
+      dispatch({ type: "SET_SELECTED_REPOS", payload: allRepoIds });
     } else if (option === "manual") {
-      setSelectedRepos(new Set());
+      dispatch({ type: "SET_SELECTED_REPOS", payload: new Set() });
     } else if (option === "selected") {
       // Keep current selection or open modal
-      if (selectedRepos.size === 0) {
-        setIsModalOpen(true);
+      if (state.selectedRepos.size === 0) {
+        dispatch({ type: "SET_MODAL_OPEN", payload: true });
       }
     }
   };
@@ -126,33 +146,43 @@ export function LabelSetupHandler() {
   const handleRepositorySelectionChange = (
     repoId: number,
     selected: boolean,
-  ) => {
-    const newSelected = new Set(selectedRepos);
+  ): void => {
+    const newSelected = new Set(state.selectedRepos);
     if (selected) {
       newSelected.add(repoId);
     } else {
       newSelected.delete(repoId);
     }
-    setSelectedRepos(newSelected);
+    dispatch({ type: "SET_SELECTED_REPOS", payload: newSelected });
   };
 
-  const handleSelectAll = () => {
-    setSelectedRepos(new Set(repositories.map((repo) => repo.id)));
+  const handleSelectAll = (): void => {
+    const allRepoIds = new Set(state.repositories.map((repo) => repo.id));
+    dispatch({ type: "SET_SELECTED_REPOS", payload: allRepoIds });
   };
 
-  const handleClearAll = () => {
-    setSelectedRepos(new Set());
+  const handleClearAll = (): void => {
+    dispatch({ type: "SET_SELECTED_REPOS", payload: new Set() });
   };
 
-  const handleContinue = async () => {
-    if (!selectedOption || !installationId) return;
+  const canContinue = useMemo(
+    () =>
+      state.selectedOption &&
+      (state.selectedOption === "manual" ||
+        state.selectedOption === "all" ||
+        (state.selectedOption === "selected" && state.selectedRepos.size > 0)),
+    [state.selectedOption, state.selectedRepos.size],
+  );
 
-    setIsProcessing(true);
+  const handleContinue = async (): Promise<void> => {
+    if (!state.selectedOption || !installationId) return;
+
+    dispatch({ type: "SET_PROCESSING", payload: true });
     try {
       const repositoryIds =
-        selectedOption === "all"
-          ? repositories.map((repo) => repo.id)
-          : Array.from(selectedRepos);
+        state.selectedOption === "all"
+          ? state.repositories.map((repo) => repo.id)
+          : Array.from(state.selectedRepos);
 
       const response = await fetch("/api/github-app/label-setup", {
         method: "POST",
@@ -161,7 +191,7 @@ export function LabelSetupHandler() {
         },
         body: JSON.stringify({
           installationId: parseInt(installationId),
-          setupType: selectedOption,
+          setupType: state.selectedOption,
           repositoryIds: repositoryIds.length > 0 ? repositoryIds : undefined,
         }),
       });
@@ -199,17 +229,19 @@ export function LabelSetupHandler() {
       router.push(`/github-app/success?${params.toString()}`);
     } catch (error) {
       console.error("Failed to setup labels:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to setup labels. Please try again.",
-      );
+      dispatch({
+        type: "SET_ERROR",
+        payload:
+          error instanceof Error
+            ? error.message
+            : "Failed to setup labels. Please try again.",
+      });
     } finally {
-      setIsProcessing(false);
+      dispatch({ type: "SET_PROCESSING", payload: false });
     }
   };
 
-  if (isLoading) {
+  if (state.isLoading) {
     return (
       <div className="min-h-screen bg-jules-dark flex items-center justify-center">
         <Card className="w-full max-w-md bg-card/80 backdrop-blur border-jules-accent/20">
@@ -231,7 +263,7 @@ export function LabelSetupHandler() {
     );
   }
 
-  if (error) {
+  if (state.error) {
     return (
       <div className="min-h-screen bg-jules-dark flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-card/80 backdrop-blur border-destructive/20">
@@ -239,7 +271,7 @@ export function LabelSetupHandler() {
             <Alert className="border-destructive/20 bg-destructive/10">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-destructive-foreground">
-                {error}
+                {state.error}
               </AlertDescription>
             </Alert>
             <div className="mt-6 text-center">
@@ -257,12 +289,6 @@ export function LabelSetupHandler() {
       </div>
     );
   }
-
-  const canContinue =
-    selectedOption &&
-    (selectedOption === "manual" ||
-      selectedOption === "all" ||
-      (selectedOption === "selected" && selectedRepos.size > 0));
 
   return (
     <>
@@ -327,7 +353,7 @@ export function LabelSetupHandler() {
               <Card
                 key={option.id}
                 className={`cursor-pointer border-2 transition-all duration-200 hover:shadow-lg ${
-                  selectedOption === option.id
+                  state.selectedOption === option.id
                     ? "border-jules-primary bg-jules-accent/15 shadow-lg shadow-jules-accent/10"
                     : "border-jules-gray/20 hover:border-jules-primary bg-jules-darker"
                 }`}
@@ -337,7 +363,7 @@ export function LabelSetupHandler() {
                   <div className="flex items-start gap-4">
                     <div
                       className={`flex-shrink-0 p-2 sm:p-3 rounded-lg transition-colors ${
-                        selectedOption === option.id
+                        state.selectedOption === option.id
                           ? "bg-jules-accent text-white"
                           : "bg-muted text-muted-foreground"
                       }`}
@@ -362,7 +388,7 @@ export function LabelSetupHandler() {
                       </p>
 
                       {/* Repository count for selected option */}
-                      {selectedOption === option.id &&
+                      {state.selectedOption === option.id &&
                         option.id === "selected" && (
                           <div className="mt-3 flex items-center gap-2">
                             <Button
@@ -370,7 +396,10 @@ export function LabelSetupHandler() {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setIsModalOpen(true);
+                                dispatch({
+                                  type: "SET_MODAL_OPEN",
+                                  payload: true,
+                                });
                               }}
                               className="h-8"
                             >
@@ -378,24 +407,25 @@ export function LabelSetupHandler() {
                               Choose Repositories
                               <ChevronRight className="h-3 w-3 ml-1" />
                             </Button>
-                            {selectedRepos.size > 0 && (
+                            {state.selectedRepos.size > 0 && (
                               <Badge variant="secondary" className="text-xs">
-                                {selectedRepos.size} selected
+                                {state.selectedRepos.size} selected
                               </Badge>
                             )}
                           </div>
                         )}
 
-                      {selectedOption === option.id && option.id === "all" && (
-                        <div className="mt-3">
-                          <Badge variant="secondary" className="text-xs">
-                            {repositories.length} repositories
-                          </Badge>
-                        </div>
-                      )}
+                      {state.selectedOption === option.id &&
+                        option.id === "all" && (
+                          <div className="mt-3">
+                            <Badge variant="secondary" className="text-xs">
+                              {state.repositories.length} repositories
+                            </Badge>
+                          </div>
+                        )}
                     </div>
 
-                    {selectedOption === option.id && (
+                    {state.selectedOption === option.id && (
                       <div className="flex-shrink-0">
                         <div className="w-6 h-6 rounded-full bg-jules-accent flex items-center justify-center">
                           <Check className="h-4 w-4 text-white" />
@@ -421,11 +451,11 @@ export function LabelSetupHandler() {
 
             <Button
               onClick={handleContinue}
-              disabled={!canContinue || isProcessing}
+              disabled={!canContinue || state.isProcessing}
               size="lg"
               className="w-full sm:w-auto bg-jules-accent hover:bg-jules-accent/90 text-white px-8"
             >
-              {isProcessing ? (
+              {state.isProcessing ? (
                 <>
                   <LoadingSpinner size="sm" className="mr-2" />
                   Setting up...
@@ -443,10 +473,10 @@ export function LabelSetupHandler() {
 
       {/* Repository Selection Modal */}
       <RepositorySelectionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        repositories={repositories}
-        selectedRepositories={selectedRepos}
+        isOpen={state.isModalOpen}
+        onClose={() => dispatch({ type: "SET_MODAL_OPEN", payload: false })}
+        repositories={state.repositories}
+        selectedRepositories={state.selectedRepos}
         onSelectionChange={handleRepositorySelectionChange}
         onSelectAll={handleSelectAll}
         onClearAll={handleClearAll}
