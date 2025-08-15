@@ -13,7 +13,9 @@ export interface TRPCContext {
 }
 
 // API Response types
-export interface ApiResponse<T = unknown> {
+export interface ApiResponse<
+  T extends Record<string, unknown> = Record<string, unknown>,
+> {
   success: boolean;
   data?: T;
   error?: string;

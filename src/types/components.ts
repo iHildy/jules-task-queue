@@ -110,7 +110,7 @@ export interface TaskRowProps {
   task: TaskItem;
 }
 
-// State management types for complex components
+// State management types using discriminated unions for better type safety
 export type LabelSetupAction =
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: string | null }

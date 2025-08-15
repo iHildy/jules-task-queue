@@ -7,20 +7,22 @@ export * from "./github";
 // API types
 export * from "./api";
 
-// Environment types
-export * from "./environment";
-
 // Component types
 export * from "./components";
 
 // Validation schemas
 export * from "./schemas";
 
-// All types are already exported via the wildcard exports above
-
-// Re-export commonly used schemas
+// Re-export all schemas for convenience
 export {
   GitHubLabelEventSchema,
   GitHubWebhookEventSchema,
   TaskFilterSchema,
+  TaskIdSchema,
+  RetryTaskSchema,
+  BulkRetrySchema,
+  WebhookLogFilterSchema,
+  CommentAnalysisSchema,
+  CleanupTasksSchema,
+  SystemHealthSchema,
 } from "./schemas";
