@@ -7,7 +7,7 @@ export const GitHubLabelEventSchema = z.object({
     name: z.string(),
   }),
   issue: z.object({
-    id: z.bigint(),
+    id: z.number(),
     number: z.number(),
     state: z.enum(["open", "closed"]),
     labels: z.array(
@@ -17,7 +17,7 @@ export const GitHubLabelEventSchema = z.object({
     ),
   }),
   repository: z.object({
-    id: z.bigint(),
+    id: z.number(),
     name: z.string(),
     full_name: z.string(),
     owner: z.object({
@@ -34,14 +34,14 @@ export const GitHubWebhookEventSchema = z.object({
   action: z.string(),
   issue: z
     .object({
-      id: z.bigint(),
+      id: z.number(),
       number: z.number(),
       state: z.string(),
       labels: z.array(z.object({ name: z.string() })).optional(),
     })
     .optional(),
   repository: z.object({
-    id: z.bigint(),
+    id: z.number(),
     name: z.string(),
     full_name: z.string(),
     owner: z.object({
