@@ -506,9 +506,6 @@ export async function POST(req: NextRequest) {
         `New comment on Jules-labeled issue ${commentEvent.repository.full_name}#${commentEvent.issue.number} by ${commentEvent.comment.user.login}`,
       );
 
-      // TODO: In the future, we could implement real-time comment processing here
-      // For now, just log the event for monitoring purposes
-
       await logWebhookEvent(eventType, payload, true);
 
       return NextResponse.json({
