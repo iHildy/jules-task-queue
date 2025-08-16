@@ -4,7 +4,8 @@ import logger from "@/lib/logger";
 
 const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
-const KEY = Buffer.from(env.TOKEN_ENCRYPTION_KEY, "hex");
+// Guard against undefined or invalid key during static analysis/build
+const KEY = Buffer.from(env.TOKEN_ENCRYPTION_KEY || "", "hex");
 
 /**
  * Encrypts a string using AES-256-CBC.

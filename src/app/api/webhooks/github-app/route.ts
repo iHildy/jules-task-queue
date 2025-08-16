@@ -44,10 +44,10 @@ function verifyGitHubAppSignature(payload: string, signature: string): boolean {
     .digest("hex");
 
   try {
-    return timingSafeEqual(
-      Buffer.from(expectedSignature, "hex"),
-      Buffer.from(computedSignature, "hex"),
-    );
+    const a = Buffer.from(expectedSignature, "hex");
+    const b = Buffer.from(computedSignature, "hex");
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
   } catch {
     return false;
   }

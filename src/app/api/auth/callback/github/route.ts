@@ -56,7 +56,11 @@ export async function GET(request: NextRequest) {
       if (oauthStateCookie) {
         // Try to decode as base64 JSON first (new format)
         try {
-          const decodedState = Buffer.from(state, "base64").toString("utf-8");
+          // Decode only when state is a non-empty string
+          const decodedState =
+            typeof state === "string" && state.length > 0
+              ? Buffer.from(state, "base64").toString("utf-8")
+              : "";
           const parsedStateData = JSON.parse(decodedState);
 
           if (
@@ -66,19 +70,37 @@ export async function GET(request: NextRequest) {
           ) {
             // This is our new base64-encoded format
             stateData = parsedStateData;
-            stateValidationPassed = crypto.timingSafeEqual(
-              Buffer.from(state),
-              Buffer.from(oauthStateCookie.value),
-            );
+            // Compare only when both are strings of equal length to avoid Buffer.from(undefined)
+            if (
+              typeof state === "string" &&
+              typeof oauthStateCookie.value === "string" &&
+              state.length === oauthStateCookie.value.length
+            ) {
+              stateValidationPassed = crypto.timingSafeEqual(
+                Buffer.from(state),
+                Buffer.from(oauthStateCookie.value),
+              );
+            } else {
+              stateValidationPassed = false;
+            }
           }
         } catch {
           // Not base64 JSON, try old colon-separated format
           if (state.includes(":") && oauthStateCookie) {
             // Our old custom state format: {randomHex}:{installationId}:{redirectTo}
-            stateValidationPassed = crypto.timingSafeEqual(
-              Buffer.from(state),
-              Buffer.from(oauthStateCookie.value),
-            );
+            // Compare only when both are strings of equal length to avoid Buffer.from(undefined)
+            if (
+              typeof state === "string" &&
+              typeof oauthStateCookie.value === "string" &&
+              state.length === oauthStateCookie.value.length
+            ) {
+              stateValidationPassed = crypto.timingSafeEqual(
+                Buffer.from(state),
+                Buffer.from(oauthStateCookie.value),
+              );
+            } else {
+              stateValidationPassed = false;
+            }
 
             if (stateValidationPassed) {
               const stateParts = state.split(":");

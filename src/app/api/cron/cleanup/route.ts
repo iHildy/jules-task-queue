@@ -11,6 +11,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   if (
     !authHeader ||
+    authHeader.length !== expectedAuthHeader.length ||
     !crypto.timingSafeEqual(
       Buffer.from(authHeader),
       Buffer.from(expectedAuthHeader),
