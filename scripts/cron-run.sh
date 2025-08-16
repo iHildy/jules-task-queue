@@ -12,7 +12,7 @@ if [ -z "$CRON_SECRET" ]; then
 fi
 
 # Make the curl request
-curl -X POST http://localhost:3000/api/cron/retry \
+curl --fail -X POST http://localhost:3000/api/cron/retry \
   --header "Authorization: Bearer $CRON_SECRET" \
   --header "Content-Type: application/json"
 
