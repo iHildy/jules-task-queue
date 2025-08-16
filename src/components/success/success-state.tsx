@@ -145,8 +145,8 @@ export function SuccessState({
                   <strong className="text-white">
                     Intelligent processing:
                   </strong>{" "}
-                  We analyze Jules responses and automatically retry tasks when
-                  slots become available.
+                  Every 15 minutes, we will retry all tasks that are in the
+                  queue and have failed.
                 </span>
               </li>
               <li className="flex items-start">
