@@ -3,6 +3,8 @@
 import { getInstallationStatus } from "@/lib/github-app-utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import React from "react";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ErrorState } from "./error-state";
 import { LoadingState } from "./loading-state";
 import { SuccessState } from "./success-state";
@@ -47,7 +49,7 @@ function isValidOAuthUrl(url: string): boolean {
   }
 }
 
-export function InstallationStatusHandler() {
+export function InstallationStatusHandler(): React.JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [installationStatus, setInstallationStatus] = useState<{
@@ -219,5 +221,9 @@ export function InstallationStatusHandler() {
     return <ErrorState installationStatus={installationStatus} />;
   }
 
-  return <SuccessState installationStatus={installationStatus} />;
+  return (
+    <ErrorBoundary>
+      <SuccessState installationStatus={installationStatus} />
+    </ErrorBoundary>
+  );
 }

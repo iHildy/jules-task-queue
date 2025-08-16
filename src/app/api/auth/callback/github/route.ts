@@ -6,166 +6,19 @@ import * as crypto from "crypto";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-// Global fallback rate limiting storage
-declare global {
-  var fallbackRateLimits:
-    | Map<string, { count: number; windowStart: number }>
-    | undefined;
-}
-
-// Database-based rate limiter for production use
-async function checkRateLimit(
-  identifier: string,
-  maxRequests: number = 10,
-  windowMs: number = 60 * 1000, // 1 minute default
-) {
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - windowMs);
-  const endpoint = "/api/auth/callback/github";
-
-  try {
-    // Clean up expired rate limit entries first
-    await db.rateLimit.deleteMany({
-      where: {
-        expiresAt: {
-          lt: now,
-        },
-      },
-    });
-
-    // Get existing rate limit record
-    const existingLimit = await db.rateLimit.findUnique({
-      where: {
-        identifier_endpoint: {
-          identifier,
-          endpoint,
-        },
-      },
-    });
-
-    if (!existingLimit) {
-      // First request in window - create new record
-      await db.rateLimit.create({
-        data: {
-          identifier,
-          endpoint,
-          requests: 1,
-          windowStart: now,
-          expiresAt: new Date(now.getTime() + windowMs),
-        },
-      });
-
-      return {
-        allowed: true,
-        remaining: maxRequests - 1,
-        resetTime: new Date(now.getTime() + windowMs),
-      };
-    }
-
-    // Check if window has expired
-    if (existingLimit.windowStart < windowStart) {
-      // Window expired - reset counter
-      await db.rateLimit.update({
-        where: { id: existingLimit.id },
-        data: {
-          requests: 1,
-          windowStart: now,
-          expiresAt: new Date(now.getTime() + windowMs),
-        },
-      });
-
-      return {
-        allowed: true,
-        remaining: maxRequests - 1,
-        resetTime: new Date(now.getTime() + windowMs),
-      };
-    }
-
-    // Window is still active
-    if (existingLimit.requests >= maxRequests) {
-      return {
-        allowed: false,
-        remaining: 0,
-        resetTime: existingLimit.expiresAt,
-      };
-    }
-
-    // Increment counter
-    await db.rateLimit.update({
-      where: { id: existingLimit.id },
-      data: {
-        requests: existingLimit.requests + 1,
-      },
-    });
-
-    return {
-      allowed: true,
-      remaining: maxRequests - existingLimit.requests - 1,
-      resetTime: existingLimit.expiresAt,
-    };
-  } catch (error) {
-    logger.error({ error, identifier, endpoint }, "Rate limit check failed");
-
-    // SECURITY FIX: Do NOT allow all requests on error
-    // Instead use a restrictive fallback rate limiter
-
-    // Simple in-memory fallback with strict limits
-    const fallbackKey = `${identifier}:fallback`;
-    const now = Date.now();
-    const fallbackWindowMs = 60 * 1000; // 1 minute
-    const fallbackMaxRequests = 2; // Very restrictive
-
-    // Get or create fallback entry
-    if (!global.fallbackRateLimits) {
-      global.fallbackRateLimits = new Map();
-    }
-
-    const existing = global.fallbackRateLimits.get(fallbackKey);
-
-    // Clean expired entries
-    if (existing && now - existing.windowStart > fallbackWindowMs) {
-      global.fallbackRateLimits.delete(fallbackKey);
-    }
-
-    const current = global.fallbackRateLimits.get(fallbackKey) || {
-      count: 0,
-      windowStart: now,
-    };
-
-    // Check if limit exceeded
-    if (current.count >= fallbackMaxRequests) {
-      logger.warn(
-        { identifier, count: current.count, maxRequests: fallbackMaxRequests },
-        "Fallback rate limit exceeded - denying request",
-      );
-      return {
-        allowed: false,
-        remaining: 0,
-        resetTime: new Date(current.windowStart + fallbackWindowMs),
-      };
-    }
-
-    // Increment counter
-    current.count++;
-    global.fallbackRateLimits.set(fallbackKey, current);
-
-    logger.warn(
-      { identifier, count: current.count, maxRequests: fallbackMaxRequests },
-      "Using fallback rate limiter due to database error",
-    );
-
-    return {
-      allowed: true,
-      remaining: fallbackMaxRequests - current.count,
-      resetTime: new Date(current.windowStart + fallbackWindowMs),
-    };
-  }
-}
+import { checkRateLimit } from "@/lib/rate-limiter";
 
 export async function GET(request: NextRequest) {
+  if (!env.GITHUB_APP_CALLBACK_URL) {
+    logger.error("Missing GITHUB_APP_CALLBACK_URL env variable");
+    return NextResponse.json(
+      { error: "Server misconfiguration: missing callback URL" },
+      { status: 500 },
+    );
+  }
   // Apply database-based rate limiting
   const ip = request.headers.get("x-forwarded-for") || "unknown";
-  const rateLimitResult = await checkRateLimit(ip);
+  const rateLimitResult = await checkRateLimit(ip, "/api/auth/callback/github");
 
   if (!rateLimitResult.allowed) {
     logger.warn({ ip }, "Rate limit exceeded");

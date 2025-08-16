@@ -13,7 +13,9 @@ export interface TRPCContext {
 }
 
 // API Response types
-export interface ApiResponse<T = unknown> {
+export interface ApiResponse<
+  T extends Record<string, unknown> = Record<string, unknown>,
+> {
   success: boolean;
   data?: T;
   error?: string;
@@ -48,9 +50,40 @@ export interface HealthCheckResult {
   uptime: number;
 }
 
-// API Error types
-export interface ApiError {
-  code: string;
-  message: string;
-  details?: Record<string, unknown>;
+// Admin router types
+export interface InstallationWithCounts {
+  id: number;
+  accountLogin: string;
+  accountType: string;
+  repositorySelection: string;
+  createdAt: Date;
+  updatedAt: Date;
+  suspendedAt: Date | null;
+  suspendedBy: string | null;
+  _count: {
+    repositories: number;
+    tasks: number;
+  };
+}
+
+export interface InstallationRepository {
+  id: number;
+  name: string;
+  fullName: string;
+  owner: string;
+  private: boolean;
+  htmlUrl: string;
+  description: string | null;
+  addedAt: Date;
+}
+
+export interface InstallationTask {
+  id: number;
+  githubIssueNumber: bigint;
+  repoOwner: string;
+  repoName: string;
+  flaggedForRetry: boolean;
+  retryCount: number;
+  createdAt: Date;
+  updatedAt: Date;
 }

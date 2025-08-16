@@ -6,7 +6,7 @@ type RouteContext = {
   params: Promise<{ installationId: string }>;
 };
 
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const { installationId: installationIdStr } = await context.params;
     const installationId = parseInt(installationIdStr);

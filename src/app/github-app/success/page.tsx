@@ -1,7 +1,7 @@
 "use client";
 
 import { InstallationStatusHandler } from "@/components/success";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { PageLoading } from "@/components/ui/page-loading";
 import { Suspense } from "react";
 
 function SuccessContent() {
@@ -10,13 +10,7 @@ function SuccessContent() {
 
 export default function GitHubAppSuccessPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-jules-dark flex items-center justify-center">
-          <LoadingSpinner size="lg" text="Loading..." />
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoading text="Loading installation status..." />}>
       <SuccessContent />
     </Suspense>
   );

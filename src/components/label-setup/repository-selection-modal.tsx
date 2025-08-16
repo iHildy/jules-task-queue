@@ -15,24 +15,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Check, GitBranch, Globe, Lock, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-
-interface Repository {
-  id: number;
-  name: string;
-  fullName: string;
-  private: boolean;
-  description?: string;
-}
-
-interface RepositorySelectionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  repositories: Repository[];
-  selectedRepositories: Set<number>;
-  onSelectionChange: (repoId: number, selected: boolean) => void;
-  onSelectAll: () => void;
-  onClearAll: () => void;
-}
+import type {
+  Repository,
+  RepositorySelectionModalProps,
+} from "@/types/components";
 
 export function RepositorySelectionModal({
   isOpen,
@@ -42,7 +28,7 @@ export function RepositorySelectionModal({
   onSelectionChange,
   onSelectAll,
   onClearAll,
-}: RepositorySelectionModalProps) {
+}: RepositorySelectionModalProps): React.JSX.Element {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter repositories based on search query
@@ -58,6 +44,17 @@ export function RepositorySelectionModal({
     );
   }, [repositories, searchQuery]);
 
+  // Memoize counts to avoid recalculation
+  const repositoryCounts = useMemo(() => {
+    const selectedCount = selectedRepositories.size;
+    const totalCount = repositories.length;
+    const filteredSelectedCount = filteredRepositories.filter((repo) =>
+      selectedRepositories.has(repo.id),
+    ).length;
+
+    return { selectedCount, totalCount, filteredSelectedCount };
+  }, [selectedRepositories, repositories.length, filteredRepositories]);
+
   // Clear search when modal closes
   useEffect(() => {
     if (!isOpen) {
@@ -65,11 +62,7 @@ export function RepositorySelectionModal({
     }
   }, [isOpen]);
 
-  const selectedCount = selectedRepositories.size;
-  const totalCount = repositories.length;
-  const filteredSelectedCount = filteredRepositories.filter((repo) =>
-    selectedRepositories.has(repo.id),
-  ).length;
+  const { selectedCount, totalCount, filteredSelectedCount } = repositoryCounts;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -201,7 +194,7 @@ function RepositoryItem({
   repository,
   isSelected,
   onSelectionChange,
-}: RepositoryItemProps) {
+}: RepositoryItemProps): React.JSX.Element {
   return (
     <div
       className={`

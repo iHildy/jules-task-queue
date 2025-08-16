@@ -3,22 +3,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SiGithub } from "@icons-pack/react-simple-icons";
 import { AlertCircle, Home } from "lucide-react";
 import Link from "next/link";
+import type { ErrorStateProps } from "@/types/components";
 
-interface ErrorStateProps {
-  installationStatus: {
-    success: boolean;
-    error?: string;
-    errorDescription?: string;
-  };
-}
-
-export function ErrorState({ installationStatus }: ErrorStateProps) {
+export function ErrorState({
+  installationStatus,
+}: ErrorStateProps): React.JSX.Element {
   const handleRetryInstallation = () => {
     window.location.href = "/api/github-app/install";
   };
 
   const handleContactSupport = () => {
-    window.open("https://github.com/iHildy/jules-task-queue/issues", "_blank");
+    window.open("https://github.com/ihildy/jules-task-queue/issues", "_blank");
   };
 
   const isPermissionError = installationStatus.error === "access_denied";
@@ -174,7 +169,7 @@ export function ErrorState({ installationStatus }: ErrorStateProps) {
           <p>
             Need help? Check out our{" "}
             <a
-              href="https://github.com/iHildy/jules-task-queue"
+              href="https://github.com/ihildy/jules-task-queue"
               target="_blank"
               rel="noopener noreferrer"
               className="text-jules-secondary hover:underline"

@@ -29,6 +29,14 @@ function isValidRedirectUrl(redirectTo: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
+  // Validate required env at runtime
+  if (!env.GITHUB_APP_CALLBACK_URL) {
+    logger.error("Missing GITHUB_APP_CALLBACK_URL env variable");
+    return NextResponse.json(
+      { error: "Server misconfiguration: missing callback URL" },
+      { status: 500 },
+    );
+  }
   const { searchParams } = new URL(request.url);
   const installationId = searchParams.get("installation_id");
   const redirectTo = searchParams.get("redirect_to") || "/github-app/success";

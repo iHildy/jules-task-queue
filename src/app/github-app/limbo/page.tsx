@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PageLoading } from "@/components/ui/page-loading";
 import { ExternalLink, Home, RefreshCw, Star } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useState } from "react";
@@ -104,7 +105,7 @@ function LimboPageContent() {
             className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3"
           >
             <a
-              href="https://github.com/iHildy/jules-task-queue"
+              href="https://github.com/ihildy/jules-task-queue"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2"
@@ -154,7 +155,7 @@ function LimboPageContent() {
             If you&apos;d like to avoid the star requirement, you can self-host
             the app by following the instructions in the{" "}
             <a
-              href="https://github.com/iHildy/jules-task-queue/blob/main/README.md"
+              href="https://github.com/ihildy/jules-task-queue/blob/main/README.md"
               target="_blank"
               rel="noopener noreferrer"
               className="text-jules-accent hover:underline"
@@ -171,13 +172,7 @@ function LimboPageContent() {
 
 export default function LimboPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-jules-dark flex items-center justify-center">
-          <div className="text-white">Loading...</div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoading text="Loading..." />}>
       <LimboPageContent />
     </Suspense>
   );

@@ -9,7 +9,7 @@ export function UnknownStatus() {
   };
 
   const handleContactSupport = () => {
-    window.open("https://github.com/iHildy/jules-task-queue/issues", "_blank");
+    window.open("https://github.com/ihildy/jules-task-queue/issues", "_blank");
   };
 
   return (

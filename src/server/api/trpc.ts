@@ -98,18 +98,18 @@ export const publicProcedure = t.procedure;
 /**
  * Protected procedure - for admin operations
  *
- * In a production environment, you would want to add proper authentication here.
- * For now, we'll use a simple environment variable check.
+ * For production, we check for a secret token from the request headers.
+ * This allows for secure access to the admin API in a live environment.
  */
 export const adminProcedure = t.procedure.use(({ ctx, next }) => {
-  // In production, you would want to implement proper auth here
-  // For now, we'll just check if we're in development mode
   if (env.NODE_ENV === "production") {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message:
-        "Admin endpoints are not available in production without proper auth",
-    });
+    const adminSecret = ctx.headers.get("x-admin-secret");
+    if (!env.ADMIN_SECRET || adminSecret !== env.ADMIN_SECRET) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "You are not authorized to perform this action.",
+      });
+    }
   }
 
   return next({

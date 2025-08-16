@@ -12,16 +12,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import type { SuccessStateProps } from "@/types/components";
 
-interface SuccessStateProps {
-  installationStatus: {
-    success: boolean;
-    installationId?: string | null;
-    setupAction?: string;
-  };
-}
-
-export function SuccessState({ installationStatus }: SuccessStateProps) {
+export function SuccessState({
+  installationStatus,
+}: SuccessStateProps): React.JSX.Element {
   const searchParams = useSearchParams();
 
   // Get label setup results from URL params
@@ -35,7 +30,7 @@ export function SuccessState({ installationStatus }: SuccessStateProps) {
   };
 
   const handleContactSupport = () => {
-    window.open("https://github.com/iHildy/jules-task-queue/issues", "_blank");
+    window.open("https://github.com/ihildy/jules-task-queue/issues", "_blank");
   };
 
   // Render label setup results if available
@@ -163,7 +158,7 @@ export function SuccessState({ installationStatus }: SuccessStateProps) {
                   You can use the &quot;human&quot; label to manually intervene
                   in the queue. See the{" "}
                   <Link
-                    href="https://github.com/iHildy/jules-task-queue/blob/0bd3272f9158e6ef3bc59dfb0a7df507803dbc2b/jules-queueing-system.md"
+                    href="https://github.com/ihildy/jules-task-queue/blob/0bd3272f9158e6ef3bc59dfb0a7df507803dbc2b/jules-queueing-system.md"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-jules-secondary hover:underline cursor-pointer"
@@ -250,7 +245,7 @@ export function SuccessState({ installationStatus }: SuccessStateProps) {
           <p>
             Need help? Check out our{" "}
             <a
-              href="https://github.com/iHildy/jules-task-queue"
+              href="https://github.com/ihildy/jules-task-queue"
               target="_blank"
               rel="noopener noreferrer"
               className="text-jules-secondary hover:underline cursor-pointer"

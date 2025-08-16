@@ -12,7 +12,27 @@ export const env = createEnv({
     // GitHub App Integration
     GITHUB_APP_PRIVATE_KEY: z
       .string()
-      .min(1, "GITHUB_APP_PRIVATE_KEY is required"),
+      .min(1, "GITHUB_APP_PRIVATE_KEY is required")
+      .transform((val) => {
+        // If the key is provided in the raw PEM format, it may contain escaped newlines.
+        // We replace them with actual newlines to ensure it's a valid PEM string.
+        if (val.startsWith("-----BEGIN RSA PRIVATE KEY-----")) {
+          return val.replace(/\\n/g, "\n");
+        }
+        // If it's not in the raw format, we assume it's Base64-encoded.
+        // We decode it and ensure it has the correct PEM header.
+        try {
+          const decoded = Buffer.from(val, "base64").toString("utf-8");
+          if (!decoded.startsWith("-----BEGIN RSA PRIVATE KEY-----")) {
+            throw new Error("Invalid Base64-decoded private key format.");
+          }
+          return decoded;
+        } catch {
+          throw new Error(
+            "Failed to decode GITHUB_APP_PRIVATE_KEY. Ensure it is a valid PEM string or a Base64-encoded string.",
+          );
+        }
+      }),
     GITHUB_APP_WEBHOOK_SECRET: z
       .string()
       .min(1, "GITHUB_APP_WEBHOOK_SECRET is required"),
@@ -29,19 +49,22 @@ export const env = createEnv({
       .enum(["development", "test", "production"])
       .default("development"),
 
+    // Admin Security
+    ADMIN_SECRET: z.string().optional(),
+
     // Cron Job Security
     CRON_SECRET: z.string().optional(),
 
-    // Token Encryption (AES-256-CBC requires 32-byte key, 64 hex characters)
+    // Token Encryption (AES-256-CBC requires a 32-byte key, which is 64 hex characters)
     TOKEN_ENCRYPTION_KEY: z
       .string()
-      .min(
+      .length(
         64,
-        "TOKEN_ENCRYPTION_KEY must be at least 64 hex characters (32 bytes) for AES-256-CBC",
+        "TOKEN_ENCRYPTION_KEY must be 64 hexadecimal characters (32 bytes) for AES-256-CBC.",
       )
       .regex(
-        /^[0-9a-fA-F]+$/,
-        "TOKEN_ENCRYPTION_KEY must be a valid hexadecimal string",
+        /^[0-9a-fA-F]{64}$/,
+        "TOKEN_ENCRYPTION_KEY must be a valid 64-character hexadecimal string.",
       ),
 
     // Optional: Custom processing settings
@@ -73,15 +96,9 @@ export const env = createEnv({
    */
   runtimeEnv: {
     // Server
+    ADMIN_SECRET: process.env.ADMIN_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
-    GITHUB_APP_PRIVATE_KEY:
-      typeof window === "undefined"
-        ? process.env.GITHUB_APP_PRIVATE_KEY
-          ? Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY, "base64").toString(
-              "utf-8",
-            )
-          : undefined
-        : process.env.GITHUB_APP_PRIVATE_KEY,
+    GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY,
     GITHUB_APP_WEBHOOK_SECRET: process.env.GITHUB_APP_WEBHOOK_SECRET,
     GITHUB_APP_CLIENT_ID: process.env.GITHUB_APP_CLIENT_ID,
     GITHUB_APP_CLIENT_SECRET: process.env.GITHUB_APP_CLIENT_SECRET,

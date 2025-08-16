@@ -7,45 +7,15 @@ import {
 import logger from "@/lib/logger";
 import { getProcessingStats } from "@/lib/webhook-processor";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { toSafeNumber } from "@/lib/number";
 
-// Type definitions for installation data
-interface InstallationWithCounts {
-  id: number;
-  accountLogin: string;
-  accountType: string;
-  repositorySelection: string;
-  createdAt: Date;
-  updatedAt: Date;
-  suspendedAt: Date | null;
-  suspendedBy: string | null;
-  _count: {
-    repositories: number;
-    tasks: number;
-  };
-}
-
-interface InstallationRepository {
-  id: number;
-  name: string;
-  fullName: string;
-  owner: string;
-  private: boolean;
-  htmlUrl: string;
-  description: string | null;
-  addedAt: Date;
-}
-
-interface InstallationTask {
-  id: number;
-  githubIssueNumber: bigint;
-  repoOwner: string;
-  repoName: string;
-  flaggedForRetry: boolean;
-  retryCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import {
+  InstallationRepository,
+  InstallationTask,
+  InstallationWithCounts,
+} from "@/types/api";
 
 export const adminRouter = createTRPCRouter({
   // Manually trigger retry for all flagged tasks
@@ -60,11 +30,13 @@ export const adminRouter = createTRPCRouter({
       };
     } catch (error) {
       logger.error({ error }, "Failed to retry all tasks");
-      throw new Error(
-        `Retry failed: ${
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Retry failed: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-      );
+        cause: error,
+      });
     }
   }),
 
@@ -85,11 +57,13 @@ export const adminRouter = createTRPCRouter({
         };
       } catch (error) {
         logger.error({ error }, `Failed to retry task ${input.taskId}`);
-        throw new Error(
-          `Retry failed: ${
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Retry failed: ${
             error instanceof Error ? error.message : "Unknown error"
           }`,
-        );
+          cause: error,
+        });
       }
     }),
 
@@ -110,7 +84,7 @@ export const adminRouter = createTRPCRouter({
           updatedAt: Date;
         }) => ({
           id: task.id,
-          githubIssueNumber: Number(task.githubIssueNumber),
+          githubIssueNumber: toSafeNumber(task.githubIssueNumber),
           repoOwner: task.repoOwner,
           repoName: task.repoName,
           retryCount: task.retryCount,
@@ -163,14 +137,22 @@ export const adminRouter = createTRPCRouter({
             error: string | null;
             createdAt: Date;
             payload: string | null;
-          }) => ({
-            id: log.id,
-            eventType: log.eventType,
-            success: log.success,
-            error: log.error,
-            createdAt: log.createdAt,
-            payload: log.payload ? JSON.parse(log.payload) : null,
-          }),
+          }) => {
+            let payload;
+            try {
+              payload = log.payload ? JSON.parse(log.payload) : null;
+            } catch {
+              payload = { error: "Failed to parse payload" };
+            }
+            return {
+              id: log.id,
+              eventType: log.eventType,
+              success: log.success,
+              error: log.error,
+              createdAt: log.createdAt,
+              payload,
+            };
+          },
         ),
         nextCursor,
       };
@@ -195,11 +177,13 @@ export const adminRouter = createTRPCRouter({
       };
     } catch (error) {
       logger.error({ error }, "Failed to get admin health stats");
-      throw new Error(
-        `Health check failed: ${
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Health check failed: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-      );
+        cause: error,
+      });
     }
   }),
 
@@ -222,11 +206,13 @@ export const adminRouter = createTRPCRouter({
         };
       } catch (error) {
         logger.error({ error }, "Failed to cleanup old tasks");
-        throw new Error(
-          `Cleanup failed: ${
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Cleanup failed: ${
             error instanceof Error ? error.message : "Unknown error"
           }`,
-        );
+          cause: error,
+        });
       }
     }),
 
@@ -299,11 +285,13 @@ export const adminRouter = createTRPCRouter({
       };
     } catch (error) {
       logger.error({ error }, "Failed to get admin metrics");
-      throw new Error(
-        `Metrics failed: ${
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Metrics failed: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-      );
+        cause: error,
+      });
     }
   }),
 
@@ -341,7 +329,24 @@ export const adminRouter = createTRPCRouter({
         );
 
         if (!installation) {
-          throw new Error(`Installation ${input.installationId} not found`);
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Installation ${input.installationId} not found`,
+          });
+        }
+
+        let permissions;
+        try {
+          permissions = JSON.parse(installation.permissions);
+        } catch {
+          permissions = { error: "Failed to parse permissions" };
+        }
+
+        let events;
+        try {
+          events = JSON.parse(installation.events);
+        } catch {
+          events = { error: "Failed to parse events" };
         }
 
         return {
@@ -350,8 +355,8 @@ export const adminRouter = createTRPCRouter({
           accountType: installation.accountType,
           targetType: installation.targetType,
           repositorySelection: installation.repositorySelection,
-          permissions: JSON.parse(installation.permissions),
-          events: JSON.parse(installation.events),
+          permissions,
+          events,
           singleFileName: installation.singleFileName,
           createdAt: installation.createdAt,
           updatedAt: installation.updatedAt,
@@ -371,7 +376,7 @@ export const adminRouter = createTRPCRouter({
           ),
           tasks: installation.tasks.map((task: InstallationTask) => ({
             id: task.id,
-            githubIssueNumber: Number(task.githubIssueNumber),
+            githubIssueNumber: toSafeNumber(task.githubIssueNumber),
             repoOwner: task.repoOwner,
             repoName: task.repoName,
             flaggedForRetry: task.flaggedForRetry,
@@ -404,9 +409,13 @@ export const adminRouter = createTRPCRouter({
             { error },
             `Failed to sync installation ${input.installationId}`,
           );
-          throw new Error(
-            `Sync failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-          );
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Sync failed: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+            cause: error,
+          });
         }
       }),
 
@@ -425,9 +434,13 @@ export const adminRouter = createTRPCRouter({
         };
       } catch (error) {
         logger.error({ error }, "Failed to sync all installations");
-        throw new Error(
-          `Sync all failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-        );
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Sync all failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+          cause: error,
+        });
       }
     }),
 
@@ -462,9 +475,13 @@ export const adminRouter = createTRPCRouter({
           };
         } catch (error) {
           logger.error({ error }, "Failed to cleanup suspended installations");
-          throw new Error(
-            `Cleanup failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-          );
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Cleanup failed: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+            cause: error,
+          });
         }
       }),
   }),

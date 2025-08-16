@@ -6,14 +6,14 @@
     <br />
     <a href="https://julesqueue.hildy.io/">Visit Site</a>
     ·
-    <a href="https://github.com/iHildy/jules-task-queue/issues/new?assignees=&labels=bug&template=bug_report.md&title=">Report Bug</a>
+    <a href="https://github.com/ihildy/jules-task-queue/issues/new?assignees=&labels=bug&template=bug_report.md&title=">Report Bug</a>
     ·
-    <a href="https://github.com/iHildy/jules-task-queue/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=">Request Feature</a>
+    <a href="https://github.com/ihildy/jules-task-queue/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=">Request Feature</a>
   </p>
   <p align="center">
-    <a href="https://github.com/iHildy/jules-task-queue/blob/main/LICENSE"><img src="https://img.shields.io/github/license/iHildy/jules-task-queue?style=for-the-badge" /></a>
-    <a href="https://github.com/iHildy/jules-task-queue/stargazers"><img src="https://img.shields.io/github/stars/iHildy/jules-task-queue?style=for-the-badge" /></a>
-    <a href="https://github.com/iHildy/jules-task-queue/issues"><img src="https://img.shields.io/github/issues/iHildy/jules-task-queue?style=for-the-badge" /></a>
+    <a href="https://github.com/ihildy/jules-task-queue/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ihildy/jules-task-queue?style=for-the-badge" /></a>
+    <a href="https://github.com/ihildy/jules-task-queue/stargazers"><img src="https://img.shields.io/github/stars/ihildy/jules-task-queue?style=for-the-badge" /></a>
+    <a href="https://github.com/ihildy/jules-task-queue/issues"><img src="https://img.shields.io/github/issues/ihildy/jules-task-queue?style=for-the-badge" /></a>
   </p>
 </div>
 
@@ -120,7 +120,7 @@ graph TD
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/iHildy/jules-task-queue/issues).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/ihildy/jules-task-queue/issues).
 
 Please read the [**CONTRIBUTING.md**](./CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 

@@ -1,7 +1,25 @@
-import type { JulesTask, WebhookLog } from "@prisma/client";
+import type {
+  JulesTask,
+  WebhookLog,
+  GitHubInstallation,
+  InstallationRepository,
+  LabelPreference,
+  LabelPreferenceRepository,
+  RateLimit,
+} from "@prisma/client";
 
 // Export Prisma model types
-export type { JulesTask, WebhookLog };
+export type {
+  JulesTask,
+  WebhookLog,
+  LabelPreference,
+  LabelPreferenceRepository,
+  RateLimit,
+};
+
+// Export with different names to avoid conflicts with api.ts
+export type PrismaGitHubInstallation = GitHubInstallation;
+export type PrismaInstallationRepository = InstallationRepository;
 
 // Extended types for database operations
 export interface TaskWithStats extends JulesTask {
@@ -10,19 +28,20 @@ export interface TaskWithStats extends JulesTask {
   };
 }
 
+// Consolidated single-source interfaces for DB operations
 export interface TaskCreationParams {
   githubRepoId: bigint;
   githubIssueId: bigint;
   githubIssueNumber: bigint;
   repoOwner: string;
   repoName: string;
-  installationId?: number;
+  installationId?: number | null;
 }
 
 export interface TaskUpdateParams {
   flaggedForRetry?: boolean;
   retryCount?: number;
-  lastRetryAt?: Date;
+  lastRetryAt?: Date | null;
 }
 
 export interface WebhookLogCreationParams {
