@@ -5,7 +5,7 @@ export interface GitHubLabelEvent {
     name: string;
   };
   issue: {
-    id: bigint;
+    id: number;
     number: number;
     state: "open" | "closed";
     labels: Array<{
@@ -13,7 +13,7 @@ export interface GitHubLabelEvent {
     }>;
   };
   repository: {
-    id: bigint;
+    id: number;
     name: string;
     full_name: string;
     owner: {
@@ -28,7 +28,7 @@ export interface GitHubLabelEvent {
 
 // GitHub webhook payload interfaces
 export interface GitHubAccount {
-  id: bigint;
+  id: number;
   login: string;
   type: string;
 }
@@ -46,12 +46,12 @@ export interface GitHubInstallation {
 }
 
 export interface GitHubWebhookRepository {
-  id: bigint;
+  id: number;
   name: string;
   full_name: string;
-  owner?: GitHubAccount; // Optional for installation webhooks
+  owner?: GitHubAccount;
   private: boolean;
-  html_url?: string; // Optional for installation webhooks
+  html_url?: string;
   description?: string;
 }
 
