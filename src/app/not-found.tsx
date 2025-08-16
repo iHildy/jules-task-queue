@@ -1,7 +1,7 @@
-import Link from "next/link";
-import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Home, Search } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Page Not Found | Jules Task Queue",
@@ -47,7 +47,7 @@ export default function NotFound() {
           <p className="text-sm text-jules-gray">
             If you believe this is an error, please{" "}
             <a
-              href="https://github.com/iHildy/jules-task-queue/issues"
+              href="https://github.com/ihildy/jules-task-queue/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="text-jules-accent hover:underline"

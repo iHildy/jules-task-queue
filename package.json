@@ -21,7 +21,7 @@
     "type-check": "tsc --noEmit",
     "cron:run": "curl -X POST http://localhost:3000/api/cron/retry --header 'Authorization: Bearer $CRON_SECRET'",
     "ngrok": "ngrok http 3000",
-    "tree": "tree -f -I \".next|node_modules|migrations\" -L 3a"
+    "tree": "tree -f -I \".next|node_modules|migrations\" -L 3"
   },
   "dependencies": {
     "@icons-pack/react-simple-icons": "^13.3.0",

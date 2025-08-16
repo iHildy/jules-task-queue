@@ -12,13 +12,13 @@ There are many ways to contribute, from writing tutorials or blog posts, improvi
 
 ### Reporting Bugs
 
-- **Ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/iHildy/jules-task-queue/issues).
-- If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/iHildy/jules-task-queue/issues/new?assignees=&labels=bug&template=bug_report.md&title=). Be sure to include a **title and clear description**, as much relevant information as possible, and a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring.
+- **Ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/ihildy/jules-task-queue/issues).
+- If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/ihildy/jules-task-queue/issues/new?assignees=&labels=bug&template=bug_report.md&title=). Be sure to include a **title and clear description**, as much relevant information as possible, and a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring.
 
 ### Suggesting Enhancements
 
-- **Ensure the enhancement was not already suggested** by searching on GitHub under [Issues](https://github.com/iHildy/jules-task-queue/issues).
-- If you're unable to find an open issue, [open a new one](https://github.com/iHildy/jules-task-queue/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=). Provide a clear description of the enhancement and its potential benefits.
+- **Ensure the enhancement was not already suggested** by searching on GitHub under [Issues](https://github.com/ihildy/jules-task-queue/issues).
+- If you're unable to find an open issue, [open a new one](https://github.com/ihildy/jules-task-queue/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=). Provide a clear description of the enhancement and its potential benefits.
 
 ### Pull Requests
 
@@ -74,7 +74,7 @@ Ready to start coding? Here's how to get the project running locally.
 
     You will need to set `DATABASE_URL` to point to your local Docker container:
     `DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"`
-    You will also need to [create a GitHub App](https://github.com/iHildy/jules-task-queue/blob/main/GITHUB_APP_SETUP.md) and fill in the corresponding `GITHUB_APP_*` variables.
+    You will also need to [create a GitHub App](https://github.com/ihildy/jules-task-queue/blob/main/GITHUB_APP_SETUP.md) and fill in the corresponding `GITHUB_APP_*` variables.
 
 5.  **Run Database Migrations:**
 

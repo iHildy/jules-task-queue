@@ -45,7 +45,7 @@ Automated task queue management for Jules interactions. Monitors issue labels an
 **Homepage URL:**
 
 ```
-https://github.com/iHildy/jules-task-queue
+https://github.com/ihildy/jules-task-queue
 ```
 
 **User authorization callback URL:**

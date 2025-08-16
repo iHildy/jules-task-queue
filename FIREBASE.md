@@ -65,7 +65,7 @@ You can either fork the repository or clone it directly:
 
 ```bash
 # Clone the repository
-git clone https://github.com/iHildy/jules-task-queue.git
+git clone https://github.com/ihildy/jules-task-queue.git
 cd jules-task-queue
 
 # Install dependencies
@@ -632,7 +632,7 @@ firebase functions:log --only retryTasks
 
 - **Firebase Documentation**: [firebase.google.com/docs/app-hosting](https://firebase.google.com/docs/app-hosting)
 - **Community Support**: [Firebase Discord](https://discord.gg/firebase)
-- **Project Issues**: [GitHub Issues](https://github.com/iHildy/jules-task-queue/issues)
+- **Project Issues**: [GitHub Issues](https://github.com/ihildy/jules-task-queue/issues)
 
 ## Migration from Other Platforms
 

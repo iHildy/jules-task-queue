@@ -14,7 +14,7 @@ The easiest way to self-host is using the provided Docker Compose setup:
 ### 2. Clone the repository
 
 ```bash
-git clone https://github.com/iHildy/jules-task-queue.git
+git clone https://github.com/ihildy/jules-task-queue.git
 cd jules-task-queue
 ```
 
