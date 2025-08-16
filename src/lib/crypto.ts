@@ -4,53 +4,46 @@ import logger from "@/lib/logger";
 
 const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
+const KEY = Buffer.from(env.TOKEN_ENCRYPTION_KEY, "hex");
 
+/**
+ * Encrypts a string using AES-256-CBC.
+ * The output format is "iv:encryptedText".
+ * @param text The string to encrypt.
+ * @returns The encrypted string.
+ */
 export function encrypt(text: string): string {
   const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(
-    ALGORITHM,
-    Buffer.from(env.TOKEN_ENCRYPTION_KEY, "hex"),
-    iv,
-  );
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString("hex") + ":" + encrypted.toString("hex");
+  const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
+  const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
+  return `${iv.toString("hex")}:${encrypted.toString("hex")}`;
 }
 
+/**
+ * Decrypts a string that was encrypted with the encrypt function.
+ * @param text The encrypted string ("iv:encryptedText").
+ * @returns The decrypted string, or null if decryption fails.
+ */
 export function decrypt(text: string): string | null {
   try {
-    if (!env.TOKEN_ENCRYPTION_KEY) {
-      logger.error("TOKEN_ENCRYPTION_KEY is not configured");
+    if (!text || typeof text !== "string" || !text.includes(":")) {
+      logger.error("Invalid input format for decryption");
       return null;
     }
 
-    if (!text || typeof text !== "string") {
-      logger.error("Invalid input: text must be a non-empty string");
+    const parts = text.split(":");
+    if (parts.length !== 2) {
+      logger.error("Invalid encrypted text format");
       return null;
     }
 
-    if (!text.includes(":")) {
-      logger.error("Invalid input format: missing ':' delimiter");
-      return null;
-    }
-
-    const textParts = text.split(":");
-    if (textParts.length < 2) {
-      logger.error("Invalid input format: insufficient parts after split");
-      return null;
-    }
-
-    const ivHex = textParts[0];
-    const encryptedHex = textParts.slice(1).join(":");
-
+    const [ivHex, encryptedHex] = parts;
     if (!ivHex || !encryptedHex) {
-      logger.error("Invalid input format: missing IV or encrypted text");
+      logger.error("IV or encrypted text is missing");
       return null;
     }
 
     const iv = Buffer.from(ivHex, "hex");
-    const encryptedText = Buffer.from(encryptedHex, "hex");
-
     if (iv.length !== IV_LENGTH) {
       logger.error(
         `Invalid IV length: expected ${IV_LENGTH}, got ${iv.length}`,
@@ -58,13 +51,12 @@ export function decrypt(text: string): string | null {
       return null;
     }
 
-    const decipher = crypto.createDecipheriv(
-      ALGORITHM,
-      Buffer.from(env.TOKEN_ENCRYPTION_KEY, "hex"),
-      iv,
-    );
-    let decrypted = decipher.update(encryptedText);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    const encryptedText = Buffer.from(encryptedHex, "hex");
+    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, iv);
+    const decrypted = Buffer.concat([
+      decipher.update(encryptedText),
+      decipher.final(),
+    ]);
     return decrypted.toString();
   } catch (error) {
     const errorMessage =

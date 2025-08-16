@@ -14,22 +14,22 @@ export const env = createEnv({
       .string()
       .min(1, "GITHUB_APP_PRIVATE_KEY is required")
       .transform((val) => {
-        if (
-          val.startsWith("-----BEGIN RSA PRIVATE KEY-----") ||
-          val.includes("\\n")
-        ) {
+        // If the key is provided in the raw PEM format, it may contain escaped newlines.
+        // We replace them with actual newlines to ensure it's a valid PEM string.
+        if (val.startsWith("-----BEGIN RSA PRIVATE KEY-----")) {
           return val.replace(/\\n/g, "\n");
         }
-        // It's not a raw PEM, assume it's base64 encoded
+        // If it's not in the raw format, we assume it's Base64-encoded.
+        // We decode it and ensure it has the correct PEM header.
         try {
           const decoded = Buffer.from(val, "base64").toString("utf-8");
           if (!decoded.startsWith("-----BEGIN RSA PRIVATE KEY-----")) {
-            throw new Error("Invalid Base64-decoded private key format");
+            throw new Error("Invalid Base64-decoded private key format.");
           }
           return decoded;
         } catch {
           throw new Error(
-            "Failed to decode GITHUB_APP_PRIVATE_KEY. Ensure it is a valid PEM or Base64-encoded string.",
+            "Failed to decode GITHUB_APP_PRIVATE_KEY. Ensure it is a valid PEM string or a Base64-encoded string.",
           );
         }
       }),
@@ -55,16 +55,16 @@ export const env = createEnv({
     // Cron Job Security
     CRON_SECRET: z.string().optional(),
 
-    // Token Encryption (AES-256-CBC requires 32-byte key, 64 hex characters)
+    // Token Encryption (AES-256-CBC requires a 32-byte key, which is 64 hex characters)
     TOKEN_ENCRYPTION_KEY: z
       .string()
-      .min(
+      .length(
         64,
-        "TOKEN_ENCRYPTION_KEY must be at least 64 hex characters (32 bytes) for AES-256-CBC",
+        "TOKEN_ENCRYPTION_KEY must be 64 hexadecimal characters (32 bytes) for AES-256-CBC.",
       )
       .regex(
-        /^[0-9a-fA-F]+$/,
-        "TOKEN_ENCRYPTION_KEY must be a valid hexadecimal string",
+        /^[0-9a-fA-F]{64}$/,
+        "TOKEN_ENCRYPTION_KEY must be a valid 64-character hexadecimal string.",
       ),
 
     // Optional: Custom processing settings
