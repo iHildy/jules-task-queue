@@ -2,7 +2,7 @@
 set -eo pipefail
 # Load environment variables from .env file if it exists
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    set -o allexport; source .env; set +o allexport
 fi
 
 # Check if CRON_SECRET is set
