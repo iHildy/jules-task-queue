@@ -40,43 +40,61 @@ export const tasksRouter = createTRPCRouter({
       };
     }),
 
-  // Get task statistics
-  stats: publicProcedure.query(async ({ ctx }) => {
-    const [totalTasks, queuedTasks, activeTasks, completedToday] =
-      await Promise.all([
-        // Total tasks
-        ctx.db.julesTask.count(),
+  // Get public project statistics
+  publicStats: publicProcedure.query(async ({ ctx }) => {
+    const [
+      totalTasks,
+      totalRetries,
+      queuedTasks,
+      activeTasks,
+      totalInstallations,
+      totalRepositories,
+    ] = await Promise.all([
+      // Total tasks ever created
+      ctx.db.julesTask.count(),
 
-        // Queued tasks (flagged for retry)
-        ctx.db.julesTask.count({
-          where: { flaggedForRetry: true },
-        }),
+      // Total retry count across all tasks
+      ctx.db.julesTask.aggregate({
+        _sum: { retryCount: true },
+      }),
 
-        // Active tasks (created in last hour, not flagged for retry)
-        ctx.db.julesTask.count({
-          where: {
-            flaggedForRetry: false,
-            createdAt: {
-              gte: new Date(Date.now() - 60 * 60 * 1000), // last hour
-            },
+      // Currently queued tasks (flagged for retry)
+      ctx.db.julesTask.count({
+        where: { flaggedForRetry: true },
+      }),
+
+      // Active tasks (created in last 24 hours, not flagged for retry)
+      ctx.db.julesTask.count({
+        where: {
+          flaggedForRetry: false,
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // last 24 hours
           },
-        }),
+        },
+      }),
 
-        // Completed today (approximate - tasks that were retried today)
-        ctx.db.julesTask.count({
-          where: {
-            lastRetryAt: {
-              gte: new Date(new Date().setHours(0, 0, 0, 0)), // start of today
-            },
-          },
-        }),
-      ]);
+      // Total GitHub installations
+      ctx.db.gitHubInstallation.count({
+        where: {
+          suspendedAt: null, // only active installations
+        },
+      }),
+
+      // Total repositories with active installations
+      ctx.db.installationRepository.count({
+        where: {
+          removedAt: null, // only active repositories
+        },
+      }),
+    ]);
 
     return {
       totalTasks,
+      totalRetries: totalRetries._sum.retryCount ?? 0,
       queuedTasks,
       activeTasks,
-      completedToday,
+      totalInstallations,
+      totalRepositories,
     };
   }),
 

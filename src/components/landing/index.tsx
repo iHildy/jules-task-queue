@@ -7,3 +7,4 @@ export { HeroSection } from "./hero-section";
 export { HowItWorks } from "./how-it-works";
 export { Navigation } from "./navigation";
 export { ProblemSection } from "./problem-section";
+export { StatsSection } from "./stats-section";
