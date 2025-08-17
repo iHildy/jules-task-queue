@@ -103,3 +103,13 @@ export const CleanupTasksSchema = z.object({
 export const SystemHealthSchema = z.object({
   includeDetails: z.boolean().default(false),
 });
+
+// Public stats schema
+export const PublicStatsSchema = z.object({
+  totalTasks: z.number(),
+  totalRetries: z.number(),
+  queuedTasks: z.number(),
+  activeTasks: z.number(),
+  totalInstallations: z.number(),
+  totalRepositories: z.number(),
+});

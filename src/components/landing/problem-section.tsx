@@ -11,7 +11,7 @@ export function ProblemSection() {
         </div>
 
         <blockquote className="text-lg sm:text-xl md:text-2xl italic text-center leading-relaxed text-white">
-          &ldquo;Jules gives you 60 tasks per day but only 5 concurrent slots.
+          &ldquo;Jules gives you 15 tasks per day but only 3 concurrent slots.*
           So you&rsquo;re constantly babysitting the queue, manually re-adding
           labels every time it hits the limit. There has to be a better
           way.&rdquo;

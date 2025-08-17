@@ -136,7 +136,7 @@ export function SuccessState({
                     Smart queue management:
                   </strong>{" "}
                   When you add the &quot;jules&quot; label to an issue,
-                  we&apos;ll automatically queue it and manage the 5-task limit.
+                  we&apos;ll automatically queue it and manage the 3-task limit.
                 </span>
               </li>
               <li className="flex items-start">

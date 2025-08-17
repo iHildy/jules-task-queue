@@ -19,11 +19,11 @@
 
 ---
 
-Jules Task Queue is a GitHub-integrated service that solves the "5 concurrent task" bottleneck when using the Google Labs - Jules AI coding assistant. It automatically queues tasks when Jules hits its limit and retries them later, allowing you to seamlessly utilize your full daily quota.
+Jules Task Queue is a GitHub-integrated service that solves the "3 concurrent task" bottleneck when using the Google Labs - Jules AI coding assistant. It automatically queues tasks when Jules hits its limit and retries them later, allowing you to seamlessly utilize your full daily quota.
 
-## The Problem: The 5-Task Bottleneck
+## The Problem: The 3-Task Bottleneck
 
-> "Jules gives you 60 tasks per day but only 5 concurrent slots. So you're constantly babysitting the queue, manually re-adding labels every time it hits the limit. There has to be a better way."
+> "Jules gives you 15 tasks per day but only 3 concurrent slots.\* So you're constantly babysitting the queue, manually re-adding labels every time it hits the limit. There has to be a better way."
 > — Every Jules power user, probably
 
 This tool is the better way. It transforms Jules from a tool you have to manage into a true "set it and forget it" automation partner.

@@ -6,6 +6,7 @@ import {
   HowItWorks,
   Navigation,
   ProblemSection,
+  StatsSection,
 } from "@/components/landing";
 
 export default function Home() {
@@ -14,6 +15,7 @@ export default function Home() {
       <Navigation />
       <HeroSection />
       <ProblemSection />
+      <StatsSection />
       <HowItWorks />
       <FeaturesSection />
       <CTASection />

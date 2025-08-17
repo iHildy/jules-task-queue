@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Google Jules Task Queue",
-  description: "Break free from the 5-task bottleneck and ship more.",
+  description: "Break free from the concurrent task bottleneck and ship more.",
 };
 
 export default function RootLayout({
