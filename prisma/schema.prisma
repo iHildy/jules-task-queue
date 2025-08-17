@@ -39,6 +39,7 @@ model JulesTask {
   @@index([repoOwner, repoName])
   @@index([createdAt])
   @@index([installationId])
+  @@index([flaggedForRetry, createdAt]) // Composite index for stats queries
   @@map("jules_tasks")
 }
 

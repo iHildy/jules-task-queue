@@ -57,9 +57,9 @@ export async function StatsSection() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-          {statItems.map((stat, index) => (
+          {statItems.map((stat) => (
             <Card
-              key={index}
+              key={stat.label}
               className={`border bg-jules-darker ${stat.borderColor}`}
             >
               <CardContent className="p-6 text-center">
