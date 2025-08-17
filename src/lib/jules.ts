@@ -17,6 +17,14 @@ import type {
 const JULES_BOT_USERNAMES = ["google-labs-jules[bot]", "google-labs-jules"];
 
 /**
+ * Comment patterns that indicate Jules has created a PR and is done
+ */
+const PR_CREATED_PATTERNS = [
+  "Ready for a review!",
+  "A [PR]", // Matches "A [PR](...)"
+];
+
+/**
  * Comment patterns that indicate Jules has hit task limits
  */
 const TASK_LIMIT_PATTERNS = [
@@ -42,24 +50,34 @@ export function analyzeComment(comment: GitHubComment): CommentAnalysis {
   let confidence = 0;
   let patterns_matched: string[] = [];
 
-  // Check for task limit patterns
-  const taskLimitMatches = TASK_LIMIT_PATTERNS.filter((pattern) =>
+  // Check for PR created patterns (highest priority)
+  const prCreatedMatches = PR_CREATED_PATTERNS.filter((pattern) =>
     body.includes(pattern.toLowerCase()),
   );
-  if (taskLimitMatches.length > 0) {
-    classification = "task_limit";
-    confidence = Math.min(1.0, taskLimitMatches.length * 0.4 + 0.4);
-    patterns_matched = taskLimitMatches;
-  }
+  if (prCreatedMatches.length > 0) {
+    classification = "completed";
+    confidence = 1.0; // High confidence for completion
+    patterns_matched = prCreatedMatches;
+  } else {
+    // Check for task limit patterns
+    const taskLimitMatches = TASK_LIMIT_PATTERNS.filter((pattern) =>
+      body.includes(pattern.toLowerCase()),
+    );
+    if (taskLimitMatches.length > 0) {
+      classification = "task_limit";
+      confidence = Math.min(1.0, taskLimitMatches.length * 0.4 + 0.4);
+      patterns_matched = taskLimitMatches;
+    }
 
-  // Check for working patterns (higher confidence than task limit)
-  const workingMatches = WORKING_PATTERNS.filter((pattern) =>
-    body.includes(pattern.toLowerCase()),
-  );
-  if (workingMatches.length > 0 && confidence < 0.8) {
-    classification = "working";
-    confidence = Math.min(1.0, workingMatches.length * 0.3 + 0.5);
-    patterns_matched = workingMatches;
+    // Check for working patterns (can override task limit)
+    const workingMatches = WORKING_PATTERNS.filter((pattern) =>
+      body.includes(pattern.toLowerCase()),
+    );
+    if (workingMatches.length > 0 && confidence < 0.8) {
+      classification = "working";
+      confidence = Math.min(1.0, workingMatches.length * 0.3 + 0.5);
+      patterns_matched = workingMatches;
+    }
   }
 
   return {
@@ -438,6 +456,81 @@ export async function handleTaskLimit(
 }
 
 /**
+ * Handle completed task scenario - mark as done and cleanup
+ */
+export async function handleCompleted(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  taskId: number,
+  analysis?: CommentAnalysis,
+  installationId?: number,
+): Promise<void> {
+  try {
+    logger.info(
+      `Handling completed task for ${owner}/${repo}#${issueNumber}`,
+    );
+
+    // Determine which label to remove
+    const issue = await githubClient.getIssue(
+      owner,
+      repo,
+      issueNumber,
+      installationId,
+    );
+    const labels =
+      issue.labels?.map((label) =>
+        (typeof label === "string" ? label : label.name)?.toLowerCase(),
+      ) || [];
+    const fromLabel = labels.includes("jules-queue") ? "jules-queue" : "jules";
+
+    // Swap labels: remove 'jules'/'jules-queue', add 'jules-done'
+    await githubClient.swapLabels(
+      owner,
+      repo,
+      issueNumber,
+      fromLabel,
+      "jules-done",
+      installationId,
+    );
+
+    // Add rocket emoji reaction to Jules' comment if analysis available
+    if (analysis?.comment) {
+      try {
+        await githubClient.addReactionToComment(
+          owner,
+          repo,
+          analysis.comment.id,
+          "rocket",
+          installationId,
+        );
+        logger.info(
+          `Added rocket emoji reaction to Jules comment for completed task`,
+        );
+      } catch (reactionError) {
+        logger.warn(`Failed to add rocket reaction: ${reactionError}`);
+      }
+    }
+
+    // Delete the task from the database
+    await db.julesTask.delete({
+      where: { id: taskId },
+    });
+    logger.info(`Deleted completed task ${taskId} from database.`);
+
+    logger.info(
+      `Successfully handled completed task: ${owner}/${repo}#${issueNumber}`,
+    );
+  } catch (error) {
+    logger.error(
+      { error },
+      `Failed to handle completed task for ${owner}/${repo}#${issueNumber}:`,
+    );
+    throw error;
+  }
+}
+
+/**
  * Enhanced working handler with validation
  */
 export async function handleWorking(
@@ -526,6 +619,16 @@ export async function processWorkflowDecision(
   );
 
   switch (action) {
+    case "completed":
+      await handleCompleted(
+        owner,
+        repo,
+        issueNumber,
+        taskId,
+        analysis,
+        installationId,
+      );
+      break;
     case "task_limit":
       await handleTaskLimit(
         owner,
