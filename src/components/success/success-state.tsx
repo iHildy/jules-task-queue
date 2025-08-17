@@ -176,7 +176,7 @@ export function SuccessState({
         <Card className="mb-8 bg-jules-primary/5 border-jules-primary/10">
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold text-white mb-3">
-              🚀 Ready to use your full 60 tasks per day?
+              🚀 Ready to use your full 15 tasks per day?
             </h3>
             <p className="text-jules-gray mb-4">
               Simply add the{" "}
