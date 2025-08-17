@@ -84,7 +84,18 @@ export function Footer() {
         <Separator className="my-8 bg-jules-primary" />
 
         <div className="text-center text-gray-400">
-          <p>MIT License. Built by the community, for the community.</p>
+          <p>
+            MIT License. Built by{" "}
+            <a
+              href="https://github.com/ihildy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:underline"
+            >
+              iHildy
+            </a>
+            , for the open source community.
+          </p>
         </div>
         <Disclaimer />
       </div>

@@ -54,9 +54,9 @@ const tasks = [
   {
     id: 344,
     title: "Add input validation to user registration form",
-    status: "completed",
+    status: "jules-done",
     statusText: "Completed 2 hours ago",
-    label: "completed",
+    label: "jules-done",
     icon: <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-jules-pink" />,
     bgColor: "bg-jules-pink-5",
     labelColor: "bg-jules-pink text-white",
