@@ -27,15 +27,15 @@ export function HowItWorks() {
           <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-jules-darker border-jules-primary">
             <TabsTrigger
               value="hosted"
-              className="data-[state=active]:bg-jules-primary text-white cursor-pointer"
+              className="data-[state=active]:bg-jules-primary text-white cursor-pointer font-semibold"
             >
-              Hosted
+              Hosted <span className="text-xs font-normal">(1min)</span>
             </TabsTrigger>
             <TabsTrigger
               value="self-hosted"
-              className="data-[state=active]:bg-jules-primary text-white cursor-pointer"
+              className="data-[state=active]:bg-jules-primary text-white cursor-pointer font-semibold"
             >
-              Self-Hosted
+              Self-Hosted <span className="text-xs font-normal">(15min)</span>
             </TabsTrigger>
           </TabsList>
 
@@ -98,7 +98,7 @@ export function HowItWorks() {
               </Card>
             </div>
 
-            <div className="text-center mt-8">
+            <div className="text-center mt-8 invisible">
               <Link
                 href="https://github.com/ihildy/jules-task-queue/blob/main/HOSTED.md"
                 className="inline-flex items-center text-jules-cyan hover:text-jules-cyan/80 transition-colors"
@@ -127,8 +127,8 @@ export function HowItWorks() {
                     </code>
                   </div>
                   <CardDescription className="text-gray-300">
-                    Set up GitHub token, webhook secret, database URL, and cron
-                    secret
+                    Create a GitHub app, setup a webhook secret, database URL,
+                    and cron secret
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -159,16 +159,16 @@ export function HowItWorks() {
                     3
                   </div>
                   <CardTitle className="text-xl text-white mb-4">
-                    Configure GitHub Webhooks
+                    Watch It Work
                   </CardTitle>
                   <div className="rounded-lg p-4 mb-4 bg-jules-dark">
-                    <code className="text-sm text-jules-accent">
-                      Repository → Settings → Webhooks
+                    <code className="text-sm text-jules-pink">
+                      Auto-retry every 30 minutes
                     </code>
                   </div>
                   <CardDescription className="text-gray-300">
-                    Add webhook URL pointing to your domain and enable
-                    &ldquo;Issues&rdquo; events
+                    Tasks that hit the limit are automatically queued and
+                    retried every 30 minutes
                   </CardDescription>
                 </CardContent>
               </Card>

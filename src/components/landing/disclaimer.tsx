@@ -13,6 +13,8 @@ export function Disclaimer() {
             community. We are not affiliated with Jules, Google, or Google Labs
             in any way. Jules Task Queue simply helps you manage your Jules task
             queue more efficiently.
+            <br />
+            <br />* All Jules limits stated are based on the free tier.
           </AlertDescription>
         </Alert>
       </div>

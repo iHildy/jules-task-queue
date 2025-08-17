@@ -24,7 +24,7 @@ export function ProblemSection() {
           <Card className="border bg-jules-darker border-jules-yellow">
             <CardContent className="p-6 text-center">
               <div className="text-3xl font-bold mb-2 text-jules-yellow">
-                60
+                15
               </div>
               <div className="text-white">Daily Tasks</div>
               <div className="text-sm text-gray-400 mt-2">
@@ -35,7 +35,7 @@ export function ProblemSection() {
 
           <Card className="border bg-jules-darker border-jules-pink">
             <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold mb-2 text-jules-pink">5</div>
+              <div className="text-3xl font-bold mb-2 text-jules-pink">3</div>
               <div className="text-white">Concurrent Limit</div>
               <div className="text-sm text-gray-400 mt-2">
                 The productivity bottleneck
@@ -47,9 +47,7 @@ export function ProblemSection() {
             <CardContent className="p-6 text-center">
               <div className="text-3xl font-bold mb-2 text-jules-cyan">∞</div>
               <div className="text-white">With Queue</div>
-              <div className="text-sm text-gray-400 mt-2">
-                True automation, finally
-              </div>
+              <div className="text-sm text-gray-400 mt-2">True automation</div>
             </CardContent>
           </Card>
         </div>
