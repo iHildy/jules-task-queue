@@ -10,12 +10,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useRepositoryStats } from "@/hooks/use-repository-stats";
 import { Copy, ExternalLink, Zap } from "lucide-react";
 import { useState } from "react";
 import { GitHubDashboard } from "./github-dashboard";
 
 export function HeroSection() {
   const [copied, setCopied] = useState<string | null>(null);
+  const { stats, isLoading } = useRepositoryStats();
 
   const copyToClipboard = async (text: string, id: string) => {
     await navigator.clipboard.writeText(text);
@@ -81,6 +83,19 @@ export function HeroSection() {
         </p>
 
         <GitHubDashboard />
+
+        {/* Stats validation */}
+        <div className="mb-6">
+          {!isLoading && stats && (
+            <p className="text-jules-gray text-sm">
+              Trusted by{" "}
+              <span className="font-semibold text-jules-cyan">
+                {stats.totalRepositories.toLocaleString()}
+              </span>{" "}
+              repositories
+            </p>
+          )}
+        </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-8">
           <GitHubInstallButton
