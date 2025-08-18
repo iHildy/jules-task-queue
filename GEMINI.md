@@ -46,12 +46,13 @@ You can use our hosted version for a zero-config setup or deploy your own instan
 
 ### Hosted Version (Recommended)
 
-1.  **Install the GitHub App**: Click the button below and authorize it for the repositories you want to use.
-2.  **Add the `jules` label** to any GitHub issue to start processing.
+1.  **Visit our website**: Go to [https://jules.hildy.io](https://jules.hildy.io) to get started with the hosted version.
+2.  **Follow the setup guide**: Complete the guided installation process for the GitHub App.
+3.  **Add the `jules` label** to any GitHub issue to start processing.
 
 <div align="center" style="margin: 2rem 0;">
-  <a href="https://github.com/apps/jules-task-queue/installations/new">
-    <img src="https://img.shields.io/badge/Install_GitHub_App-24292f?style=for-the-badge&logo=github&logoColor=white" alt="Install GitHub App" />
+  <a href="https://jules.hildy.io">
+    <img src="https://img.shields.io/badge/Get_Started-24292f?style=for-the-badge&logo=github&logoColor=white" alt="Get Started" />
   </a>
 </div>
 
