@@ -31,6 +31,11 @@ const JULES_LABELS: LabelDefinition[] = [
     color: "00d3f2", // Jules-cyan color from globals.css
     description: "Issues queued for Jules processing",
   },
+  {
+    name: "jules-done",
+    color: "e539a6", // Jules-done color
+    description: "Tasks completed by Jules",
+  },
 ];
 
 /**
