@@ -4,7 +4,7 @@
   <p align="center">
     An overengineered, enterprise-grade, open-source task queue for Jules power users.
     <br />
-    <a href="https://julesqueue.hildy.io/">Visit Site</a>
+    <a href="https://jules.hildy.io/">Visit Site</a>
     ·
     <a href="https://github.com/ihildy/jules-task-queue/issues/new?assignees=&labels=bug&template=bug_report.md&title=">Report Bug</a>
     ·
