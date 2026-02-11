@@ -704,12 +704,14 @@ export async function retryAllFlaggedTasks(
   };
 
   // Concurrency-limited processing
-  const queue = [...flaggedTasks];
+  let currentIndex = 0;
   const workers: Promise<void>[] = [];
 
   const runWorker = async () => {
-    while (queue.length > 0) {
-      const task = queue.shift();
+    while (true) {
+      const index = currentIndex++;
+      if (index >= flaggedTasks.length) break;
+      const task = flaggedTasks[index];
       if (!task) break;
       try {
         const success = await processTaskRetry(task.id);
