@@ -31,6 +31,11 @@ const TASK_LIMIT_PATTERNS = [
 const WORKING_PATTERNS = ["When finished, you will see another comment"];
 
 /**
+ * Comment patterns that indicate Jules has completed a task
+ */
+const COMPLETED_PATTERNS = ["Ready for a review!"];
+
+/**
  * Enhanced comment analysis with confidence scoring
  */
 export function analyzeComment(comment: GitHubComment): CommentAnalysis {
@@ -60,6 +65,16 @@ export function analyzeComment(comment: GitHubComment): CommentAnalysis {
     classification = "working";
     confidence = Math.min(1.0, workingMatches.length * 0.3 + 0.5);
     patterns_matched = workingMatches;
+  }
+
+  // Check for completed patterns (highest confidence)
+  const completedMatches = COMPLETED_PATTERNS.filter((pattern) =>
+    body.includes(pattern.toLowerCase()),
+  );
+  if (completedMatches.length > 0) {
+    classification = "completed";
+    confidence = Math.min(1.0, completedMatches.length * 0.5 + 0.5);
+    patterns_matched = completedMatches;
   }
 
   return {
@@ -502,6 +517,81 @@ export async function handleWorking(
 }
 
 /**
+ * Handle completed task - add jules-done label
+ */
+export async function handleCompleted(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  taskId: number,
+  analysis?: CommentAnalysis,
+  installationId?: number,
+): Promise<void> {
+  try {
+    logger.info(
+      `Handling completed status for ${owner}/${repo}#${issueNumber}, confidence: ${
+        analysis?.confidence || "unknown"
+      }`,
+    );
+
+    // Validate current state
+    const currentTask = await db.julesTask.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!currentTask) {
+      throw new Error(`Task ${taskId} not found in database`);
+    }
+
+    // Ensure task is not flagged for retry
+    if (currentTask.flaggedForRetry) {
+      await db.julesTask.update({
+        where: { id: taskId },
+        data: {
+          flaggedForRetry: false,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    // Add 'jules-done' label
+    await githubClient.addLabel(
+      owner,
+      repo,
+      issueNumber,
+      "jules-done",
+      installationId,
+    );
+
+    // Add rocket emoji reaction to Jules' comment if analysis available
+    if (analysis?.comment) {
+      try {
+        await githubClient.addReactionToComment(
+          owner,
+          repo,
+          analysis.comment.id,
+          "rocket",
+          installationId,
+        );
+        logger.info(
+          `Added rocket emoji reaction to Jules comment for completed status`,
+        );
+      } catch (reactionError) {
+        logger.warn(`Failed to add rocket reaction: ${reactionError}`);
+      }
+    }
+
+    logger.info(`Jules has completed task: ${owner}/${repo}#${issueNumber}`);
+  } catch (error) {
+    logger.error(
+      { error },
+      `Failed to handle completed status for ${owner}/${repo}#${issueNumber}:`,
+    );
+    throw error;
+  }
+}
+
+/**
  * Enhanced workflow processor with comprehensive decision logic
  */
 export async function processWorkflowDecision(
@@ -539,6 +629,17 @@ export async function processWorkflowDecision(
 
     case "working":
       await handleWorking(
+        owner,
+        repo,
+        issueNumber,
+        taskId,
+        analysis,
+        installationId,
+      );
+      break;
+
+    case "completed":
+      await handleCompleted(
         owner,
         repo,
         issueNumber,
